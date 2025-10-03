@@ -368,7 +368,6 @@ export default function SignUpPage() {
               </>
             )}
 
-            {/* Modern Step Indicator */}
             {currentStep === 1 ? (
               <div className="w-full max-w-xs mx-auto">
                 {/* Progress Bar Background */}
