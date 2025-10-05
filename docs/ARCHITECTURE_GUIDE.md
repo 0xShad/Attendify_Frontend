@@ -55,25 +55,25 @@ Attendify Frontend is built with **Next.js 15.5.4** using the **App Router** wit
 │                       Browser (Client)                      │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────┐  │
-│  │   Pages      │  │  Components  │  │   Hooks         │  │
-│  │              │  │              │  │                 │  │
-│  │ • Login      │  │ • UI         │  │ • useAuth       │  │
-│  │ • Dashboard  │  │ • Forms      │  │ • useMobile     │  │
-│  │ • Profile    │  │ • Layout     │  │                 │  │
-│  └──────┬───────┘  └──────────────┘  └────────┬────────┘  │
-│         │                                      │           │
-│         └──────────────────┬───────────────────┘           │
+│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────┐    │
+│  │   Pages      │  │  Components  │  │   Hooks         │    │
+│  │              │  │              │  │                 │    │
+│  │ • Login      │  │ • UI         │  │ • useAuth       │    │
+│  │ • Dashboard  │  │ • Forms      │  │ • useMobile     │    │
+│  │ • Profile    │  │ • Layout     │  │                 │    │
+│  └──────┬───────┘  └──────────────┘  └────────┬────────┘    │
+│         │                                      │            │
+│         └──────────────────┬───────────────────┘            │
 │                            ↓                                │
-│                   ┌─────────────────┐                      │
-│                   │  Auth Context   │                      │
-│                   │  (Global State) │                      │
-│                   └────────┬────────┘                      │
+│                   ┌─────────────────┐                       │
+│                   │  Auth Context   │                       │
+│                   │  (Global State) │                       │
+│                   └────────┬────────┘                       │
 │                            ↓                                │
-│                   ┌─────────────────┐                      │
-│                   │   Auth API      │                      │
-│                   │   Client        │                      │
-│                   └────────┬────────┘                      │
+│                   ┌─────────────────┐                       │
+│                   │   Auth API      │                       │
+│                   │   Client        │                       │
+│                   └────────┬────────┘                       │
 │                            │                                │
 └────────────────────────────┼────────────────────────────────┘
                              │
@@ -115,14 +115,14 @@ Attendify Frontend is built with **Next.js 15.5.4** using the **App Router** wit
 ┌────────────────────────────┼────────────────────────────────┐
 │                            ↓                                │
 │                  Backend API Server                         │
-│                  (FastAPI/Django)                           │
+│                      (FastAPI)                              │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  • /api/v1/auth/register/initiate                          │
-│  • /api/v1/auth/register/verify                            │
-│  • /api/v1/auth/login/initiate                             │
-│  • /api/v1/auth/login/verify                               │
-│  • /api/v1/users/me                                        │
+│  • /api/v1/auth/register/initiate                           │
+│  • /api/v1/auth/register/verify                             │
+│  • /api/v1/auth/login/initiate                              │
+│  • /api/v1/auth/login/verify                                │
+│  • /api/v1/users/me                                         │
 │  • ...                                                      │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
