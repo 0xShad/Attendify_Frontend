@@ -7,6 +7,7 @@ import { z } from "zod";
 
 // ==================== API Configuration ====================
 const AUTH_API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8000/api/v1/auth";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 const AUTH_ENDPOINTS = {
   // Registration endpoints
   REGISTER_INITIATE: "/register/initiate",
@@ -22,7 +23,10 @@ const AUTH_ENDPOINTS = {
   REFRESH_TOKEN: "/refresh",
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password",
-  GET_USER: "/me",
+} as const;
+
+const USER_ENDPOINTS = {
+  ME: `${API_BASE_URL}/users/me`,
 } as const;
 
 // ==================== Request/Response Types ====================
@@ -99,40 +103,39 @@ export interface CheckAvailabilityResponse {
 
 // Login Types - Step 1: Initiate
 export const loginInitiateSchema = z.object({
-  username: z.string().min(3, "Username is required"),
+  username_or_email: z.string().min(3, "Username or email is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 export type LoginInitiateRequest = z.infer<typeof loginInitiateSchema>;
 
-export interface LoginInitiateResponse {
-  success: boolean;
+// Response when OTP is enabled
+export interface LoginInitiateOTPResponse {
   message: string;
-  data?: {
-    accessToken?: string;
-    refreshToken?: string;
-    user?: User;
-    requiresOTP?: boolean;
-    email?: string;
-  };
+  email: string;
+  expires_in_minutes: number;
+  remaining_attempts: number;
 }
+
+// Response when OTP is disabled (direct token)
+export interface LoginInitiateTokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export type LoginInitiateResponse = LoginInitiateOTPResponse | LoginInitiateTokenResponse;
 
 // Login Types - Step 2: Verify OTP (if required)
 export const loginVerifySchema = z.object({
-  email: z.string().email("Invalid email address"),
-  otp: z.string().length(6, "OTP must be 6 digits"),
+  username_or_email: z.string().min(1, "Username or email is required"),
+  code: z.string().length(6, "Code must be 6 digits"),
 });
 
 export type LoginVerifyRequest = z.infer<typeof loginVerifySchema>;
 
 export interface LoginVerifyResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    accessToken: string;
-    refreshToken: string;
-    user: User;
-  };
+  access_token: string;
+  token_type: string;
 }
 
 // User Type
@@ -283,10 +286,18 @@ class HttpClient {
       
       // Network or parsing errors
       console.error('❌ [HTTP CLIENT] Network/Parse error:', error);
-      throw new ApiError(
-        500,
-        error instanceof Error ? error.message : "Network error occurred"
-      );
+      
+      // Provide user-friendly error messages for common network errors
+      let errorMessage = "Network error occurred";
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
+          errorMessage = "Unable to connect to server. Please check your connection and try again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      throw new ApiError(500, errorMessage);
     }
   }
 
@@ -417,14 +428,27 @@ class AuthAPI {
     // Validate input
     loginInitiateSchema.parse(credentials);
 
+    console.log('🔐 [API] Sending login initiate request:', { 
+      username_or_email: credentials.username_or_email 
+    });
+
     const response = await this.client.post<LoginInitiateResponse>(
       AUTH_ENDPOINTS.LOGIN_INITIATE,
       credentials
     );
 
-    // Store tokens if login is complete (no OTP required)
-    if (response.success && response.data?.accessToken && response.data?.refreshToken) {
-      this.setTokens(response.data.accessToken, response.data.refreshToken);
+    console.log('🔐 [API] Login initiate response:', response);
+
+    // Check if we got a token directly (OTP disabled)
+    if ('access_token' in response) {
+      console.log('🔐 [API] Token received directly, storing token');
+      this.setTokens(response.access_token, response.access_token); // Backend uses single token
+    } else if ('message' in response && 'email' in response) {
+      console.log('🔐 [API] OTP response received:', {
+        message: response.message,
+        email: response.email,
+        expires_in_minutes: response.expires_in_minutes
+      });
     }
 
     return response;
@@ -438,31 +462,24 @@ class AuthAPI {
     // Validate input
     loginVerifySchema.parse(otpData);
 
+    console.log('🔐 [API] Sending login verify request:', { 
+      username_or_email: otpData.username_or_email 
+    });
+
     const response = await this.client.post<LoginVerifyResponse>(
       AUTH_ENDPOINTS.LOGIN_VERIFY,
       otpData
     );
 
-    // Store tokens after successful OTP verification
-    if (response.success && response.data) {
-      this.setTokens(response.data.accessToken, response.data.refreshToken);
-    }
+    console.log('🔐 [API] Login verify response:', response);
+
+    // Store token after successful OTP verification
+    this.setTokens(response.access_token, response.access_token);
 
     return response;
   }
 
   // ==================== OTHER AUTH OPERATIONS ====================
-
-  /**
-   * Logout user and clear tokens
-   */
-  async logout(): Promise<void> {
-    try {
-      await this.client.post(AUTH_ENDPOINTS.LOGOUT);
-    } finally {
-      this.clearTokens();
-    }
-  }
 
   /**
    * Refresh access token using refresh token
@@ -519,43 +536,62 @@ class AuthAPI {
    * Get current authenticated user
    */
   async getCurrentUser(): Promise<User> {
-    const response = await this.client.get<ApiResponse<User>>(
-      AUTH_ENDPOINTS.GET_USER
-    );
-
-    if (response.success && response.data) {
-      return response.data;
+    // Use full URL for /users/me endpoint
+    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+    
+    if (!token) {
+      throw new ApiError(401, "No authentication token");
     }
 
-    throw new ApiError(401, "Failed to get user data");
+    const response = await fetch(USER_ENDPOINTS.ME, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(
+        response.status,
+        error.detail || error.message || "Failed to get user data"
+      );
+    }
+
+    const user = await response.json();
+    return user;
   }
 
   // ==================== Token Management ====================
 
   private setTokens(accessToken: string, refreshToken: string): void {
     if (typeof window !== "undefined") {
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("refresh_token", refreshToken);
     }
   }
 
   private setAccessToken(accessToken: string): void {
     if (typeof window !== "undefined") {
-      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("access_token", accessToken);
     }
   }
 
   private getRefreshToken(): string | null {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("refreshToken");
+      return localStorage.getItem("refresh_token");
     }
     return null;
   }
 
-  private clearTokens(): void {
+  /**
+   * Clear authentication tokens from localStorage
+   */
+  clearTokens(): void {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
     }
   }
 
@@ -564,7 +600,7 @@ class AuthAPI {
    */
   isAuthenticated(): boolean {
     if (typeof window !== "undefined") {
-      return !!localStorage.getItem("accessToken");
+      return !!localStorage.getItem("access_token");
     }
     return false;
   }
@@ -574,7 +610,7 @@ class AuthAPI {
    */
   getAccessToken(): string | null {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("accessToken");
+      return localStorage.getItem("access_token");
     }
     return null;
   }

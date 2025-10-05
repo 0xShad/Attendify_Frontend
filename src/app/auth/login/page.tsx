@@ -29,6 +29,7 @@ export default function LoginPage() {
   const [otp, setOtp] = useState("");
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [connectionError, setConnectionError] = useState("");
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -36,17 +37,25 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setConnectionError(""); // Clear previous connection errors
 
     if (showOtpInput) {
-      // Step 2: Verify OTP
-      await loginVerify({ email: userEmail, otp });
+      // Step 2: Verify OTP - must use same username_or_email as initiate
+      console.log('🔐 [LOGIN] Verifying OTP with:', { username_or_email: username });
+      await loginVerify({ username_or_email: username, code: otp });
     } else {
       // Step 1: Initiate login
-      const result = await loginInitiate({ username, password });
+      console.log('🔐 [LOGIN] Initiating login with:', { username_or_email: username });
+      const result = await loginInitiate({ username_or_email: username, password });
+      
+      console.log('🔐 [LOGIN] Initiate result:', result);
       
       if (result.success && result.requiresOTP) {
+        console.log('🔐 [LOGIN] OTP required, showing OTP input');
         setShowOtpInput(true);
         setUserEmail(result.email || "");
+      } else {
+        console.log('🔐 [LOGIN] No OTP required or login failed');
       }
       // If no OTP required, user will be automatically redirected to dashboard
     }
@@ -55,12 +64,19 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
+        {/* Branding */}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900">Attendify</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            Facial Recognition Attendance System
+          </p>
+        </div>
 
         {/* Login Card */}
         <Card className="w-full bg-card text-card-foreground">
           <CardHeader className="space-y-1 pb-4">
             <h2 className="text-2xl font-bold text-center">
-              {showOtpInput ? "Verify OTP" : "Welcome Back"}
+              {showOtpInput ? "Verify OTP" : "Login"}
             </h2>
             <p className="text-sm text-gray-600 text-center">
               {showOtpInput 
@@ -72,6 +88,35 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
+              {connectionError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                  {connectionError}
+                </div>
+              )}
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                  {(() => {
+                    // Try to parse if it's a JSON string
+                    try {
+                      const parsed = JSON.parse(error);
+                      if (Array.isArray(parsed) && parsed.length > 0) {
+                        return (
+                          <ul className="list-disc list-inside space-y-1">
+                            {parsed.map((err: any, index: number) => (
+                              <li key={index}>{err.message}</li>
+                            ))}
+                          </ul>
+                        );
+                      }
+                    } catch {
+                      // Not JSON, display as is
+                    }
+                    return error;
+                  })()}
+                </div>
+              )}
+              
               {!showOtpInput ? (
                 <>
                   <div className="space-y-2">
@@ -121,29 +166,44 @@ export default function LoginPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex flex-col items-center space-y-4">
-                  <InputOTP
-                    maxLength={6}
-                    value={otp}
-                    onChange={(value) => setOtp(value)}
+                <>
+                  <div className="flex flex-col items-center space-y-4">
+                    <p className="text-sm text-gray-600">
+                      Enter the 6-digit verification code sent to:
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {userEmail}
+                    </p>
+                    <InputOTP
+                      maxLength={6}
+                      value={otp}
+                      onChange={(value) => setOtp(value)}
+                      disabled={isLoading}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setShowOtpInput(false);
+                      setOtp("");
+                    }}
                     disabled={isLoading}
                   >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
-              )}
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
-                  {error}
-                </div>
+                    Back to Login
+                  </Button>
+                </>
               )}
 
               <Button 
@@ -155,7 +215,7 @@ export default function LoginPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {showOtpInput ? "Verifying..." : "Signing In..."}
+                    {showOtpInput ? "Verifying OTP..." : "Signing In..."}
                   </>
                 ) : (
                   showOtpInput ? "Verify OTP" : "Sign In"

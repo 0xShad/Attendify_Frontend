@@ -5,6 +5,21 @@ import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import { DatePicker } from "@/components/ui/date-picker";
 
 // Debounce utility
 function debounce<T extends (...args: never[]) => void>(
@@ -21,21 +36,6 @@ function debounce<T extends (...args: never[]) => void>(
     timeout = setTimeout(later, wait);
   };
 }
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { DatePicker } from "@/components/ui/date-picker";
 
 type FormData = {
   firstName: string;

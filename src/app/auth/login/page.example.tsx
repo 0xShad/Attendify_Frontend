@@ -38,11 +38,11 @@ export default function LoginPageExample() {
     e.preventDefault();
     
     if (showOtpInput) {
-      // Step 2: Verify OTP
-      await loginVerify({ email: userEmail, otp });
+      // Step 2: Verify OTP - must use same username_or_email as initiate
+      await loginVerify({ username_or_email: username, code: otp });
     } else {
       // Step 1: Initiate login
-      const result = await loginInitiate({ username, password });
+      const result = await loginInitiate({ username_or_email: username, password });
       
       if (result.success && result.requiresOTP) {
         setShowOtpInput(true);

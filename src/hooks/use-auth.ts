@@ -56,13 +56,24 @@ export function useAuth(): UseAuthReturn {
     const initAuth = async () => {
       try {
         if (authAPI.isAuthenticated()) {
-          const user = await authAPI.getCurrentUser();
-          setState({
-            user,
-            isLoading: false,
-            isAuthenticated: true,
-            error: null,
-          });
+          try {
+            const user = await authAPI.getCurrentUser();
+            setState({
+              user,
+              isLoading: false,
+              isAuthenticated: true,
+              error: null,
+            });
+          } catch (error) {
+            // If getting user fails, still mark as authenticated but without user data
+            console.warn("Failed to get user data:", error);
+            setState({
+              user: null,
+              isLoading: false,
+              isAuthenticated: true,
+              error: null,
+            });
+          }
         } else {
           setState((prev) => ({ ...prev, isLoading: false }));
         }
@@ -172,44 +183,54 @@ export function useAuth(): UseAuthReturn {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
+      console.log('🔐 [HOOK] Calling loginInitiate API...');
       const response = await authAPI.loginInitiate(credentials);
       
-      if (response.success) {
-        // Check if OTP is required
-        if (response.data?.requiresOTP) {
-          setState((prev) => ({ ...prev, isLoading: false }));
-          
-          toast.info("OTP Required", {
-            description: "Please check your email for the verification code.",
-          });
+      console.log('🔐 [HOOK] Response received:', response);
+      console.log('🔐 [HOOK] Checking response type...');
+      console.log('🔐 [HOOK] Has message?', 'message' in response);
+      console.log('🔐 [HOOK] Has email?', 'email' in response);
+      console.log('🔐 [HOOK] Has access_token?', 'access_token' in response);
+      
+      // Check if OTP is required
+      if ('message' in response && 'email' in response) {
+        // OTP flow - response is LoginInitiateOTPResponse
+        console.log('🔐 [HOOK] OTP required! Setting state...');
+        setState((prev) => ({ ...prev, isLoading: false }));
+        
+        toast.info("OTP Required", {
+          description: response.message,
+        });
 
-          return { 
-            success: true, 
-            requiresOTP: true, 
-            email: response.data.email 
-          };
-        }
-
-        // Login complete - tokens already stored by authAPI
-        if (response.data?.user) {
-          setState({
-            user: response.data.user,
-            isLoading: false,
-            isAuthenticated: true,
-            error: null,
-          });
-          
-          toast.success("Login successful!", {
-            description: `Welcome back, ${response.data.user.username}!`,
-          });
-
-          router.push("/dashboard");
-          return { success: true, requiresOTP: false };
-        }
+        return { 
+          success: true, 
+          requiresOTP: true, 
+          email: response.email 
+        };
       }
 
-      throw new Error(response.message || "Login failed");
+      // Direct login - response is LoginInitiateTokenResponse
+      if ('access_token' in response) {
+        console.log('🔐 [HOOK] Token received, login complete!');
+        // Keep loading state true during redirect
+        setState((prev) => ({
+          ...prev,
+          isAuthenticated: true,
+          // isLoading stays true until redirect completes
+        }));
+        
+        toast.success("Login successful!", {
+          description: "Welcome back!",
+        });
+
+        router.push("/dashboard");
+        return { success: true, requiresOTP: false };
+      }
+
+      console.error('🔐 [HOOK] Unknown response format:', response);
+      throw new Error("Invalid response from server");
     } catch (error) {
+      console.error('🔐 [HOOK] Login error:', error);
       const errorMessage = error instanceof Error ? error.message : "Login failed";
       setState((prev) => ({
         ...prev,
@@ -236,23 +257,20 @@ export function useAuth(): UseAuthReturn {
     try {
       const response = await authAPI.loginVerify(otpData);
       
-      if (response.success && response.data) {
-        setState({
-          user: response.data.user,
-          isLoading: false,
-          isAuthenticated: true,
-          error: null,
-        });
-        
-        toast.success("Login successful!", {
-          description: `Welcome back, ${response.data.user.username}!`,
-        });
+      // Keep loading state true during redirect
+      setState((prev) => ({
+        ...prev,
+        isAuthenticated: true,
+        // isLoading stays true until redirect completes
+      }));
+      
+      toast.success("Login successful!", {
+        description: "Welcome back!",
+      });
 
-        router.push("/dashboard");
-        return true;
-      }
-
-      throw new Error(response.message || "OTP verification failed");
+      router.push("/dashboard");
+      // Loading will be set to false by the useEffect in the dashboard or by unmount
+      return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "OTP verification failed";
       setState((prev) => ({
@@ -276,7 +294,9 @@ export function useAuth(): UseAuthReturn {
     setState((prev) => ({ ...prev, isLoading: true }));
 
     try {
-      await authAPI.logout();
+      // No need to call backend since JWT is stateless
+      // Just clear tokens from localStorage
+      authAPI.clearTokens();
       
       setState({
         user: null,
@@ -289,7 +309,7 @@ export function useAuth(): UseAuthReturn {
       router.push("/auth/login");
     } catch (error) {
       console.error("Logout error:", error);
-      // Still clear local state even if API call fails
+      // Still clear local state even if there's an error
       setState({
         user: null,
         isLoading: false,
