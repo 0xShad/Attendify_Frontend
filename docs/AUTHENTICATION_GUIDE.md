@@ -28,7 +28,7 @@
 ```bash
 # .env.local
 NEXT_PUBLIC_AUTH_API_URL=http://localhost:8000/api/v1/auth
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_USER_API_URL=http://localhost:8000/api/v1/users
 ```
 
 ### Basic Usage

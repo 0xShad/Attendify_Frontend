@@ -268,7 +268,7 @@ Time 61s:  Backend call → Cache refreshed
 async function verifyToken(accessToken: string): Promise<boolean> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/users/me`,
+      `${process.env.NEXT_PUBLIC_USER_API_URL}/me`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -590,7 +590,7 @@ if (isProtectedRoute('/dashboard')) {
 
 1. **Verify environment variable:**
    ```bash
-   echo $NEXT_PUBLIC_API_URL
+   echo $NEXT_PUBLIC_USER_API_URL
    ```
 
 2. **Test endpoint manually:**

@@ -99,7 +99,7 @@ import { authAPI } from '@/lib/api/auth';
 
 NEXT_PUBLIC_AUTH_API_URL=http://localhost:8000/api/v1/auth}
 
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1```
+NEXT_PUBLIC_USER_API_URL=http://localhost:8000/api/v1/users```
 
 ```
 
@@ -338,7 +338,7 @@ All request data is validated using Zod schemas before being sent to the API:
 Configure the API base URL in your `.env.local`:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
+NEXT_PUBLIC_USER_API_URL=http://localhost:8000/api/v1/users
 ```
 
 ## TypeScript Types

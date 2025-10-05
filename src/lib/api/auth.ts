@@ -7,7 +7,7 @@ import { z } from "zod";
 
 // ==================== API Configuration ====================
 const AUTH_API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8000/api/v1/auth";
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_USER_API_URL || "http://localhost:8000/api/v1/users";
 const AUTH_ENDPOINTS = {
   // Registration endpoints
   REGISTER_INITIATE: "/register/initiate",
