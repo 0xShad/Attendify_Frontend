@@ -55,7 +55,10 @@ export function useAuth(): UseAuthReturn {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        if (authAPI.isAuthenticated()) {
+        // Check authentication (synchronous now - middleware handles protection)
+        const authenticated = authAPI.isAuthenticated();
+        
+        if (authenticated) {
           try {
             const user = await authAPI.getCurrentUser();
             setState({
@@ -294,9 +297,8 @@ export function useAuth(): UseAuthReturn {
     setState((prev) => ({ ...prev, isLoading: true }));
 
     try {
-      // No need to call backend since JWT is stateless
-      // Just clear tokens from localStorage
-      authAPI.clearTokens();
+      // Clear HTTP-only cookies via API endpoint
+      await authAPI.clearTokens();
       
       setState({
         user: null,
@@ -399,7 +401,9 @@ export function useAuth(): UseAuthReturn {
 
   // Refresh user data
   const refreshUser = useCallback(async () => {
-    if (!authAPI.isAuthenticated()) return;
+    // With middleware protection, if we're here, user is authenticated
+    const authenticated = authAPI.isAuthenticated();
+    if (!authenticated) return;
 
     try {
       const user = await authAPI.getCurrentUser();

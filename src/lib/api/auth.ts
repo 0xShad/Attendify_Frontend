@@ -442,7 +442,7 @@ class AuthAPI {
     // Check if we got a token directly (OTP disabled)
     if ('access_token' in response) {
       console.log('🔐 [API] Token received directly, storing token');
-      this.setTokens(response.access_token, response.access_token); // Backend uses single token
+      await this.setTokens(response.access_token, response.access_token); // Backend uses single token
     } else if ('message' in response && 'email' in response) {
       console.log('🔐 [API] OTP response received:', {
         message: response.message,
@@ -474,7 +474,7 @@ class AuthAPI {
     console.log('🔐 [API] Login verify response:', response);
 
     // Store token after successful OTP verification
-    this.setTokens(response.access_token, response.access_token);
+    await this.setTokens(response.access_token, response.access_token);
 
     return response;
   }
@@ -565,53 +565,61 @@ class AuthAPI {
 
   // ==================== Token Management ====================
 
-  private setTokens(accessToken: string, refreshToken: string): void {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("access_token", accessToken);
-      localStorage.setItem("refresh_token", refreshToken);
-    }
+  private async setTokens(accessToken: string, refreshToken: string): Promise<void> {
+    // Send tokens to our API route which will set HTTP-only cookies
+    await fetch('/api/auth/set-tokens', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ accessToken, refreshToken }),
+    });
   }
 
-  private setAccessToken(accessToken: string): void {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("access_token", accessToken);
+  private async setAccessToken(accessToken: string): Promise<void> {
+    // For refresh token flow, we need to get the existing refresh token
+    const refreshToken = this.getRefreshToken();
+    if (refreshToken) {
+      await this.setTokens(accessToken, refreshToken);
     }
   }
 
   private getRefreshToken(): string | null {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("refresh_token");
-    }
+    // Note: We can't directly read HTTP-only cookies from client-side
+    // This will be handled server-side during token refresh
     return null;
   }
 
   /**
-   * Clear authentication tokens from localStorage
+   * Clear authentication tokens from cookies
    */
-  clearTokens(): void {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-    }
+  async clearTokens(): Promise<void> {
+    await fetch('/api/auth/clear-tokens', {
+      method: 'POST',
+    });
   }
 
   /**
    * Check if user is authenticated
+   * Note: In HTTP-only cookie setup, authentication is primarily handled by middleware.
+   * This method is kept for backwards compatibility but always returns true on client.
+   * The middleware will redirect unauthenticated users before they reach protected pages.
    */
   isAuthenticated(): boolean {
-    if (typeof window !== "undefined") {
-      return !!localStorage.getItem("access_token");
-    }
-    return false;
+    // With HTTP-only cookies and server-side middleware protection,
+    // if the client code is running on a protected page, user is authenticated.
+    // Middleware blocks access before the page loads if not authenticated.
+    return true;
   }
 
   /**
-   * Get access token
+   * Get access token (not directly accessible due to HTTP-only cookies)
+   * This is kept for API compatibility but returns null
+   * Token is automatically sent with requests via cookies
    */
   getAccessToken(): string | null {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("access_token");
-    }
+    // HTTP-only cookies are automatically sent with fetch requests
+    // No need to manually include the token
     return null;
   }
 }

@@ -1,8 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/use-auth";
 import { AppSidebar } from "@/components/app-sidebar"
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable } from "@/components/data-table"
@@ -16,41 +13,8 @@ import {
 import data from "./data.json"
 
 export default function Page() {
-  const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
-
-  // TEMPORARILY DISABLED - Authentication check commented out for testing
-  // useEffect(() => {
-  //   // Redirect to login if not authenticated
-  //   if (!isLoading && !isAuthenticated) {
-  //     console.log('🔒 [DASHBOARD] User not authenticated, redirecting to login...');
-  //     router.replace("/auth/login");
-  //   }
-  // }, [isAuthenticated, isLoading, router]);
-
-  // // Show loading state while checking authentication
-  // if (isLoading) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-screen">
-  //       <div className="text-center">
-  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-  //         <p className="mt-4 text-gray-600">Loading...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
-  // // Don't render dashboard if not authenticated (prevents flash of content)
-  // if (!isAuthenticated) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-screen">
-  //       <div className="text-center">
-  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-  //         <p className="mt-4 text-gray-600">Redirecting...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  // Authentication is now handled by middleware (HTTP-based)
+  // No need for client-side auth checks - middleware redirects before this page loads
 
   return (
     <SidebarProvider
