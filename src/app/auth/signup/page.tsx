@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,13 +21,31 @@ import {
 } from "@/components/ui/input-otp";
 import { DatePicker } from "@/components/ui/date-picker";
 
+// Debounce utility
+function debounce<T extends (...args: never[]) => void>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout;
+  return function executedFunction(...args: Parameters<T>) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 type FormData = {
   firstName: string;
+  middleName: string;
   lastName: string;
   dateOfBirth: Date | undefined;
   contactNumber: string;
   studentNumber: string;
   email: string;
+  username: string;
   password: string;
   confirmPassword: string;
   otp: string;
@@ -35,47 +53,60 @@ type FormData = {
 
 type ValidationErrors = {
   firstName: string;
+  middleName: string;
   lastName: string;
   dateOfBirth: string;
   contactNumber: string;
   studentNumber: string;
   email: string;
+  username: string;
   password: string;
   confirmPassword: string;
   otp: string;
 };
 
 export default function SignUpPage() {
-  const router = useRouter();
+  const { registerInitiate, registerVerify, checkAvailability, isLoading, error: authError } = useAuth();
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [currentSubStep, setCurrentSubStep] = useState(1); // Sub-steps within registration
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
+    middleName: "",
     lastName: "",
     dateOfBirth: undefined,
     contactNumber: "",
     studentNumber: "",
     email: "",
+    username: "",
     password: "",
     confirmPassword: "",
     otp: "",
   });
   const [otpSent, setOtpSent] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string>("");
   const [errors, setErrors] = useState<ValidationErrors>({
     firstName: "",
+    middleName: "",
     lastName: "",
     dateOfBirth: "",
     contactNumber: "",
     studentNumber: "",
     email: "",
+    username: "",
     password: "",
     confirmPassword: "",
     otp: "",
   });
   const [resendTimer, setResendTimer] = useState(0);
   const [canResend, setCanResend] = useState(true);
+  const [availabilityChecking, setAvailabilityChecking] = useState({
+    email: false,
+    username: false,
+    studentNumber: false,
+  });
 
   // Timer effect for OTP resend
   useEffect(() => {
@@ -99,7 +130,7 @@ export default function SignUpPage() {
     if (!name.trim()) return "First name is required";
     if (name.trim().length < 2)
       return "First name must be at least 2 characters";
-    if (!/^[a-zA-Z]+$/.test(name)) return "First name can only contain letters";
+    if (!/^[a-zA-Z\s]+$/.test(name)) return "First name can only contain letters and spaces";
     return "";
   };
 
@@ -107,7 +138,17 @@ export default function SignUpPage() {
     if (!name.trim()) return "Last name is required";
     if (name.trim().length < 2)
       return "Last name must be at least 2 characters";
-    if (!/^[a-zA-Z]+$/.test(name)) return "Last name can only contain letters";
+    if (!/^[a-zA-Z\s]+$/.test(name)) return "Last name can only contain letters and spaces";
+    return "";
+  };
+
+  const validateMiddleName = (name: string): string => {
+    // Middle name is optional, so only validate if provided
+    if (name && name.trim()) {
+      if (name.trim().length < 2)
+        return "Middle name must be at least 2 characters";
+      if (!/^[a-zA-Z\s]+$/.test(name)) return "Middle name can only contain letters and spaces";
+    }
     return "";
   };
 
@@ -171,6 +212,17 @@ export default function SignUpPage() {
     return "";
   };
 
+  const validateUsername = (username: string): string => {
+    if (!username.trim()) return "Username is required";
+    if (username.trim().length < 3)
+      return "Username must be at least 3 characters";
+    if (username.trim().length > 20)
+      return "Username must be at most 20 characters";
+    if (!/^[a-zA-Z0-9_]+$/.test(username))
+      return "Username can only contain letters, numbers, and underscores";
+    return "";
+  };
+
   const validateOTP = (otp: string): string => {
     if (!otp) return "Verification code is required";
     if (otp.length !== 6) return "Verification code must be 6 digits";
@@ -188,6 +240,9 @@ export default function SignUpPage() {
       case "firstName":
         error = validateFirstName(value);
         break;
+      case "middleName":
+        error = validateMiddleName(value);
+        break;
       case "lastName":
         error = validateLastName(value);
         break;
@@ -196,9 +251,18 @@ export default function SignUpPage() {
         break;
       case "studentNumber":
         error = validateStudentNumber(value);
+        // Clear availability error when user changes field
+        if (availabilityError) setAvailabilityError("");
         break;
       case "email":
         error = validateEmail(value);
+        // Clear availability error when user changes field
+        if (availabilityError) setAvailabilityError("");
+        break;
+      case "username":
+        error = validateUsername(value);
+        // Clear availability error when user changes field
+        if (availabilityError) setAvailabilityError("");
         break;
       case "password":
         error = validatePassword(value);
@@ -224,13 +288,11 @@ export default function SignUpPage() {
     setErrors((prev) => ({ ...prev, [field]: error }));
   };
 
-  const handleNextSubStep = () => {
-    let fieldsToValidate: string[] = [];
+  const handleNextSubStep = async () => {
     let hasErrors = false;
 
     // Validate current sub-step fields
     if (currentSubStep === 1) {
-      fieldsToValidate = ["firstName", "lastName", "dateOfBirth"];
       const firstNameError = validateFirstName(formData.firstName);
       const lastNameError = validateLastName(formData.lastName);
       const dateError = validateDateOfBirth(formData.dateOfBirth);
@@ -244,21 +306,57 @@ export default function SignUpPage() {
 
       hasErrors = !!(firstNameError || lastNameError || dateError);
     } else if (currentSubStep === 2) {
-      fieldsToValidate = ["contactNumber", "studentNumber", "email"];
       const contactError = validateContactNumber(formData.contactNumber);
       const studentError = validateStudentNumber(formData.studentNumber);
       const emailError = validateEmail(formData.email);
+      const usernameError = validateUsername(formData.username);
 
       setErrors((prev) => ({
         ...prev,
         contactNumber: contactError,
         studentNumber: studentError,
         email: emailError,
+        username: usernameError,
       }));
 
-      hasErrors = !!(contactError || studentError || emailError);
+      hasErrors = !!(contactError || studentError || emailError || usernameError);
+      
+      // If validation passes, check availability
+      if (!hasErrors) {
+        setAvailabilityChecking({ email: true, username: true, studentNumber: true });
+        setAvailabilityError(""); // Clear previous availability errors
+        
+        try {
+          const result = await checkAvailability({
+            email: formData.email,
+            username: formData.username,
+            student_number: formData.studentNumber,
+          });
+
+          // Check each field's availability
+          if (result.email_available === false) {
+            setErrors((prev) => ({ ...prev, email: 'This email is already registered' }));
+            hasErrors = true;
+          }
+          
+          if (result.username_available === false) {
+            setErrors((prev) => ({ ...prev, username: 'This username is already taken' }));
+            hasErrors = true;
+          }
+          
+          if (result.student_number_available === false) {
+            setErrors((prev) => ({ ...prev, studentNumber: 'This student number is already registered' }));
+            hasErrors = true;
+          }
+        } catch (error) {
+          console.error('Availability check failed:', error);
+          hasErrors = true;
+          setAvailabilityError('Unable to connect to server. Please check your connection and try again.');
+        } finally {
+          setAvailabilityChecking({ email: false, username: false, studentNumber: false });
+        }
+      }
     } else if (currentSubStep === 3) {
-      fieldsToValidate = ["password", "confirmPassword"];
       const passwordError = validatePassword(formData.password);
       const confirmError = validateConfirmPassword(
         formData.confirmPassword,
@@ -281,8 +379,10 @@ export default function SignUpPage() {
     if (currentSubStep < 3) {
       setCurrentSubStep(currentSubStep + 1);
     } else {
-      // Move to email verification step
+      // Move to email verification step and automatically send OTP
       setCurrentStep(2);
+      // Automatically send OTP
+      await handleEmailSubmit();
     }
   };
 
@@ -300,25 +400,67 @@ export default function SignUpPage() {
     }
   };
 
-  const handleEmailSubmit = () => {
-    // Email is already validated in step 1
-    setOtpSent(true);
-    setCanResend(false);
-    setResendTimer(60);
-    // Here you would typically send OTP to the email
+  const handleEmailSubmit = async () => {
+    // Validate email before sending
+    const emailError = validateEmail(formData.email);
+    if (emailError) {
+      setErrors((prev) => ({ ...prev, email: emailError }));
+      return;
+    }
+
+    // Prepare the data
+    const registrationData = {
+      email: formData.email,
+      username: formData.username,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+      firstname: formData.firstName,
+      middlename: formData.middleName || null,
+      lastname: formData.lastName,
+    };
+
+    console.log('📤 Sending registration data:', {
+      ...registrationData,
+      password: '***REDACTED***',
+      confirmPassword: '***REDACTED***',
+    });
+
+    // Call API to initiate registration and send OTP
+    const result = await registerInitiate(registrationData);
+
+    console.log('✅ Registration initiate result:', JSON.stringify(result, null, 2));
+
+    if (result.success) {
+      console.log('🎯 Setting otpSent to true');
+      setOtpSent(true);
+      setCanResend(false);
+      setResendTimer(60);
+    } else {
+      console.log('❌ Registration failed, otpSent remains false');
+    }
   };
 
-  const handleResendOTP = () => {
-    if (!canResend) return;
+  const handleResendOTP = async () => {
+    if (!canResend || isLoading) return;
 
-    // Resend OTP logic
-    setOtpSent(true);
-    setCanResend(false);
-    setResendTimer(60);
-    alert("OTP sent to your email!");
+    // Call API to resend OTP
+    const result = await registerInitiate({
+      email: formData.email,
+      username: formData.username,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+      firstname: formData.firstName,
+      middlename: formData.middleName || null, // Send null if empty
+      lastname: formData.lastName,
+    });
+
+    if (result.success) {
+      setCanResend(false);
+      setResendTimer(60);
+    }
   };
 
-  const handleCreateAccount = () => {
+  const handleCreateAccount = async () => {
     const otpError = validateOTP(formData.otp);
     setErrors((prev) => ({ ...prev, otp: otpError }));
 
@@ -326,10 +468,15 @@ export default function SignUpPage() {
       return;
     }
 
-    // Create account logic
-    alert("Account created successfully!");
-    // Redirect to dashboard
-    router.push("/dashboard");
+    // Verify OTP and create account
+    const success = await registerVerify({
+      email: formData.email,
+      code: formData.otp,
+    });
+
+    if (success) {
+      // User will be redirected to login page by the auth hook
+    }
   };
 
   return (
@@ -483,6 +630,29 @@ export default function SignUpPage() {
                     </div>
 
                     <div className="space-y-2">
+                      <Label htmlFor="middleName">Middle Name (Optional)</Label>
+                      <Input
+                        id="middleName"
+                        type="text"
+                        placeholder="Enter your middle name"
+                        className={`w-full border-[#e1eaef] placeholder:text-gray-400 placeholder:text-sm ${
+                          errors.middleName
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            : ""
+                        }`}
+                        value={formData.middleName}
+                        onChange={(e) =>
+                          handleInputChange("middleName", e.target.value)
+                        }
+                      />
+                      {errors.middleName && (
+                        <p className="text-sm text-red-500">
+                          {errors.middleName}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="lastName">Last Name</Label>
                       <Input
                         id="lastName"
@@ -545,6 +715,12 @@ export default function SignUpPage() {
                 {/* Sub-Step 2: Contact Information */}
                 {currentSubStep === 2 && (
                   <div className="space-y-4">
+                    {availabilityError && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                        {availabilityError}
+                      </div>
+                    )}
+                    
                     <div className="space-y-2">
                       <Label htmlFor="contactNumber">Contact Number</Label>
                       <Input
@@ -617,16 +793,50 @@ export default function SignUpPage() {
                       )}
                     </div>
 
+                    <div className="space-y-2">
+                      <Label htmlFor="username">Username</Label>
+                      <Input
+                        id="username"
+                        type="text"
+                        placeholder="Choose a username"
+                        className={`w-full placeholder:text-gray-400 placeholder:text-sm ${
+                          errors.username
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            : ""
+                        }`}
+                        value={formData.username}
+                        onChange={(e) =>
+                          handleInputChange("username", e.target.value)
+                        }
+                        required
+                      />
+                      {errors.username && (
+                        <p className="text-sm text-red-500">{errors.username}</p>
+                      )}
+                    </div>
+
                     <div className="flex gap-3">
                       <Button
                         variant="outline"
                         className="flex-1"
                         onClick={handlePreviousSubStep}
+                        disabled={availabilityChecking.email || availabilityChecking.username || availabilityChecking.studentNumber}
                       >
                         Back
                       </Button>
-                      <Button className="flex-1" onClick={handleNextSubStep}>
-                        Continue
+                      <Button 
+                        className="flex-1" 
+                        onClick={handleNextSubStep}
+                        disabled={availabilityChecking.email || availabilityChecking.username || availabilityChecking.studentNumber}
+                      >
+                        {(availabilityChecking.email || availabilityChecking.username || availabilityChecking.studentNumber) ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Checking availability...
+                          </>
+                        ) : (
+                          "Continue"
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -741,26 +951,41 @@ export default function SignUpPage() {
                   <>
                     <div className="text-center space-y-4">
                       <p className="text-sm text-gray-600">
-                        We will send a 6-digit verification code to
+                        Sending verification code to
                       </p>
                       <p className="text-sm font-medium text-gray-900">
                         {formData.email}
                       </p>
                     </div>
 
+                    {authError && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                        {authError}
+                      </div>
+                    )}
+
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button
                         variant="outline"
                         className="flex-1 order-2 sm:order-1"
                         onClick={handleBackStep}
+                        disabled={isLoading}
                       >
                         Back
                       </Button>
                       <Button
                         className="flex-1 order-1 sm:order-2"
                         onClick={handleEmailSubmit}
+                        disabled={isLoading}
                       >
-                        Send OTP
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Sending OTP...
+                          </>
+                        ) : (
+                          "Resend OTP"
+                        )}
                       </Button>
                     </div>
                   </>
@@ -768,7 +993,7 @@ export default function SignUpPage() {
                   <>
                     <div className="text-center space-y-4">
                       <p className="text-sm text-gray-600">
-                        We've sent a 6-digit verification code to
+                        We&apos;ve sent a 6-digit verification code to
                       </p>
                       <p className="text-sm font-medium text-gray-900">
                         {formData.email}
@@ -820,19 +1045,27 @@ export default function SignUpPage() {
                       )}
                     </div>
 
+                    {authError && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                        {authError}
+                      </div>
+                    )}
+
                     <div className="text-center">
                       <p className="text-sm text-gray-600">
-                        Didn't receive the code?{" "}
+                        Didn&apos;t receive the code?{" "}
                         <button
                           onClick={handleResendOTP}
-                          disabled={!canResend}
+                          disabled={!canResend || isLoading}
                           className={`font-medium transition-colors ${
-                            canResend
+                            canResend && !isLoading
                               ? "text-blue-600 hover:text-blue-500 cursor-pointer"
                               : "text-gray-400 cursor-not-allowed"
                           }`}
                         >
-                          {canResend
+                          {isLoading
+                            ? "Sending..."
+                            : canResend
                             ? "Resend OTP"
                             : `Resend in ${resendTimer}s`}
                         </button>
@@ -844,14 +1077,23 @@ export default function SignUpPage() {
                         variant="outline"
                         className="flex-1 order-2 sm:order-1"
                         onClick={handleBackStep}
+                        disabled={isLoading}
                       >
                         Back
                       </Button>
                       <Button
                         className="flex-1 order-1 sm:order-2"
                         onClick={handleCreateAccount}
+                        disabled={isLoading || formData.otp.length !== 6}
                       >
-                        Verify & Create Account
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Verifying...
+                          </>
+                        ) : (
+                          "Verify & Create Account"
+                        )}
                       </Button>
                     </div>
                   </>
