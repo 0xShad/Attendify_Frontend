@@ -1,71 +1,139 @@
-# Authentication API Documentation
+# API Client# Authentication API Documentation
 
-## Overview
 
-This directory contains the authentication API client for the Attendify Frontend application. It provides a type-safe, validated interface for all authentication-related operations.
 
-## Features
+This directory contains the API client implementation for Attendify Frontend.## Overview
+
+
+
+## Quick ReferenceThis directory contains the authentication API client for the Attendify Frontend application. It provides a type-safe, validated interface for all authentication-related operations.
+
+
+
+```typescript## Features
+
+import { authAPI } from '@/lib/api';
 
 - ✅ Type-safe API calls with TypeScript
-- ✅ Request validation using Zod schemas
-- ✅ Automatic token management (access & refresh tokens)
+
+// Check authentication status- ✅ Request validation using Zod schemas
+
+const isLoggedIn = authAPI.isAuthenticated();- ✅ Automatic token management (access & refresh tokens)
+
 - ✅ Error handling with custom ApiError class
-- ✅ JWT token refresh mechanism
-- ✅ LocalStorage-based token persistence
 
-## Structure
+// Get current user- ✅ JWT token refresh mechanism
 
-```
+const user = await authAPI.getCurrentUser();- ✅ LocalStorage-based token persistence
+
+
+
+// Clear tokens on logout## Structure
+
+authAPI.clearTokens();
+
+``````
+
 src/lib/api/
-├── auth.ts       # Main authentication API client
+
+## Full Documentation├── auth.ts       # Main authentication API client
+
 ├── index.ts      # Central export point
-└── README.md     # This file
-```
 
-## Usage
+For complete authentication documentation, see:└── README.md     # This file
 
-### Basic Import
+📖 **[docs/AUTHENTICATION.md](../../../docs/AUTHENTICATION.md)**```
 
-```typescript
-import { authAPI } from '@/lib/api';
-```
 
-### Login Example
 
-```typescript
+## Files## Usage
+
+
+
+- **auth.ts** - Authentication API client (500+ lines)### Basic Import
+
+  - Login/Registration flows
+
+  - Token management```typescript
+
+  - HTTP client with error handlingimport { authAPI } from '@/lib/api';
+
+  - Zod schema validation```
+
+  
+
+- **index.ts** - Central export point### Login Example
+
+
+
+## Key Features```typescript
+
 import { authAPI } from '@/lib/api/auth';
 
-try {
-  const response = await authAPI.login({
-    email: 'student@example.com',
-    password: 'SecurePassword123'
-  });
+✅ Type-safe TypeScript API  
+
+✅ Zod request validation  try {
+
+✅ Automatic token injection    const response = await authAPI.login({
+
+✅ Custom error handling      email: 'student@example.com',
+
+✅ localStorage persistence      password: 'SecurePassword123'
+
+✅ JWT authentication    });
+
   
-  console.log('User:', response.data.user);
+
+## Environment Setup  console.log('User:', response.data.user);
+
   // Tokens are automatically stored
-} catch (error) {
-  console.error('Login failed:', error.message);
-}
+
+```bash} catch (error) {
+
+# .env.local  console.error('Login failed:', error.message);
+
+NEXT_PUBLIC_AUTH_API_URL=http://localhost:8000/api/v1/auth}
+
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1```
+
 ```
 
 ### Signup Example
 
-```typescript
-import { authAPI } from '@/lib/api/auth';
+## Usage Pattern
 
-try {
-  const response = await authAPI.signup({
+```typescript
+
+Instead of using `authAPI` directly, use the `useAuth()` hook:import { authAPI } from '@/lib/api/auth';
+
+
+
+```typescripttry {
+
+import { useAuth } from '@/hooks/use-auth';  const response = await authAPI.signup({
+
     firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    password: 'SecurePassword123',
-    confirmPassword: 'SecurePassword123',
-    studentNumber: '2024001',
-    contactNumber: '+1234567890',
+
+function MyComponent() {    lastName: 'Doe',
+
+  const { loginInitiate, user, isAuthenticated } = useAuth();    email: 'john.doe@example.com',
+
+      password: 'SecurePassword123',
+
+  // Hook handles all API calls + state management    confirmPassword: 'SecurePassword123',
+
+}    studentNumber: '2024001',
+
+```    contactNumber: '+1234567890',
+
     dateOfBirth: '2000-01-01'
-  });
+
+---  });
+
   
-  console.log('Signup successful:', response.data);
+
+**For detailed examples, flows, and troubleshooting, see the main [Authentication Guide](../../../docs/AUTHENTICATION.md).**  console.log('Signup successful:', response.data);
+
 } catch (error) {
   console.error('Signup failed:', error.message);
 }
