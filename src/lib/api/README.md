@@ -1,0 +1,295 @@
+# Authentication API Documentation
+
+## Overview
+
+This directory contains the authentication API client for the Attendify Frontend application. It provides a type-safe, validated interface for all authentication-related operations.
+
+## Features
+
+- ✅ Type-safe API calls with TypeScript
+- ✅ Request validation using Zod schemas
+- ✅ Automatic token management (access & refresh tokens)
+- ✅ Error handling with custom ApiError class
+- ✅ JWT token refresh mechanism
+- ✅ LocalStorage-based token persistence
+
+## Structure
+
+```
+src/lib/api/
+├── auth.ts       # Main authentication API client
+├── index.ts      # Central export point
+└── README.md     # This file
+```
+
+## Usage
+
+### Basic Import
+
+```typescript
+import { authAPI } from '@/lib/api';
+```
+
+### Login Example
+
+```typescript
+import { authAPI } from '@/lib/api/auth';
+
+try {
+  const response = await authAPI.login({
+    email: 'student@example.com',
+    password: 'SecurePassword123'
+  });
+  
+  console.log('User:', response.data.user);
+  // Tokens are automatically stored
+} catch (error) {
+  console.error('Login failed:', error.message);
+}
+```
+
+### Signup Example
+
+```typescript
+import { authAPI } from '@/lib/api/auth';
+
+try {
+  const response = await authAPI.signup({
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'john.doe@example.com',
+    password: 'SecurePassword123',
+    confirmPassword: 'SecurePassword123',
+    studentNumber: '2024001',
+    contactNumber: '+1234567890',
+    dateOfBirth: '2000-01-01'
+  });
+  
+  console.log('Signup successful:', response.data);
+} catch (error) {
+  console.error('Signup failed:', error.message);
+}
+```
+
+### OTP Verification Example
+
+```typescript
+import { authAPI } from '@/lib/api/auth';
+
+try {
+  const response = await authAPI.verifyOTP({
+    email: 'john.doe@example.com',
+    otp: '123456'
+  });
+  
+  console.log('Verified user:', response.data.user);
+  // Tokens are automatically stored after verification
+} catch (error) {
+  console.error('OTP verification failed:', error.message);
+}
+```
+
+### Using with React Hook
+
+```typescript
+import { useAuth } from '@/hooks/use-auth';
+
+function LoginForm() {
+  const { login, isLoading, error } = useAuth();
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    
+    const success = await login({
+      email: 'student@example.com',
+      password: 'password123'
+    });
+    
+    if (success) {
+      // User is logged in and redirected
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Form fields */}
+    </form>
+  );
+}
+```
+
+## API Methods
+
+### `authAPI.login(credentials)`
+Login user with email and password.
+
+**Parameters:**
+- `credentials.email` (string): User email
+- `credentials.password` (string): User password
+
+**Returns:** `Promise<LoginResponse>`
+
+---
+
+### `authAPI.signup(userData)`
+Register a new user.
+
+**Parameters:**
+- `userData.firstName` (string): User's first name
+- `userData.lastName` (string): User's last name
+- `userData.email` (string): User's email
+- `userData.password` (string): User's password
+- `userData.confirmPassword` (string): Password confirmation
+- `userData.studentNumber` (string): Student ID number
+- `userData.contactNumber` (string): Phone number
+- `userData.dateOfBirth` (string | Date): Date of birth
+
+**Returns:** `Promise<SignupResponse>`
+
+---
+
+### `authAPI.verifyOTP(otpData)`
+Verify OTP for account activation.
+
+**Parameters:**
+- `otpData.email` (string): User's email
+- `otpData.otp` (string): 6-digit OTP code
+
+**Returns:** `Promise<OTPResponse>`
+
+---
+
+### `authAPI.resendOTP(email)`
+Resend OTP to user's email.
+
+**Parameters:**
+- `email` (string): User's email
+
+**Returns:** `Promise<ApiResponse>`
+
+---
+
+### `authAPI.logout()`
+Logout user and clear stored tokens.
+
+**Returns:** `Promise<void>`
+
+---
+
+### `authAPI.refreshToken()`
+Refresh access token using refresh token.
+
+**Returns:** `Promise<{ accessToken: string }>`
+
+---
+
+### `authAPI.forgotPassword(data)`
+Send forgot password email.
+
+**Parameters:**
+- `data.email` (string): User's email
+
+**Returns:** `Promise<ApiResponse>`
+
+---
+
+### `authAPI.resetPassword(data)`
+Reset password with token.
+
+**Parameters:**
+- `data.token` (string): Reset token from email
+- `data.newPassword` (string): New password
+- `data.confirmPassword` (string): Password confirmation
+
+**Returns:** `Promise<ApiResponse>`
+
+---
+
+### `authAPI.getCurrentUser()`
+Get current authenticated user data.
+
+**Returns:** `Promise<User>`
+
+---
+
+### `authAPI.isAuthenticated()`
+Check if user has valid access token.
+
+**Returns:** `boolean`
+
+---
+
+### `authAPI.getAccessToken()`
+Get current access token.
+
+**Returns:** `string | null`
+
+## Token Management
+
+Tokens are automatically managed by the API client:
+
+- **Access Token**: Stored in `localStorage` as `accessToken`
+- **Refresh Token**: Stored in `localStorage` as `refreshToken`
+- Tokens are automatically included in API requests
+- Tokens are automatically cleared on logout
+
+## Error Handling
+
+The API uses a custom `ApiError` class for error handling:
+
+```typescript
+try {
+  await authAPI.login(credentials);
+} catch (error) {
+  if (error instanceof ApiError) {
+    console.log('Status:', error.statusCode);
+    console.log('Message:', error.message);
+    console.log('Code:', error.code);
+    console.log('Details:', error.details);
+  }
+}
+```
+
+## Validation Schemas
+
+All request data is validated using Zod schemas before being sent to the API:
+
+- `loginSchema` - Login credentials validation
+- `signupSchema` - Signup data validation (includes password strength rules)
+- `otpSchema` - OTP validation
+- `forgotPasswordSchema` - Email validation
+- `resetPasswordSchema` - Password reset validation
+
+## Environment Variables
+
+Configure the API base URL in your `.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+```
+
+## TypeScript Types
+
+All request and response types are fully typed:
+
+- `LoginRequest` & `LoginResponse`
+- `SignupRequest` & `SignupResponse`
+- `OTPRequest` & `OTPResponse`
+- `User` - User data interface
+- `ApiResponse<T>` - Generic API response
+- `ApiError` - Error class
+
+## Security Considerations
+
+- All passwords must meet strength requirements (8+ chars, uppercase, lowercase, number)
+- Tokens are stored in localStorage (consider httpOnly cookies for production)
+- All API calls use HTTPS in production (configure in `.env.production`)
+- Token refresh mechanism prevents session expiration
+
+## Next Steps
+
+1. Set up your backend API endpoints to match the defined routes
+2. Configure environment variables
+3. Implement token refresh interceptor if needed
+4. Add role-based access control (RBAC) as needed
+5. Consider implementing secure token storage (httpOnly cookies)

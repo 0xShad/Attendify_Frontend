@@ -1,8 +1,12 @@
+/**
+ * Example: Integrated Login Page with Auth API
+ * This shows how to use the auth API in your login component
+ */
+
 "use client";
 
 import { useState, FormEvent } from "react";
 import Link from "next/link";
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,30 +17,26 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
-export default function LoginPage() {
-  const { loginInitiate, loginVerify, isLoading, error } = useAuth();
-  
+export default function LoginPageExample() {
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  
+  const { loginInitiate, loginVerify, isLoading, error } = useAuth();
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+    
     if (showOtpInput) {
       // Step 2: Verify OTP
       await loginVerify({ email: userEmail, otp });
@@ -48,38 +48,39 @@ export default function LoginPage() {
         setShowOtpInput(true);
         setUserEmail(result.email || "");
       }
-      // If no OTP required, user will be automatically redirected to dashboard
+      // If login completes without OTP, user is redirected automatically
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
-
-        {/* Login Card */}
         <Card className="w-full bg-card text-card-foreground">
           <CardHeader className="space-y-1 pb-4">
-            <h2 className="text-2xl font-bold text-center">
-              {showOtpInput ? "Verify OTP" : "Welcome Back"}
-            </h2>
+            <h2 className="text-2xl font-bold text-center">Welcome Back</h2>
             <p className="text-sm text-gray-600 text-center">
-              {showOtpInput 
-                ? `Enter the 6-digit code sent to ${userEmail}`
-                : "Enter your credentials to access your account"
-              }
+              Enter your credentials to access your account
             </p>
           </CardHeader>
 
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
+              {/* Error Display */}
+              {error && (
+                <div className="p-3 rounded-md bg-red-50 border border-red-200">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+
               {!showOtpInput ? (
                 <>
+                  {/* Username Field */}
                   <div className="space-y-2">
-                    <Label htmlFor="username">Username or Email</Label>
+                    <Label htmlFor="username">Username</Label>
                     <Input
                       id="username"
                       type="text"
-                      placeholder="Enter your username or email"
+                      placeholder="Enter your username"
                       className="w-full placeholder:text-sm text-sm placeholder:text-gray-400"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
@@ -88,6 +89,7 @@ export default function LoginPage() {
                     />
                   </div>
 
+                  {/* Password Field */}
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
@@ -95,7 +97,7 @@ export default function LoginPage() {
                         id="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
-                        className="w-full placeholder:text-sm placeholder:text-gray-400 pr-10 text-sm"
+                        className="w-full pr-10 placeholder:text-sm text-sm placeholder:text-gray-400"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -104,8 +106,8 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={togglePasswordVisibility}
-                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                        disabled={isLoading}
                       >
                         {showPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -115,64 +117,90 @@ export default function LoginPage() {
                       </button>
                     </div>
                   </div>
-
-                  <div className="text-xs text-right font-semibold text-blue-600 hover:text-blue-500 cursor-pointer">
-                    <p>Forgot your password?</p>
-                  </div>
                 </>
               ) : (
-                <div className="flex flex-col items-center space-y-4">
-                  <InputOTP
-                    maxLength={6}
-                    value={otp}
-                    onChange={(value) => setOtp(value)}
-                    disabled={isLoading}
-                  >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
+                <>
+                  {/* OTP Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="otp">Verification Code</Label>
+                    <Input
+                      id="otp"
+                      type="text"
+                      placeholder="Enter 6-digit code"
+                      className="w-full placeholder:text-sm text-sm placeholder:text-gray-400"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      maxLength={6}
+                      required
+                      disabled={isLoading}
+                    />
+                    <p className="text-xs text-gray-500">
+                      Check your email for the verification code
+                    </p>
+                  </div>
+                </>
               )}
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
-                  {error}
-                </div>
-              )}
+              {/* Forgot Password Link */}
+              <div className="flex justify-end">
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-sm text-blue-600 hover:text-blue-500 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
 
-              <Button 
-                type="submit" 
-                className="w-full" 
-                size="lg"
-                disabled={isLoading || (!showOtpInput && (!username || !password)) || (showOtpInput && otp.length !== 6)}
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {showOtpInput ? "Verifying..." : "Signing In..."}
+                    {showOtpInput ? "Verifying..." : "Logging in..."}
                   </>
                 ) : (
-                  showOtpInput ? "Verify OTP" : "Sign In"
+                  showOtpInput ? "Verify OTP" : "Login"
                 )}
               </Button>
+
+              {showOtpInput && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setShowOtpInput(false);
+                    setOtp("");
+                  }}
+                  disabled={isLoading}
+                >
+                  Back to Login
+                </Button>
+              )}
             </CardContent>
           </form>
 
           <CardFooter className="flex flex-col space-y-4">
-            <Separator />
-            <p className="text-sm text-center text-gray-600">
+            <div className="relative w-full">
+              <Separator className="my-4" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="bg-card px-2 text-xs text-gray-500">
+                  OR
+                </span>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 text-center">
               Don&apos;t have an account?{" "}
               <Link
                 href="/auth/signup"
-                className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
+                className="text-blue-600 hover:text-blue-500 hover:underline font-medium"
               >
-                Sign Up
+                Sign up
               </Link>
             </p>
           </CardFooter>
