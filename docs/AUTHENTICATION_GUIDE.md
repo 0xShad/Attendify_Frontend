@@ -770,7 +770,7 @@ function isAuthenticated(): boolean {
 }
 ```
 
-#### After (v2.0+)
+#### After (v1.1+)
 ```typescript
 // ✅ NEW: HTTP-only cookies
 await authAPI.setTokens(accessToken, refreshToken);
@@ -783,16 +783,16 @@ function isAuthenticated(): boolean {
 }
 ```
 
-### Breaking Changes (v2.0 → v2.1)
+### Breaking Changes (v1.1.0 → v1.2.0)
 
 #### Auth Methods Changed to Async
 ```typescript
-// v2.0
+// v1.1.0
 authAPI.setTokens(token, refresh);
 authAPI.clearTokens();
 const auth = await authAPI.isAuthenticated();
 
-// v2.1
+// 1.2.0
 await authAPI.setTokens(token, refresh);  // Now async
 await authAPI.clearTokens();              // Now async
 const auth = authAPI.isAuthenticated();   // Now sync
@@ -800,12 +800,12 @@ const auth = authAPI.isAuthenticated();   // Now sync
 
 #### isAuthenticated() Now Synchronous
 ```typescript
-// v2.0
+// v1.1.0
 if (await authAPI.isAuthenticated()) {
   // ...
 }
 
-// v2.1
+// v1.2.0
 if (authAPI.isAuthenticated()) {  // No await needed
   // ...
 }
@@ -817,7 +817,7 @@ if (authAPI.isAuthenticated()) {  // No await needed
 
 ## 📊 Comparison: Old vs New
 
-| Feature | localStorage (v1.0) | HTTP-Only Cookies (v2.1) |
+| Feature | localStorage (v1.0) | HTTP-Only Cookies (v1.2.0) |
 |---------|---------------------|--------------------------|
 | **XSS Protection** | ❌ Vulnerable | ✅ Protected |
 | **Route Protection** | Client-side only | ✅ Server-side |
@@ -860,13 +860,13 @@ if (authAPI.isAuthenticated()) {  // No await needed
 
 ## 🔄 Version History
 
-### v2.1.0 (Current - October 5, 2025)
+### v1.2.0 (Current - October 5, 2025)
 - ✅ JWT validation with backend
 - ✅ 3-layer optimization (decode + cache + backend)
 - ✅ Fixed login redirect bug
 - ✅ Simplified `isAuthenticated()` to sync
 
-### v2.0.0 (October 4, 2025)
+### v1.1.0 (October 4, 2025)
 - ✅ HTTP-only cookie authentication
 - ✅ Server-side route protection
 - ✅ Modular architecture

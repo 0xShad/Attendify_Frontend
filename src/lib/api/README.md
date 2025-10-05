@@ -36,7 +36,7 @@ src/lib/api/
 └── README.md     # This file
 ```
 
-## Key Changes (v2.1)
+## Key Changes (v1.2.0)
 
 ⚠️ **HTTP-Only Cookies + Middleware Protection**: Tokens are stored in HTTP-only cookies and all route protection is handled server-side by Next.js middleware.
 

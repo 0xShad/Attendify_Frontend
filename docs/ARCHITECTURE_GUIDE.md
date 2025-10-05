@@ -1037,13 +1037,13 @@ const handleLogin = async () => {
 
 ## 🔄 Version History
 
-### v2.1.0 (Current - October 5, 2025)
+### v1.2.0 (Current - October 5, 2025)
 - 3-layer JWT validation
 - In-memory caching
 - Performance optimizations
 - Fixed login redirect bug
 
-### v2.0.0 (October 4, 2025)
+### v1.1.0 (October 4, 2025)
 - HTTP-only cookie authentication
 - Modular architecture
 - Server-side route protection
