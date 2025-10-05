@@ -19,37 +19,38 @@ export default function Page() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
 
-  useEffect(() => {
-    // Redirect to login if not authenticated
-    if (!isLoading && !isAuthenticated) {
-      console.log('🔒 [DASHBOARD] User not authenticated, redirecting to login...');
-      router.replace("/auth/login");
-    }
-  }, [isAuthenticated, isLoading, router]);
+  // TEMPORARILY DISABLED - Authentication check commented out for testing
+  // useEffect(() => {
+  //   // Redirect to login if not authenticated
+  //   if (!isLoading && !isAuthenticated) {
+  //     console.log('🔒 [DASHBOARD] User not authenticated, redirecting to login...');
+  //     router.replace("/auth/login");
+  //   }
+  // }, [isAuthenticated, isLoading, router]);
 
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  // // Show loading state while checking authentication
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen">
+  //       <div className="text-center">
+  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+  //         <p className="mt-4 text-gray-600">Loading...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
-  // Don't render dashboard if not authenticated (prevents flash of content)
-  if (!isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Redirecting...</p>
-        </div>
-      </div>
-    );
-  }
+  // // Don't render dashboard if not authenticated (prevents flash of content)
+  // if (!isAuthenticated) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen">
+  //       <div className="text-center">
+  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+  //         <p className="mt-4 text-gray-600">Redirecting...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <SidebarProvider

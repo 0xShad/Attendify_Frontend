@@ -9,7 +9,7 @@ import { authAPI } from "@/lib/api/auth";
  * Protected route paths that require authentication
  */
 export const PROTECTED_ROUTES = [
-  "/dashboard",
+  //"/dashboard",
   "/profile",
   "/settings",
   "/attendance",
@@ -26,6 +26,8 @@ export const PUBLIC_ROUTES = [
   "/auth/forgot-password",
   "/auth/reset-password",
   "/auth/verify-email",
+  "/dashboard",
+  "/admin/dashboard"
 ] as const;
 
 /**
