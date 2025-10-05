@@ -7,6 +7,8 @@
  * Protected routes that require authentication
  */
 export const PROTECTED_ROUTES = [
+  '/dashboard',
+  '/admin/dashboard',
   '/profile',
   '/settings',
   '/attendance',
@@ -24,8 +26,6 @@ export const PUBLIC_ROUTES = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/verify-email',
-  '/dashboard',
-  '/admin/dashboard',
 ] as const;
 
 /**
