@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { isProtectedRoute, isAuthRoute } from '@/lib/middleware/utils';
-import { COOKIE_CONFIG, REDIRECT_URLS, VALIDATION_CONFIG } from '@/config/auth';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { isProtectedRoute, isAuthRoute } from "@/lib/middleware/utils";
+import { COOKIE_CONFIG, REDIRECT_URLS, VALIDATION_CONFIG } from "@/config/auth";
 
 /**
  * In-memory cache for token validation results
@@ -15,13 +15,13 @@ const tokenCache = new Map<string, { isValid: boolean; expiresAt: number }>();
  */
 function decodeJWT(token: string): { exp?: number } | null {
   try {
-    const parts = token.split('.');
+    const parts = token.split(".");
     if (parts.length !== 3) return null;
-    
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+
+    const payload = JSON.parse(Buffer.from(parts[1], "base64").toString());
     return payload;
   } catch (error) {
-    console.error('JWT decode failed:', error);
+    console.error("JWT decode failed:", error);
     return null;
   }
 }
@@ -33,10 +33,10 @@ function decodeJWT(token: string): { exp?: number } | null {
 function isTokenExpired(token: string): boolean {
   const payload = decodeJWT(token);
   if (!payload || !payload.exp) return true;
-  
+
   // Check if token is expired (with configurable buffer)
   const now = Math.floor(Date.now() / 1000);
-  return payload.exp < (now + VALIDATION_CONFIG.TOKEN_EXPIRY_BUFFER_SECONDS);
+  return payload.exp < now + VALIDATION_CONFIG.TOKEN_EXPIRY_BUFFER_SECONDS;
 }
 
 /**
@@ -53,7 +53,10 @@ async function verifyToken(accessToken: string): Promise<boolean> {
 
   // Quick client-side expiration check
   if (isTokenExpired(accessToken)) {
-    tokenCache.set(accessToken, { isValid: false, expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS });
+    tokenCache.set(accessToken, {
+      isValid: false,
+      expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
+    });
     return false;
   }
 
@@ -61,14 +64,14 @@ async function verifyToken(accessToken: string): Promise<boolean> {
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_USER_API_URL}/me`, {
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       // Add timeout to prevent hanging
       signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
     });
 
     const isValid = response.ok;
-    
+
     // Cache the result
     tokenCache.set(accessToken, {
       isValid,
@@ -87,14 +90,14 @@ async function verifyToken(accessToken: string): Promise<boolean> {
 
     return isValid;
   } catch (error) {
-    console.error('Token verification failed:', error);
-    
+    console.error("Token verification failed:", error);
+
     // Cache failure for shorter duration to prevent retry storms
     tokenCache.set(accessToken, {
       isValid: false,
       expiresAt: Date.now() + VALIDATION_CONFIG.FAILURE_CACHE_TTL_MS,
     });
-    
+
     return false;
   }
 }
@@ -102,7 +105,7 @@ async function verifyToken(accessToken: string): Promise<boolean> {
 /**
  * HTTP-based middleware for route protection
  * Validates authentication using HTTP-only cookies on the server
- * 
+ *
  * Flow:
  * 1. Check if user has access_token cookie
  * 2. Quick check: Decode JWT and verify expiration (client-side)
@@ -111,7 +114,7 @@ async function verifyToken(accessToken: string): Promise<boolean> {
  * 5. Redirect unauthenticated users from protected routes → login
  * 6. Redirect authenticated users from auth routes → dashboard
  * 7. Allow all other requests
- * 
+ *
  * Optimizations:
  * - In-memory cache (1 minute TTL) - reduces backend calls
  * - Client-side JWT expiration check - avoids backend call for expired tokens
@@ -121,9 +124,39 @@ async function verifyToken(accessToken: string): Promise<boolean> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // DEV BYPASS: If NEXT_PUBLIC_DEV_AUTH_BYPASS is set to "1" or "true"
+  // and we're not in production, short-circuit authentication checks.
+  // This allows frontend development without the backend. Keep this
+  // opt-in and only enabled in local/dev envs.
+  const devBypass =
+    ["1", "true"].includes(
+      String(process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS).toLowerCase()
+    ) && process.env.NODE_ENV !== "production";
+  if (devBypass) {
+    // If bypass is enabled, treat all requests as authenticated for
+    // protected route checks, but still redirect away from auth pages
+    // if needed. This mirrors the normal flow but without backend calls.
+    const isAuthenticated = true;
+
+    if (isProtectedRoute(pathname) && !isAuthenticated) {
+      const loginUrl = new URL(REDIRECT_URLS.LOGIN, request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    if (isAuthRoute(pathname) && isAuthenticated) {
+      const dashboardUrl = new URL(REDIRECT_URLS.DASHBOARD, request.url);
+      return NextResponse.redirect(dashboardUrl);
+    }
+
+    return NextResponse.next();
+  }
+
   // Get authentication status from HTTP-only cookie
-  const accessToken = request.cookies.get(COOKIE_CONFIG.ACCESS_TOKEN.name)?.value;
-  
+  const accessToken = request.cookies.get(
+    COOKIE_CONFIG.ACCESS_TOKEN.name
+  )?.value;
+
   // Verify token with backend if it exists (uses cache + client-side checks)
   let isAuthenticated = false;
   if (accessToken) {
@@ -133,7 +166,7 @@ export async function middleware(request: NextRequest) {
   // Redirect unauthenticated users from protected routes to login
   if (isProtectedRoute(pathname) && !isAuthenticated) {
     const loginUrl = new URL(REDIRECT_URLS.LOGIN, request.url);
-    loginUrl.searchParams.set('redirect', pathname);
+    loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -158,6 +191,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

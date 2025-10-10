@@ -46,24 +46,28 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 ## ✨ Key Features
 
 ### 🔒 Security First
+
 - **HTTP-only Cookies** - Tokens cannot be accessed by JavaScript (XSS protection)
 - **CSRF Protection** - SameSite cookie policy prevents cross-site attacks
 - **Server-Side Validation** - Next.js middleware validates before page loads
 - **Secure in Production** - HTTPS-only cookies in production environment
 
 ### ⚡ High Performance
+
 - **3-Layer JWT Validation** - Decode (0ms) → Cache (1ms) → Backend (200ms)
 - **90-99% Faster** - In-memory cache handles most requests
 - **Backend Load Reduction** - 90-99% fewer API calls to `/api/v1/users/me`
 - **Smart Caching** - 1-minute TTL with automatic cleanup
 
 ### 🏗️ Modern Architecture
+
 - **Modular Design** - Configuration layer for easy maintenance
 - **Type-Safe** - Full TypeScript with strict mode
 - **Centralized Config** - Single source of truth for routes and settings
 - **Clean Separation** - Clear separation of concerns across layers
 
 ### 🎨 Developer Experience
+
 - **Shadcn UI** - Beautiful, accessible component library
 - **Comprehensive Docs** - Three detailed guides covering everything
 - **Hot Reload** - Fast refresh with Turbopack
@@ -139,15 +143,16 @@ Production-ready authentication with **HTTP-only cookies**, **2-step OTP verific
 
 ### 📚 Complete Documentation
 
-| Guide | Description | Lines |
-|-------|-------------|-------|
+| Guide                                                         | Description                                       | Lines |
+| ------------------------------------------------------------- | ------------------------------------------------- | ----- |
 | **[AUTHENTICATION_GUIDE.md](./docs/AUTHENTICATION_GUIDE.md)** | Complete auth system guide - flows, API, examples | 1000+ |
-| **[MIDDLEWARE_GUIDE.md](./docs/MIDDLEWARE_GUIDE.md)** | 3-layer optimization, performance, security | 900+ |
-| **[ARCHITECTURE_GUIDE.md](./docs/ARCHITECTURE_GUIDE.md)** | System architecture, modules, patterns | 1100+ |
+| **[MIDDLEWARE_GUIDE.md](./docs/MIDDLEWARE_GUIDE.md)**         | 3-layer optimization, performance, security       | 900+  |
+| **[ARCHITECTURE_GUIDE.md](./docs/ARCHITECTURE_GUIDE.md)**     | System architecture, modules, patterns            | 1100+ |
 
 ### Authentication Features
 
 #### 🔒 Security
+
 - **HTTP-only Cookies** - Tokens inaccessible to JavaScript (XSS protection)
 - **CSRF Protection** - SameSite cookie policy
 - **Server-Side Validation** - Middleware validates before page loads
@@ -155,6 +160,7 @@ Production-ready authentication with **HTTP-only cookies**, **2-step OTP verific
 - **User Existence Check** - Validates user still exists in database
 
 #### ⚡ Performance (v1.2.0)
+
 - **3-Layer Validation System:**
   - **Layer 1:** Client decode - Check expiration (0ms)
   - **Layer 2:** In-memory cache - Recent validations (1ms, 90-99% hit rate)
@@ -162,6 +168,7 @@ Production-ready authentication with **HTTP-only cookies**, **2-step OTP verific
 - **Result:** 20-200x faster authentication, 90-99% fewer backend calls
 
 #### 🎯 User Flows
+
 - **Registration:** Two-step with email OTP verification
 - **Login:** Flexible OTP (backend controlled) or direct token
 - **Dashboard Access:** Automatic protection via middleware
@@ -170,41 +177,37 @@ Production-ready authentication with **HTTP-only cookies**, **2-step OTP verific
 ### Quick Usage Example
 
 ```tsx
-'use client';
+"use client";
 
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from "@/hooks/use-auth";
 
 export default function LoginPage() {
   const { loginInitiate, loginVerify, isLoading, error } = useAuth();
-  
+
   // Step 1: Initiate login
   const handleLogin = async () => {
     const result = await loginInitiate({
-      username_or_email: 'user@example.com',
-      password: 'SecurePass123'
+      username_or_email: "user@example.com",
+      password: "SecurePass123",
     });
-    
+
     if (result.requiresOTP) {
       // Show OTP input
       setShowOTP(true);
     }
     // If no OTP required, automatically redirects to dashboard
   };
-  
+
   // Step 2: Verify OTP (if required)
   const handleVerifyOTP = async (code: string) => {
     await loginVerify({
-      username_or_email: 'user@example.com',
-      code: code
+      username_or_email: "user@example.com",
+      code: code,
     });
     // Automatically redirects to dashboard
   };
-  
-  return (
-    <div>
-      {/* Your login form */}
-    </div>
-  );
+
+  return <div>{/* Your login form */}</div>;
 }
 ```
 
@@ -216,16 +219,17 @@ export default function LoginPage() {
 // 1. Open: src/config/routes.ts
 
 export const PROTECTED_ROUTES = [
-  '/dashboard',
-  '/admin',
-  '/profile',
-  '/my-new-route',  // ← Add here
+  "/dashboard",
+  "/admin",
+  "/profile",
+  "/my-new-route", // ← Add here
 ] as const;
 
 // 2. That's it! Route is now automatically protected by middleware
 ```
 
 **What happens automatically:**
+
 - ✅ Middleware intercepts all requests to `/my-new-route`
 - ✅ Validates JWT token (3-layer system)
 - ✅ Redirects to `/auth/login` if not authenticated
@@ -236,22 +240,26 @@ export const PROTECTED_ROUTES = [
 ## 🛠️ Technology Stack
 
 ### Core
+
 - **Next.js 15.5.4** - React framework with App Router
 - **React 19.1.0** - UI library
 - **TypeScript 5.x** - Type safety
 
 ### UI & Styling
+
 - **Shadcn UI** - Component library
 - **Tailwind CSS 4.1.14** - Utility-first styling
 - **Radix UI** - Accessible primitives
 - **Lucide React** - Icon library
 
 ### Authentication & Validation
+
 - **JWT** - Token-based authentication
 - **Zod 4.1.11** - Schema validation
 - **HTTP-only Cookies** - Secure token storage
 
 ### Development
+
 - **ESLint 9.x** - Code linting
 - **Turbopack** - Fast bundler
 - **TypeScript Strict Mode** - Maximum type safety
@@ -264,21 +272,21 @@ export const PROTECTED_ROUTES = [
 
 Your backend must implement these endpoints:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/auth/register/initiate` | Send OTP to email |
-| `POST` | `/api/v1/auth/register/verify` | Verify OTP, create account |
-| `POST` | `/api/v1/auth/login/initiate` | Login or request OTP |
-| `POST` | `/api/v1/auth/login/verify` | Verify OTP, get token |
-| `GET` | `/api/v1/users/me` | Get current user (for validation) |
+| Method | Endpoint                         | Description                       |
+| ------ | -------------------------------- | --------------------------------- |
+| `POST` | `/api/v1/auth/register/initiate` | Send OTP to email                 |
+| `POST` | `/api/v1/auth/register/verify`   | Verify OTP, create account        |
+| `POST` | `/api/v1/auth/login/initiate`    | Login or request OTP              |
+| `POST` | `/api/v1/auth/login/verify`      | Verify OTP, get token             |
+| `GET`  | `/api/v1/users/me`               | Get current user (for validation) |
 
 ### Frontend API Routes
 
 These are handled automatically:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/auth/set-tokens` | Set HTTP-only cookies |
+| Method | Endpoint                 | Description            |
+| ------ | ------------------------ | ---------------------- |
+| `POST` | `/api/auth/set-tokens`   | Set HTTP-only cookies  |
 | `POST` | `/api/auth/clear-tokens` | Clear cookies (logout) |
 
 ### useAuth Hook API
@@ -286,19 +294,19 @@ These are handled automatically:
 ```typescript
 const {
   // State
-  user,              // Current user object or null
-  isLoading,         // Loading state
-  isAuthenticated,   // Authentication status
-  error,             // Error message or null
-  
+  user, // Current user object or null
+  isLoading, // Loading state
+  isAuthenticated, // Authentication status
+  error, // Error message or null
+
   // Methods
-  loginInitiate,     // Step 1: Login (username/email + password)
-  loginVerify,       // Step 2: Verify OTP code
-  registerInitiate,  // Step 1: Register (email + username + password)
-  registerVerify,    // Step 2: Verify OTP code
-  logout,            // Clear tokens and redirect to login
-  refreshUser,       // Reload user data
-  clearError,        // Clear error state
+  loginInitiate, // Step 1: Login (username/email + password)
+  loginVerify, // Step 2: Verify OTP code
+  registerInitiate, // Step 1: Register (email + username + password)
+  registerVerify, // Step 2: Verify OTP code
+  logout, // Clear tokens and redirect to login
+  refreshUser, // Reload user data
+  clearError, // Clear error state
 } = useAuth();
 ```
 
@@ -317,6 +325,25 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 # NODE_ENV=production  # Enables secure cookies
 ```
 
+### Local dev: temporarily bypass auth checks
+
+If you don't have the backend available but want to develop the frontend, you can opt-in to a safe, local-only bypass of the middleware authentication checks.
+
+Add the following to your `.env.local` (only for local development):
+
+```env
+# When set to "1" or "true" (case-insensitive) and NODE_ENV is not "production",
+# middleware will treat requests as authenticated so protected pages are accessible.
+NEXT_PUBLIC_DEV_AUTH_BYPASS=1
+```
+
+Notes and safety recommendations:
+
+- This bypass is strictly opt-in and will only apply when `NODE_ENV !== 'production'`.
+- Never enable this in production or CI environments.
+- Use this for local UI development only. For more realistic testing consider using a mock API or MSW (Mock Service Worker).
+- Remember to remove or set the variable to `0` before committing or deploying.
+
 ### Auth Configuration
 
 Edit `src/config/auth.ts` to customize:
@@ -325,22 +352,22 @@ Edit `src/config/auth.ts` to customize:
 // Cookie settings
 export const COOKIE_CONFIG = {
   ACCESS_TOKEN: {
-    name: 'access_token',
-    maxAge: 7 * 24 * 60 * 60  // 7 days
+    name: "access_token",
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   },
   REFRESH_TOKEN: {
-    name: 'refresh_token',
-    maxAge: 30 * 24 * 60 * 60  // 30 days
-  }
+    name: "refresh_token",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
 };
 
 // Validation settings
 export const VALIDATION_CONFIG = {
-  CACHE_TTL_MS: 60 * 1000,              // Cache for 1 minute
-  CACHE_MAX_SIZE: 1000,                 // Max 1000 entries
-  FAILURE_CACHE_TTL_MS: 10 * 1000,      // Cache failures for 10s
-  REQUEST_TIMEOUT_MS: 5 * 1000,         // 5 second timeout
-  TOKEN_EXPIRY_BUFFER_SECONDS: 30       // 30 second buffer
+  CACHE_TTL_MS: 60 * 1000, // Cache for 1 minute
+  CACHE_MAX_SIZE: 1000, // Max 1000 entries
+  FAILURE_CACHE_TTL_MS: 10 * 1000, // Cache failures for 10s
+  REQUEST_TIMEOUT_MS: 5 * 1000, // 5 second timeout
+  TOKEN_EXPIRY_BUFFER_SECONDS: 30, // 30 second buffer
 };
 ```
 
@@ -351,24 +378,17 @@ Edit `src/config/routes.ts` to customize:
 ```typescript
 // Routes that require authentication
 export const PROTECTED_ROUTES = [
-  '/dashboard',
-  '/admin',
-  '/profile',
-  '/settings'
+  "/dashboard",
+  "/admin",
+  "/profile",
+  "/settings",
 ] as const;
 
 // Routes that redirect authenticated users (login, signup)
-export const AUTH_ROUTES = [
-  '/auth/login',
-  '/auth/signup'
-] as const;
+export const AUTH_ROUTES = ["/auth/login", "/auth/signup"] as const;
 
 // Routes accessible to everyone
-export const PUBLIC_ROUTES = [
-  '/',
-  '/about',
-  '/contact'
-] as const;
+export const PUBLIC_ROUTES = ["/", "/about", "/contact"] as const;
 ```
 
 ---
@@ -394,12 +414,12 @@ npm run type-check   # Check TypeScript (if configured)
 
 ### Authentication Speed (v1.2.0)
 
-| Scenario | Before (v1.1.0) | After (v1.2.0) | Improvement |
-|----------|-----------------|----------------|-------------|
-| **Cache Hit** | 200ms | 1ms | **200x faster** |
-| **First Request** | 200ms | 200ms | Same |
-| **100 Requests** | 20 seconds | 0.3 seconds | **66x faster** |
-| **Backend Calls** | 100 | 1-10 | **90-99% reduction** |
+| Scenario          | Before (v1.1.0) | After (v1.2.0) | Improvement          |
+| ----------------- | --------------- | -------------- | -------------------- |
+| **Cache Hit**     | 200ms           | 1ms            | **200x faster**      |
+| **First Request** | 200ms           | 200ms          | Same                 |
+| **100 Requests**  | 20 seconds      | 0.3 seconds    | **66x faster**       |
+| **Backend Calls** | 100             | 1-10           | **90-99% reduction** |
 
 ### How It Works
 
@@ -412,23 +432,27 @@ npm run type-check   # Check TypeScript (if configured)
 ## 🔒 Security Features
 
 ### HTTP-Only Cookies
+
 - ✅ Tokens stored in HTTP-only cookies (not localStorage)
 - ✅ JavaScript cannot access tokens (XSS protection)
 - ✅ Automatic transmission with requests
 - ✅ Secure flag in production (HTTPS only)
 
 ### Server-Side Protection
+
 - ✅ Next.js middleware validates before page loads
 - ✅ Cannot bypass with browser DevTools
 - ✅ Validates JWT signature with backend
 - ✅ Confirms user still exists
 
 ### CSRF Protection
+
 - ✅ SameSite cookie policy (`lax`)
 - ✅ Prevents cross-site request forgery
 - ✅ Cookies not sent on cross-origin POST
 
 ### Additional Security
+
 - ✅ Password validation (min 8 chars, uppercase, lowercase, number)
 - ✅ OTP verification for sensitive operations
 - ✅ Token expiration handling
@@ -439,11 +463,13 @@ npm run type-check   # Check TypeScript (if configured)
 ## 📚 Learn More
 
 ### Next.js Resources
+
 - [Next.js Documentation](https://nextjs.org/docs) - Learn about Next.js features and API
 - [Learn Next.js](https://nextjs.org/learn) - Interactive Next.js tutorial
 - [Next.js GitHub](https://github.com/vercel/next.js) - Source code and issues
 
 ### Project Documentation
+
 - **[AUTHENTICATION_GUIDE.md](./docs/AUTHENTICATION_GUIDE.md)** - Complete authentication guide
 - **[MIDDLEWARE_GUIDE.md](./docs/MIDDLEWARE_GUIDE.md)** - Middleware optimization guide
 - **[ARCHITECTURE_GUIDE.md](./docs/ARCHITECTURE_GUIDE.md)** - System architecture guide
@@ -467,6 +493,7 @@ The easiest way to deploy is using the [Vercel Platform](https://vercel.com/new)
 4. Deploy!
 
 **Important:** Ensure your backend:
+
 - ✅ Implements required API endpoints
 - ✅ Configures CORS for your frontend domain
 - ✅ Has `/api/v1/users/me` endpoint for validation
@@ -487,6 +514,7 @@ The easiest way to deploy is using the [Vercel Platform](https://vercel.com/new)
 ## 📝 Version History
 
 ### v1.2.0 (Current - October 5, 2025)
+
 - ✅ HTTP-only cookie authentication
 - ✅ 3-layer JWT validation (20-200x faster)
 - ✅ Server-side route protection
@@ -495,6 +523,7 @@ The easiest way to deploy is using the [Vercel Platform](https://vercel.com/new)
 - ✅ Fixed login redirect bug
 
 ### v1.1.0 (October 5, 2025)
+
 - ✅ Initial production release
 - ✅ Two-step authentication (OTP)
 - ✅ Registration with email verification
