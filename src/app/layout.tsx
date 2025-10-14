@@ -17,6 +17,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Attendify",
   description: "Facial Recognition Attendance System",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: "cover",
+  },
+  themeColor: "#1e9df1",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Attendify Admin",
+  },
 };
 
 export default function RootLayout({
