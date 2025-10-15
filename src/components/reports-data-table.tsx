@@ -26,16 +26,13 @@ import {
   IconChevronRight,
   IconChevronsLeft,
   IconChevronsRight,
-  IconCircleCheckFilled,
   IconDotsVertical,
   IconFilter,
   IconGripVertical,
   IconLayoutColumns,
-  IconLoader,
-  IconPlus,
-  IconTrendingUp,
+  IconDownload,
 } from "@tabler/icons-react"
-import { Eye, Edit, UserX, Trash2 } from "lucide-react"
+import { Eye, Edit, Trash2, FileText, Calendar, TrendingUp } from "lucide-react"
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -115,19 +112,19 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 
-export const schema = z.object({
+export const reportSchema = z.object({
   id: z.union([z.number(), z.string()]),
   name: z.string(),
-  email: z.string().optional(),
-  role: z.string(),
+  type: z.string(),
   status: z.string(),
-  lastActive: z.string().optional(),
-  department: z.string().optional(),
+  createdDate: z.string(),
+  size: z.string().optional(),
+  createdBy: z.string(),
 })
 
-// User action components
-function ViewUserSheet({ user, open, onOpenChange }: { 
-  user: z.infer<typeof schema>; 
+// Report action components
+function ViewReportSheet({ report, open, onOpenChange }: { 
+  report: z.infer<typeof reportSchema>; 
   open: boolean; 
   onOpenChange: (open: boolean) => void;
 }) {
@@ -136,50 +133,30 @@ function ViewUserSheet({ user, open, onOpenChange }: {
       <SheetContent side="bottom" className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8">
         <div className="mx-auto max-w-md">
           <SheetHeader className="space-y-4 text-center">
-            <SheetTitle className="text-xl">User Profile</SheetTitle>
+            <SheetTitle className="text-xl">Report Details</SheetTitle>
             <SheetDescription>
-              View detailed information about this user
+              View detailed information about this report
             </SheetDescription>
           </SheetHeader>
           
           <div className="py-8 space-y-6">
-            {/* User Avatar and Basic Info */}
+            {/* Report Icon and Basic Info */}
             <div className="flex flex-col items-center gap-4 text-center">
-              <div className="w-20 h-20 rounded-full bg-slate-500 flex items-center justify-center text-white text-xl font-medium">
-                {user.name 
-                  ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-                  : "?"
-                }
+              <div className="w-20 h-20 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                <FileText className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold">{user.name || "Unknown User"}</h3>
-                <p className="text-sm text-muted-foreground">ID: {user.id}</p>
+                <h3 className="text-lg font-semibold">{report.name}</h3>
+                <p className="text-sm text-muted-foreground">ID: {report.id}</p>
               </div>
             </div>
 
-            {/* User Details */}
+            {/* Report Details */}
             <div className="space-y-6">
               <div className="grid gap-4">
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Email Address</Label>
-                  <p className="text-sm">{user.email || "Not provided"}</p>
-                </div>
-                
-                <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Role</Label>
-                  <div className="flex justify-center">
-                    <Badge 
-                      variant={
-                        user.role === "Admin" 
-                          ? "default" 
-                          : user.role === "Faculty" 
-                          ? "secondary" 
-                          : "outline"
-                      }
-                    >
-                      {user.role}
-                    </Badge>
-                  </div>
+                  <Label className="text-sm font-medium text-muted-foreground">Type</Label>
+                  <Badge variant="outline">{report.type}</Badge>
                 </div>
                 
                 <div className="space-y-2 text-center">
@@ -187,23 +164,30 @@ function ViewUserSheet({ user, open, onOpenChange }: {
                   <div className="flex items-center justify-center gap-2">
                     <div
                       className={`w-2 h-2 rounded-full ${
-                        user.status === "Active"
+                        report.status === "Completed"
                           ? "bg-green-500"
-                          : "bg-muted-foreground"
+                          : report.status === "Processing"
+                          ? "bg-yellow-500"
+                          : "bg-red-500"
                       }`}
                     />
-                    <span className="text-sm">{user.status}</span>
+                    <span className="text-sm">{report.status}</span>
                   </div>
                 </div>
                 
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Department</Label>
-                  <p className="text-sm">{user.department || "Not assigned"}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">File Size</Label>
+                  <p className="text-sm">{report.size || "N/A"}</p>
                 </div>
                 
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Last Active</Label>
-                  <p className="text-sm">{user.lastActive || "Never"}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">Created Date</Label>
+                  <p className="text-sm">{report.createdDate}</p>
+                </div>
+                
+                <div className="space-y-2 text-center">
+                  <Label className="text-sm font-medium text-muted-foreground">Created By</Label>
+                  <p className="text-sm">{report.createdBy}</p>
                 </div>
               </div>
             </div>
@@ -220,26 +204,21 @@ function ViewUserSheet({ user, open, onOpenChange }: {
   )
 }
 
-function EditUserSheet({ user, open, onOpenChange }: { 
-  user: z.infer<typeof schema>; 
+function EditReportSheet({ report, open, onOpenChange }: { 
+  report: z.infer<typeof reportSchema>; 
   open: boolean; 
   onOpenChange: (open: boolean) => void;
 }) {
-  const [editName, setEditName] = React.useState(user.name || "")
-  const [editEmail, setEditEmail] = React.useState(user.email || "")
-  const [editRole, setEditRole] = React.useState(user.role || "")
-  const [editDepartment, setEditDepartment] = React.useState(user.department || "")
+  const [editName, setEditName] = React.useState(report.name || "")
+  const [editType, setEditType] = React.useState(report.type || "")
 
   React.useEffect(() => {
-    setEditName(user.name || "")
-    setEditEmail(user.email || "")
-    setEditRole(user.role || "")
-    setEditDepartment(user.department || "")
-  }, [user])
+    setEditName(report.name || "")
+    setEditType(report.type || "")
+  }, [report])
 
   const handleSave = () => {
-    // TODO: Implement save logic
-    console.log("Saving user:", { editName, editEmail, editRole, editDepartment })
+    console.log("Saving report:", { editName, editType })
     onOpenChange(false)
   }
 
@@ -248,61 +227,38 @@ function EditUserSheet({ user, open, onOpenChange }: {
       <SheetContent side="bottom" className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8">
         <div className="mx-auto max-w-md">
           <SheetHeader className="space-y-4 text-center">
-            <SheetTitle className="text-xl">Edit User</SheetTitle>
+            <SheetTitle className="text-xl">Edit Report</SheetTitle>
             <SheetDescription>
-              Update user information and settings
+              Update report information and settings
             </SheetDescription>
           </SheetHeader>
           
           <div className="py-8 space-y-6">
             <div className="grid gap-6">
               <div className="space-y-3">
-                <Label htmlFor="edit-name" className="text-sm font-medium">Full Name</Label>
+                <Label htmlFor="edit-name" className="text-sm font-medium">Report Name</Label>
                 <Input
                   id="edit-name"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Enter full name"
+                  placeholder="Enter report name"
                   className="w-full"
                 />
               </div>
               
               <div className="space-y-3">
-                <Label htmlFor="edit-email" className="text-sm font-medium">Email Address</Label>
-                <Input
-                  id="edit-email"
-                  type="email"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  placeholder="Enter email address"
-                  className="w-full"
-                />
-              </div>
-              
-              <div className="space-y-3">
-                <Label htmlFor="edit-role" className="text-sm font-medium">Role</Label>
-                <Select value={editRole} onValueChange={setEditRole}>
+                <Label htmlFor="edit-type" className="text-sm font-medium">Report Type</Label>
+                <Select value={editType} onValueChange={setEditType}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select role" />
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Admin">Administrator</SelectItem>
-                    <SelectItem value="Faculty">Faculty Member</SelectItem>
-                    <SelectItem value="Student">Student</SelectItem>
-                    <SelectItem value="Staff">Staff</SelectItem>
+                    <SelectItem value="Attendance Report">Attendance Report</SelectItem>
+                    <SelectItem value="User Activity">User Activity</SelectItem>
+                    <SelectItem value="System Performance">System Performance</SelectItem>
+                    <SelectItem value="Custom Report">Custom Report</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              
-              <div className="space-y-3">
-                <Label htmlFor="edit-department" className="text-sm font-medium">Department</Label>
-                <Input
-                  id="edit-department"
-                  value={editDepartment}
-                  onChange={(e) => setEditDepartment(e.target.value)}
-                  placeholder="Enter department"
-                  className="w-full"
-                />
               </div>
             </div>
           </div>
@@ -321,92 +277,8 @@ function EditUserSheet({ user, open, onOpenChange }: {
   )
 }
 
-function DeactivateUserSheet({ user, open, onOpenChange }: { 
-  user: z.infer<typeof schema>; 
-  open: boolean; 
-  onOpenChange: (open: boolean) => void;
-}) {
-  const [reason, setReason] = React.useState("")
-
-  const handleDeactivate = () => {
-    // TODO: Implement deactivate logic
-    console.log("Deactivating user:", user.id, "Reason:", reason)
-    onOpenChange(false)
-  }
-
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8">
-        <div className="mx-auto max-w-md">
-          <SheetHeader className="space-y-4 text-center">
-            <SheetTitle className="text-xl">Deactivate User</SheetTitle>
-            <SheetDescription>
-              Temporarily disable this user account
-            </SheetDescription>
-          </SheetHeader>
-          
-          <div className="py-8 space-y-6">
-            {/* User Info */}
-            <div className="flex flex-col items-center gap-3 p-6 bg-muted/30 rounded-lg">
-              <div className="w-14 h-14 rounded-full bg-slate-500 flex items-center justify-center text-white text-sm font-medium">
-                {user.name 
-                  ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-                  : "?"
-                }
-              </div>
-              <div className="text-center">
-                <p className="font-medium">{user.name || "Unknown User"}</p>
-                <p className="text-sm text-muted-foreground">{user.email || "No email"}</p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="deactivate-reason" className="text-sm font-medium">Reason for Deactivation</Label>
-                <Select value={reason} onValueChange={setReason}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a reason" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="temporary_leave">Temporary Leave</SelectItem>
-                    <SelectItem value="policy_violation">Policy Violation</SelectItem>
-                    <SelectItem value="inactive_account">Inactive Account</SelectItem>
-                    <SelectItem value="user_request">User Request</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800 text-center">
-                  <strong>Note:</strong> Deactivating this user will prevent them from logging in. 
-                  Their data will be preserved and the account can be reactivated later.
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <SheetFooter className="flex gap-4 pb-8">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDeactivate} 
-              className="flex-1"
-              disabled={!reason}
-            >
-              Deactivate User
-            </Button>
-          </SheetFooter>
-        </div>
-      </SheetContent>
-    </Sheet>
-  )
-}
-
-function DeleteUserDialog({ user, open, onOpenChange }: { 
-  user: z.infer<typeof schema>; 
+function DeleteReportDialog({ report, open, onOpenChange }: { 
+  report: z.infer<typeof reportSchema>; 
   open: boolean; 
   onOpenChange: (open: boolean) => void;
 }) {
@@ -414,8 +286,7 @@ function DeleteUserDialog({ user, open, onOpenChange }: {
   const expectedText = "DELETE"
 
   const handleDelete = () => {
-    // TODO: Implement delete logic
-    console.log("Deleting user:", user.id)
+    console.log("Deleting report:", report.id)
     onOpenChange(false)
   }
 
@@ -425,22 +296,19 @@ function DeleteUserDialog({ user, open, onOpenChange }: {
         <DialogHeader className="space-y-3 text-center">
           <DialogTitle className="flex items-center justify-center gap-2 text-destructive text-lg">
             <Trash2 className="w-5 h-5" />
-            Delete User
+            Delete Report
           </DialogTitle>
           <DialogDescription className="space-y-4">
-            <p className="text-sm text-center">This action cannot be undone. This will permanently delete the user account and remove all associated data.</p>
+            <p className="text-sm text-center">This action cannot be undone. This will permanently delete the report.</p>
             
             <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
               <div className="flex flex-col items-center gap-2 text-center">
-                <div className="w-12 h-12 rounded-full bg-slate-500 flex items-center justify-center text-white text-sm font-medium">
-                  {user.name 
-                    ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-                    : "?"
-                  }
+                <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                  <FileText className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground text-sm">{user.name || "Unknown User"}</p>
-                  <p className="text-xs text-muted-foreground">{user.email || "No email"}</p>
+                  <p className="font-medium text-foreground text-sm">{report.name}</p>
+                  <p className="text-xs text-muted-foreground">{report.type}</p>
                 </div>
               </div>
             </div>
@@ -481,10 +349,9 @@ function DeleteUserDialog({ user, open, onOpenChange }: {
   )
 }
 
-function UserActionsCell({ user }: { user: z.infer<typeof schema> }) {
+function ReportActionsCell({ report }: { report: z.infer<typeof reportSchema> }) {
   const [viewOpen, setViewOpen] = React.useState(false)
   const [editOpen, setEditOpen] = React.useState(false)
-  const [deactivateOpen, setDeactivateOpen] = React.useState(false)
   const [deleteOpen, setDeleteOpen] = React.useState(false)
 
   return (
@@ -509,10 +376,6 @@ function UserActionsCell({ user }: { user: z.infer<typeof schema> }) {
             <Edit className="w-4 h-4 mr-2" />
             Edit
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setDeactivateOpen(true)}>
-            <UserX className="w-4 h-4 mr-2" />
-            Deactivate
-          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="text-destructive focus:text-destructive">
             <Trash2 className="w-4 h-4 mr-2" />
@@ -521,11 +384,9 @@ function UserActionsCell({ user }: { user: z.infer<typeof schema> }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Action Modals */}
-      <ViewUserSheet user={user} open={viewOpen} onOpenChange={setViewOpen} />
-      <EditUserSheet user={user} open={editOpen} onOpenChange={setEditOpen} />
-      <DeactivateUserSheet user={user} open={deactivateOpen} onOpenChange={setDeactivateOpen} />
-      <DeleteUserDialog user={user} open={deleteOpen} onOpenChange={setDeleteOpen} />
+      <ViewReportSheet report={report} open={viewOpen} onOpenChange={setViewOpen} />
+      <EditReportSheet report={report} open={editOpen} onOpenChange={setEditOpen} />
+      <DeleteReportDialog report={report} open={deleteOpen} onOpenChange={setDeleteOpen} />
     </>
   )
 }
@@ -550,7 +411,7 @@ function DragHandle({ id }: { id: number | string }) {
   )
 }
 
-const columns: ColumnDef<z.infer<typeof schema>>[] = [
+const columns: ColumnDef<z.infer<typeof reportSchema>>[] = [
   {
     id: "drag",
     header: () => null,
@@ -584,24 +445,17 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   },
   {
     accessorKey: "name",
-    header: "User",
+    header: "Report Name",
     cell: ({ row }) => {
-      const user = row.original
-      const initials = user.name 
-        ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-        : "?"
-      
+      const report = row.original
       return (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-slate-500 flex items-center justify-center text-white text-sm font-medium">
-            {initials}
+          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
+            <FileText className="w-5 h-5" />
           </div>
           <div>
-            <div className="font-medium">{user.name || "Unknown User"}</div>
-            {user.email && (
-              <div className="text-sm text-muted-foreground">{user.email}</div>
-            )}
-            <div className="text-xs text-muted-foreground">ID: {user.id}</div>
+            <div className="font-medium">{report.name}</div>
+            <div className="text-xs text-muted-foreground">ID: {report.id}</div>
           </div>
         </div>
       )
@@ -609,19 +463,11 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "role",
-    header: "Role",
+    accessorKey: "type",
+    header: "Type",
     cell: ({ row }) => (
-      <Badge 
-        variant={
-          row.original.role === "Admin" 
-            ? "default" 
-            : row.original.role === "Faculty" 
-            ? "secondary" 
-            : "outline"
-        }
-      >
-        {row.original.role}
+      <Badge variant="outline">
+        {row.original.type}
       </Badge>
     ),
   },
@@ -632,16 +478,20 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
       <div className="flex items-center gap-2">
         <div
           className={`w-2 h-2 rounded-full ${
-            row.original.status === "Active"
+            row.original.status === "Completed"
               ? "bg-green-500"
-              : "bg-muted-foreground"
+              : row.original.status === "Processing"
+              ? "bg-yellow-500"
+              : "bg-red-500"
           }`}
         />
         <span
           className={`text-sm font-medium ${
-            row.original.status === "Active"
+            row.original.status === "Completed"
               ? "text-green-700"
-              : "text-muted-foreground"
+              : row.original.status === "Processing"
+              ? "text-yellow-700"
+              : "text-red-700"
           }`}
         >
           {row.original.status}
@@ -650,20 +500,20 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     ),
   },
   {
-    accessorKey: "department",
-    header: "Department",
+    accessorKey: "size",
+    header: "Size",
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
-        {row.original.department || "Not assigned"}
+        {row.original.size || "N/A"}
       </span>
     ),
   },
   {
-    accessorKey: "lastActive",
-    header: "Last Active",
+    accessorKey: "createdDate",
+    header: "Created Date",
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
-        {row.original.lastActive || "Never"}
+        {row.original.createdDate}
       </span>
     ),
   },
@@ -671,12 +521,12 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     id: "actions",
     header: "Actions",
     cell: ({ row }) => (
-      <UserActionsCell user={row.original} />
+      <ReportActionsCell report={row.original} />
     ),
   },
 ]
 
-function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
+function DraggableRow({ row }: { row: Row<z.infer<typeof reportSchema>> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
   })
@@ -701,10 +551,10 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
   )
 }
 
-export function DataTable({
+export function ReportsDataTable({
   data: initialData,
 }: {
-  data: z.infer<typeof schema>[]
+  data: z.infer<typeof reportSchema>[]
 }) {
   const [data, setData] = React.useState(() => initialData)
   const [rowSelection, setRowSelection] = React.useState({})
@@ -719,12 +569,8 @@ export function DataTable({
     pageSize: 10,
   })
   const [isFilterOpen, setIsFilterOpen] = React.useState(false)
-  const [isAddUserOpen, setIsAddUserOpen] = React.useState(false)
   const [statusFilter, setStatusFilter] = React.useState("all")
   const [typeFilter, setTypeFilter] = React.useState("all")
-  const [newUserName, setNewUserName] = React.useState("")
-  const [newUserEmail, setNewUserEmail] = React.useState("")
-  const [newUserRole, setNewUserRole] = React.useState("")
   const sortableId = React.useId()
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
@@ -771,7 +617,7 @@ export function DataTable({
     }
     
     if (typeFilter !== "all") {
-      filteredData = filteredData.filter(item => item.role === typeFilter)
+      filteredData = filteredData.filter(item => item.type === typeFilter)
     }
     
     setData(filteredData)
@@ -788,6 +634,10 @@ export function DataTable({
     }
   }
 
+  const handleExport = () => {
+    console.log("Exporting reports...")
+  }
+
   return (
     <Tabs
       defaultValue="outline"
@@ -796,19 +646,23 @@ export function DataTable({
       {/* Table Title */}
       <div className="flex items-center justify-between px-4 lg:px-6">
         <div>
-          <h2 className="text-2xl font-semibold text-foreground">User Management</h2>
+          <h2 className="text-2xl font-semibold text-foreground">Reports Management</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage and monitor user accounts and permissions
+            Generate, view, and manage system reports
           </p>
         </div>
         <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
-            <span>Active Users</span>
+            <span>Completed</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-            <span>Inactive Users</span>
+            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+            <span>Processing</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-red-500"></div>
+            <span>Failed</span>
           </div>
         </div>
       </div>
@@ -871,24 +725,24 @@ export function DataTable({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
-                      <SelectItem value="Suspended">Suspended</SelectItem>
+                      <SelectItem value="Completed">Completed</SelectItem>
+                      <SelectItem value="Processing">Processing</SelectItem>
+                      <SelectItem value="Failed">Failed</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-3">
-                  <Label htmlFor="role-filter" className="text-sm font-medium">Role</Label>
+                  <Label htmlFor="type-filter" className="text-sm font-medium">Type</Label>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger id="role-filter" className="w-full">
-                      <SelectValue placeholder="Select role" />
+                    <SelectTrigger id="type-filter" className="w-full">
+                      <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Roles</SelectItem>
-                      <SelectItem value="Admin">Administrator</SelectItem>
-                      <SelectItem value="Faculty">Faculty Member</SelectItem>
-                      <SelectItem value="Student">Student</SelectItem>
-                      <SelectItem value="Staff">Staff</SelectItem>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="Attendance Report">Attendance Report</SelectItem>
+                      <SelectItem value="User Activity">User Activity</SelectItem>
+                      <SelectItem value="System Performance">System Performance</SelectItem>
+                      <SelectItem value="Custom Report">Custom Report</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -912,88 +766,10 @@ export function DataTable({
               </DrawerFooter>
             </DrawerContent>
           </Drawer>
-          <Drawer open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-            <DrawerTrigger asChild>
-              <Button variant="outline" size="sm">
-                <IconPlus />
-                <span className="hidden lg:inline">Add User</span>
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent className="px-6 pb-6">
-              <DrawerHeader className="px-0">
-                <DrawerTitle>Add New User</DrawerTitle>
-                <DrawerDescription>
-                  Create a new user account for the system
-                </DrawerDescription>
-              </DrawerHeader>
-              <div className="grid gap-6 py-4 max-w-md mx-auto w-full">
-                <div className="grid gap-3">
-                  <Label htmlFor="user-name" className="text-sm font-medium">Full Name</Label>
-                  <Input
-                    id="user-name"
-                    placeholder="Enter full name"
-                    value={newUserName}
-                    onChange={(e) => setNewUserName(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="user-email" className="text-sm font-medium">Email</Label>
-                  <Input
-                    id="user-email"
-                    type="email"
-                    placeholder="Enter email address"
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="user-role" className="text-sm font-medium">Role</Label>
-                  <Select value={newUserRole} onValueChange={setNewUserRole}>
-                    <SelectTrigger id="user-role" className="w-full">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Admin">Administrator</SelectItem>
-                      <SelectItem value="Faculty">Faculty Member</SelectItem>
-                      <SelectItem value="Student">Student</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DrawerFooter className="px-0 pt-4">
-                <div className="flex gap-3 max-w-md mx-auto w-full">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => {
-                      setNewUserName("")
-                      setNewUserEmail("")
-                      setNewUserRole("")
-                      setIsAddUserOpen(false)
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <DrawerClose asChild>
-                    <Button
-                      className="flex-1"
-                      onClick={() => {
-                        // Handle add user logic here
-                        console.log("Adding user:", { newUserName, newUserEmail, newUserRole })
-                        setNewUserName("")
-                        setNewUserEmail("")
-                        setNewUserRole("")
-                      }}
-                    >
-                      Add User
-                    </Button>
-                  </DrawerClose>
-                </div>
-              </DrawerFooter>
-            </DrawerContent>
-          </Drawer>
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <IconDownload />
+            <span className="hidden lg:inline">Export</span>
+          </Button>
         </div>
       </div>
       <TabsContent

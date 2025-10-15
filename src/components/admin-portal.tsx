@@ -64,6 +64,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+  DrawerClose,
+  DrawerFooter,
+} from "@/components/ui/drawer";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -86,6 +95,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/data-table";
+import { ReportsDataTable } from "@/components/reports-data-table";
+import { LogsDataTable } from "@/components/logs-data-table";
 import {
   Sidebar,
   SidebarContent,
@@ -99,6 +110,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
   SidebarInset,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   ChartContainer,
@@ -173,6 +185,72 @@ function NotificationMenu() {
   );
 }
 
+// Separate component for sidebar user menu that can use useSidebar hook
+function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean) => void }) {
+  const { isMobile } = useSidebar();
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            >
+              <Avatar className="h-8 w-8 rounded-lg grayscale">
+                <AvatarFallback className="rounded-lg bg-blue-500 text-white">
+                  <User className="w-4 h-4" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">Admin User</span>
+                <span className="text-muted-foreground truncate text-xs">
+                  admin@attendify.com
+                </span>
+              </div>
+              <IconDots className="ml-auto size-4" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            side={isMobile ? "top" : "right"}
+            align="end"
+            sideOffset={4}
+          >
+            <DropdownMenuLabel className="p-0 font-normal">
+              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarFallback className="rounded-lg bg-blue-500 text-white">
+                    <User className="w-4 h-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">
+                    Admin User
+                  </span>
+                  <span className="text-muted-foreground truncate text-xs">
+                    admin@attendify.com
+                  </span>
+                </div>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+              <IconSettings className="w-4 h-4" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <IconLogout className="w-4 h-4" />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
 export function AdminPortal() {
   const { toast } = useToast();
 
@@ -220,35 +298,92 @@ export function AdminPortal() {
     },
   ]);
 
-  const [logs] = useState<LogEntry[]>([
+  // Reports data
+  const [reports] = useState([
+    {
+      id: "RPT001",
+      name: "Monthly Attendance Report",
+      type: "Attendance Report",
+      status: "Completed",
+      createdDate: "2025-10-13",
+      size: "2.3 MB",
+      createdBy: "Admin User"
+    },
+    {
+      id: "RPT002", 
+      name: "User Activity Summary",
+      type: "User Activity",
+      status: "Processing",
+      createdDate: "2025-10-13",
+      size: "1.8 MB",
+      createdBy: "System Admin"
+    },
+    {
+      id: "RPT003",
+      name: "System Performance Analysis",
+      type: "System Performance", 
+      status: "Completed",
+      createdDate: "2025-10-12",
+      size: "4.5 MB",
+      createdBy: "Tech Lead"
+    },
+    {
+      id: "RPT004",
+      name: "Custom Dashboard Report",
+      type: "Custom Report",
+      status: "Failed",
+      createdDate: "2025-10-12",
+      size: null,
+      createdBy: "Admin User"
+    }
+  ]);
+
+  const [logs] = useState([
     {
       id: 1,
       timestamp: "2025-10-13 08:12",
       userId: "U001",
       activity: "Login Success",
-      status: "success",
+      status: "success" as const,
+      ipAddress: "192.168.1.100",
+      details: "Successful authentication from desktop application"
     },
     {
       id: 2,
       timestamp: "2025-10-13 08:15",
-      userId: "U002",
+      userId: "U002", 
       activity: "Attendance Submission",
-      status: "success",
+      status: "success" as const,
+      ipAddress: "192.168.1.101",
+      details: "Attendance recorded for morning session"
     },
     {
       id: 3,
       timestamp: "2025-10-12 18:02",
       userId: "U003",
       activity: "Failed Login",
-      status: "error",
+      status: "error" as const,
+      ipAddress: "192.168.1.102", 
+      details: "Invalid credentials - account locked after 3 attempts"
     },
     {
       id: 4,
-      timestamp: "2025-10-11 09:44",
+      timestamp: "2025-10-11 09:44", 
       userId: "U002",
       activity: "Login Success",
-      status: "success",
+      status: "success" as const,
+      ipAddress: "192.168.1.101",
+      details: "Mobile application login"
     },
+    {
+      id: 5,
+      timestamp: "2025-10-13 14:30",
+      userId: "U001",
+      activity: "Password Change",
+      status: "warning" as const,
+      ipAddress: "192.168.1.100",
+      details: "Password updated - security notification sent"
+    }
   ]);
 
   // Reports
@@ -548,7 +683,7 @@ export function AdminPortal() {
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         isActive={activeTab === item.id}
-                        onClick={() => setActiveTab(item.id)}
+                        onClick={() => setActiveTab(item.id as "dashboard" | "users" | "reports" | "logs")}
                         className="w-full justify-start"
                         size="lg"
                       >
@@ -564,79 +699,7 @@ export function AdminPortal() {
 
           {/* Sidebar Footer - Account & Settings (kept at bottom) */}
           <SidebarFooter>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton
-                      size="lg"
-                      className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                    >
-                      <Avatar className="h-8 w-8 rounded-lg grayscale">
-                        <AvatarFallback className="rounded-lg bg-blue-500 text-white">
-                          <User className="w-4 h-4" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="grid flex-1 text-left text-sm leading-tight">
-                        <span className="truncate font-medium">Admin User</span>
-                        <span className="text-muted-foreground truncate text-xs">
-                          admin@attendify.com
-                        </span>
-                      </div>
-                      <IconDots className="ml-auto size-4" />
-                    </SidebarMenuButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-                    side="right"
-                    align="end"
-                    sideOffset={4}
-                  >
-                    <DropdownMenuLabel className="p-0 font-normal">
-                      <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                        <Avatar className="h-8 w-8 rounded-lg">
-                          <AvatarFallback className="rounded-lg bg-blue-500 text-white">
-                            <User className="w-4 h-4" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="grid flex-1 text-left text-sm leading-tight">
-                          <span className="truncate font-medium">
-                            Admin User
-                          </span>
-                          <span className="text-muted-foreground truncate text-xs">
-                            admin@attendify.com
-                          </span>
-                        </div>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                      <DropdownMenuItem>
-                        <IconUser className="w-4 h-4" />
-                        Account
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <IconCreditCard className="w-4 h-4" />
-                        Billing
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <IconNotification className="w-4 h-4" />
-                        Notifications
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-                      <IconSettings className="w-4 h-4" />
-                      Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <IconLogout className="w-4 h-4" />
-                      Log out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </SidebarMenuItem>
-            </SidebarMenu>
+            <SidebarUserMenu setSettingsOpen={setSettingsOpen} />
           </SidebarFooter>
         </Sidebar>
 
@@ -920,13 +983,13 @@ export function AdminPortal() {
               <div className="space-y-4 md:space-y-6">
                 <DataTable
                   data={users.map((user, index) => ({
-                    id: index + 1,
-                    header: user.name,
-                    type: user.role,
+                    id: user.id,
+                    name: user.name,
+                    email: user.email || "",
+                    role: user.role,
                     status: user.status,
-                    target: user.id,
-                    limit: user.lastActive || "Never",
-                    reviewer: user.email || "No email",
+                    lastActive: user.lastActive || "Never",
+                    department: undefined, // This can be added to the User interface later
                   }))}
                 />
               </div>
@@ -935,409 +998,209 @@ export function AdminPortal() {
             {/* Reports */}
             {activeTab === "reports" && (
               <div className="space-y-4 md:space-y-6">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 touch-target"
-                    >
-                      <IconCalendar className="w-4 h-4" />
-                      <span className="hidden sm:inline">Date Range</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 touch-target"
-                    >
-                      <IconFilter className="w-4 h-4" />
-                      <span className="hidden sm:inline">Filter</span>
-                    </Button>
-                  </div>
-
-                  <Button
-                    onClick={handleGenerateReport}
-                    disabled={generating}
-                    className="gap-2 bg-green-600 hover:bg-green-700 touch-target"
-                  >
-                    {generating ? (
-                      <>
-                        <IconLoader2 className="w-4 h-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <IconDownload className="w-4 h-4" />
-                        <span className="hidden sm:inline">Export Report</span>
-                        <span className="sm:hidden">Export</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                <Card className="border shadow-sm">
-                  <CardContent className="p-4 md:p-6">
-                    <Tabs value={reportTab} onValueChange={setReportTab}>
-                      <TabsList className="grid w-full grid-cols-3 mb-6">
-                        <TabsTrigger value="daily">Daily Reports</TabsTrigger>
-                        <TabsTrigger value="weekly">Weekly Reports</TabsTrigger>
-                        <TabsTrigger value="all">Monthly Reports</TabsTrigger>
-                      </TabsList>
-
-                      <TabsContent value="daily" className="space-y-4 mt-0">
-                        <div className="overflow-x-auto mobile-scroll">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="min-w-[120px]">
-                                  Date
-                                </TableHead>
-                                <TableHead className="min-w-[140px]">
-                                  Metric
-                                </TableHead>
-                                <TableHead className="min-w-[80px]">
-                                  Value
-                                </TableHead>
-                                <TableHead className="min-w-[120px]">
-                                  Progress
-                                </TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              <TableRow>
-                                <TableCell className="font-medium">
-                                  Oct 13, 2025
-                                </TableCell>
-                                <TableCell>Attendance Rate</TableCell>
-                                <TableCell className="font-bold text-green-600">
-                                  95.2%
-                                </TableCell>
-                                <TableCell>
-                                  <Progress value={95.2} className="w-20" />
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell className="font-medium">
-                                  Oct 13, 2025
-                                </TableCell>
-                                <TableCell>Submissions</TableCell>
-                                <TableCell className="font-bold text-blue-600">
-                                  1,247
-                                </TableCell>
-                                <TableCell>
-                                  <Progress value={87} className="w-20" />
-                                </TableCell>
-                              </TableRow>
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="weekly" className="space-y-4 mt-0">
-                        <div className="overflow-x-auto mobile-scroll">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="min-w-[80px]">
-                                  Week
-                                </TableHead>
-                                <TableHead className="min-w-[140px]">
-                                  Avg Attendance
-                                </TableHead>
-                                <TableHead className="min-w-[80px]">
-                                  Change
-                                </TableHead>
-                                <TableHead className="min-w-[100px]">
-                                  Status
-                                </TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              <TableRow>
-                                <TableCell className="font-medium">
-                                  Week 41
-                                </TableCell>
-                                <TableCell className="font-bold text-green-600">
-                                  93.6%
-                                </TableCell>
-                                <TableCell className="text-green-600 font-medium">
-                                  +2.1%
-                                </TableCell>
-                                <TableCell>
-                                  <Badge className="bg-green-100 text-green-800">
-                                    Excellent
-                                  </Badge>
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell className="font-medium">
-                                  Week 40
-                                </TableCell>
-                                <TableCell className="font-bold text-blue-600">
-                                  92.1%
-                                </TableCell>
-                                <TableCell className="text-blue-600 font-medium">
-                                  +1.5%
-                                </TableCell>
-                                <TableCell>
-                                  <Badge className="bg-blue-100 text-blue-800">
-                                    Good
-                                  </Badge>
-                                </TableCell>
-                              </TableRow>
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="all" className="space-y-4 mt-0">
-                        <div className="overflow-x-auto mobile-scroll">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="min-w-[120px]">
-                                  Month
-                                </TableHead>
-                                <TableHead className="min-w-[140px]">
-                                  Avg Attendance
-                                </TableHead>
-                                <TableHead className="min-w-[100px]">
-                                  Students
-                                </TableHead>
-                                <TableHead className="min-w-[120px]">
-                                  Performance
-                                </TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              <TableRow>
-                                <TableCell className="font-medium">
-                                  October 2025
-                                </TableCell>
-                                <TableCell className="font-bold text-violet-600">
-                                  94.3%
-                                </TableCell>
-                                <TableCell>1,234</TableCell>
-                                <TableCell>
-                                  <Badge className="bg-violet-100 text-violet-800">
-                                    Outstanding
-                                  </Badge>
-                                </TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell className="font-medium">
-                                  September 2025
-                                </TableCell>
-                                <TableCell className="font-bold text-green-600">
-                                  92.7%
-                                </TableCell>
-                                <TableCell>1,198</TableCell>
-                                <TableCell>
-                                  <Badge className="bg-green-100 text-green-800">
-                                    Excellent
-                                  </Badge>
-                                </TableCell>
-                              </TableRow>
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </CardContent>
-                </Card>
+                <ReportsDataTable data={reports} />
               </div>
             )}
 
             {/* System Logs */}
             {activeTab === "logs" && (
               <div className="space-y-4 md:space-y-6">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 touch-target"
-                    >
-                      <IconFilter className="w-4 h-4" />
-                      <span className="hidden sm:inline">Filter Logs</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 touch-target"
-                    >
-                      <IconRefresh className="w-4 h-4" />
-                      <span className="hidden sm:inline">Refresh</span>
-                    </Button>
-                  </div>
-
-                  <Badge variant="outline">Real-time Activity</Badge>
-                </div>
-
-                {/* Mobile Log Cards */}
-                <div className="block md:hidden space-y-3">
-                  {logs.map((log) => (
-                    <Card
-                      key={log.id}
-                      className="border shadow-sm touch-feedback"
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`w-3 h-3 mt-1 rounded-full flex-shrink-0 ${
-                              log.status === "success"
-                                ? "bg-green-500"
-                                : log.status === "error"
-                                ? "bg-red-500"
-                                : "bg-yellow-500"
-                            }`}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <p
-                                  className={`font-medium truncate ${
-                                    log.status === "success"
-                                      ? "text-foreground"
-                                      : log.status === "error"
-                                      ? "text-red-700"
-                                      : "text-yellow-700"
-                                  }`}
-                                >
-                                  {log.activity}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-sm text-muted-foreground">
-                                    {log.userId}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {log.timestamp}
-                                  </span>
-                                </div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="w-8 h-8 touch-target"
-                              >
-                                <IconChevronRight className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                {/* Desktop Table */}
-                <Card className="hidden md:block border shadow-sm">
-                  <CardHeader>
-                    <CardTitle>System Activity Logs</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="max-h-96 overflow-y-auto mobile-scroll">
-                      <Table>
-                        <TableHeader className="sticky top-0 bg-stone-50/95 backdrop-blur supports-[backdrop-filter]:bg-stone-50/60">
-                          <TableRow>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Timestamp</TableHead>
-                            <TableHead>User</TableHead>
-                            <TableHead>Activity</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {logs.map((log) => (
-                            <TableRow
-                              key={log.id}
-                              className="hover:bg-muted/50 transition-colors"
-                            >
-                              <TableCell>
-                                <div
-                                  className={`w-2 h-2 rounded-full ${
-                                    log.status === "success"
-                                      ? "bg-green-500"
-                                      : log.status === "error"
-                                      ? "bg-red-500"
-                                      : "bg-yellow-500"
-                                  }`}
-                                />
-                              </TableCell>
-                              <TableCell className="text-sm font-mono text-muted-foreground">
-                                {log.timestamp}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="w-6 h-6">
-                                    <AvatarFallback className="bg-gray-500 text-white">
-                                      <User className="w-3 h-3" />
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="text-sm font-medium">
-                                    {log.userId}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <span
-                                  className={`text-sm ${
-                                    log.status === "success"
-                                      ? "text-foreground"
-                                      : log.status === "error"
-                                      ? "text-red-700"
-                                      : "text-yellow-700"
-                                  }`}
-                                >
-                                  {log.activity}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="w-6 h-6"
-                                >
-                                  <IconChevronRight className="w-3 h-3" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
+                <LogsDataTable data={logs} />
               </div>
             )}
           </div>
         </SidebarInset>
 
-        {/* Settings Dialog */}
-        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>System Settings</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="semester-start">Semester Start</Label>
-                <Input id="semester-start" type="date" className="mt-1" />
+        {/* Account Settings Drawer */}
+        <Drawer open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DrawerContent className="max-h-[90vh] mx-auto max-w-md">
+            <DrawerHeader className="text-left">
+              <DrawerTitle>Account Settings</DrawerTitle>
+            </DrawerHeader>
+            <div className="px-4 pb-4 space-y-6 overflow-y-auto">
+              {/* Profile Information */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-sm text-muted-foreground">
+                  Profile Information
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="full-name">Full Name</Label>
+                    <Input 
+                      id="full-name" 
+                      type="text" 
+                      defaultValue="Admin User"
+                      className="mt-1" 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      defaultValue="admin@attendify.com"
+                      className="mt-1" 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input 
+                      id="phone" 
+                      type="tel" 
+                      placeholder="+1 (555) 123-4567"
+                      className="mt-1" 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="department">Department</Label>
+                    <Input 
+                      id="department" 
+                      type="text" 
+                      defaultValue="Administration"
+                      className="mt-1" 
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="semester-end">Semester End</Label>
-                <Input id="semester-end" type="date" className="mt-1" />
+
+              {/* Security Settings */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-sm text-muted-foreground">
+                  Security
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="current-password">Current Password</Label>
+                    <Input 
+                      id="current-password" 
+                      type="password" 
+                      placeholder="Enter current password"
+                      className="mt-1" 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="new-password">New Password</Label>
+                    <Input 
+                      id="new-password" 
+                      type="password" 
+                      placeholder="Enter new password"
+                      className="mt-1" 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="confirm-password">Confirm New Password</Label>
+                    <Input 
+                      id="confirm-password" 
+                      type="password" 
+                      placeholder="Confirm new password"
+                      className="mt-1" 
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="policy-upload">Policy Upload</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input id="policy-upload" type="file" className="flex-1" />
-                  <Button>Upload</Button>
+
+              {/* Preferences */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-sm text-muted-foreground">
+                  Preferences
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="language">Language</Label>
+                    <select
+                      id="language"
+                      className="w-full mt-1 px-3 py-2 border border-input rounded-md text-sm"
+                    >
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="timezone">Timezone</Label>
+                    <select
+                      id="timezone"
+                      className="w-full mt-1 px-3 py-2 border border-input rounded-md text-sm"
+                    >
+                      <option value="utc-5">Eastern Time (UTC-5)</option>
+                      <option value="utc-6">Central Time (UTC-6)</option>
+                      <option value="utc-7">Mountain Time (UTC-7)</option>
+                      <option value="utc-8">Pacific Time (UTC-8)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notification Preferences */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-sm text-muted-foreground">
+                  Notifications
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="email-notifications" className="text-sm font-normal">
+                      Email Notifications
+                    </Label>
+                    <input
+                      id="email-notifications"
+                      type="checkbox"
+                      className="h-4 w-4"
+                      defaultChecked
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="push-notifications" className="text-sm font-normal">
+                      Push Notifications
+                    </Label>
+                    <input
+                      id="push-notifications"
+                      type="checkbox"
+                      className="h-4 w-4"
+                      defaultChecked
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="attendance-alerts" className="text-sm font-normal">
+                      Attendance Alerts
+                    </Label>
+                    <input
+                      id="attendance-alerts"
+                      type="checkbox"
+                      className="h-4 w-4"
+                      defaultChecked
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="system-updates" className="text-sm font-normal">
+                      System Updates
+                    </Label>
+                    <input
+                      id="system-updates"
+                      type="checkbox"
+                      className="h-4 w-4"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+            <DrawerFooter className="border-t">
+              <div className="flex gap-2 w-full">
+                <Button 
+                  onClick={() => setSettingsOpen(false)}
+                  className="flex-1"
+                >
+                  Save Changes
+                </Button>
+                <DrawerClose asChild>
+                  <Button variant="outline" className="flex-1">
+                    Cancel
+                  </Button>
+                </DrawerClose>
+              </div>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={deleteUserOpen} onOpenChange={setDeleteUserOpen}>

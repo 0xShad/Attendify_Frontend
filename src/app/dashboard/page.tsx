@@ -10,7 +10,54 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 
-import data from "./data.json"
+// Sample user data for the dashboard
+const userData = [
+  {
+    id: "USR001",
+    name: "Alice Johnson",
+    email: "alice.johnson@attendify.edu",
+    role: "Faculty",
+    status: "Active",
+    lastActive: "2 hours ago",
+    department: "Computer Science"
+  },
+  {
+    id: "USR002", 
+    name: "Bob Smith",
+    email: "bob.smith@student.attendify.edu",
+    role: "Student",
+    status: "Active",
+    lastActive: "30 minutes ago",
+    department: "Engineering"
+  },
+  {
+    id: "USR003",
+    name: "Carol Davis",
+    email: "carol.davis@attendify.edu", 
+    role: "Admin",
+    status: "Active",
+    lastActive: "1 hour ago",
+    department: "Administration"
+  },
+  {
+    id: "USR004",
+    name: "David Wilson",
+    email: "david.wilson@student.attendify.edu",
+    role: "Student", 
+    status: "Inactive",
+    lastActive: "3 days ago",
+    department: "Mathematics"
+  },
+  {
+    id: "USR005",
+    name: "Emma Brown",
+    email: "emma.brown@attendify.edu",
+    role: "Faculty",
+    status: "Active", 
+    lastActive: "15 minutes ago",
+    department: "Physics"
+  }
+];
 
 export default function Page() {
   // Authentication is now handled by middleware (HTTP-based)
@@ -35,7 +82,7 @@ export default function Page() {
               <div className="px-4 lg:px-6">
                 <ChartAreaInteractive />
               </div>
-              <DataTable data={data} />
+              <DataTable data={userData} />
             </div>
           </div>
         </div>
