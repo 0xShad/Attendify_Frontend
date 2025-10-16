@@ -354,8 +354,10 @@ export function FacultyPortal() {
   // Selected items for viewing/editing
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [selectedSession, setSelectedSession] = useState<AttendanceSession | null>(null);
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [selectedSession, setSelectedSession] =
+    useState<AttendanceSession | null>(null);
+  const [selectedAnnouncement, setSelectedAnnouncement] =
+    useState<Announcement | null>(null);
 
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
@@ -1029,7 +1031,8 @@ export function FacultyPortal() {
                     <div>
                       <h3 className="text-lg font-medium">My Classes</h3>
                       <p className="text-sm text-muted-foreground">
-                        Create and manage your classes, schedules, and enrollment
+                        Create and manage your classes, schedules, and
+                        enrollment
                       </p>
                     </div>
                     <Button onClick={() => setAddClassOpen(true)} size="sm">
@@ -1072,7 +1075,7 @@ export function FacultyPortal() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   onClick={() => {
                                     setSelectedClass(classItem);
                                     setViewClassOpen(true);
@@ -1081,7 +1084,7 @@ export function FacultyPortal() {
                                   <Eye className="w-4 h-4 mr-2" />
                                   View Details
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   onClick={() => {
                                     setSelectedClass(classItem);
                                     setEditClassOpen(true);
@@ -1090,7 +1093,7 @@ export function FacultyPortal() {
                                   <Edit className="w-4 h-4 mr-2" />
                                   Edit Class
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   onClick={() => {
                                     setSelectedClass(classItem);
                                     setEnrollStudentOpen(true);
@@ -1099,7 +1102,11 @@ export function FacultyPortal() {
                                   <UserPlus className="w-4 h-4 mr-2" />
                                   Enroll Student
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleStartSession(classItem.id)}>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleStartSession(classItem.id)
+                                  }
+                                >
                                   <Play className="w-4 h-4 mr-2" />
                                   Start Session
                                 </DropdownMenuItem>
@@ -1117,7 +1124,9 @@ export function FacultyPortal() {
                         <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">{classItem.schedule}</span>
+                            <span className="truncate">
+                              {classItem.schedule}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Users className="w-4 h-4 text-muted-foreground" />
@@ -1126,7 +1135,9 @@ export function FacultyPortal() {
                           {classItem.location && (
                             <div className="flex items-center gap-2 col-span-2">
                               <IconChalkboard className="w-4 h-4 text-muted-foreground" />
-                              <span className="truncate">{classItem.location}</span>
+                              <span className="truncate">
+                                {classItem.location}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -1134,13 +1145,20 @@ export function FacultyPortal() {
                         {/* Progress Section */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
-                            <span>Sessions: {classItem.completedSessions}/{classItem.totalSessions}</span>
+                            <span>
+                              Sessions: {classItem.completedSessions}/
+                              {classItem.totalSessions}
+                            </span>
                             <span className="font-medium">
                               Attendance: {classItem.attendanceRate}%
                             </span>
                           </div>
                           <Progress
-                            value={(classItem.completedSessions / classItem.totalSessions) * 100}
+                            value={
+                              (classItem.completedSessions /
+                                classItem.totalSessions) *
+                              100
+                            }
                             className="h-2"
                           />
                         </div>
@@ -1297,9 +1315,11 @@ export function FacultyPortal() {
                               {/* Student Attendance Table */}
                               <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                  <h5 className="font-medium text-sm">Student Attendance</h5>
-                                  <Button 
-                                    size="sm" 
+                                  <h5 className="font-medium text-sm">
+                                    Student Attendance
+                                  </h5>
+                                  <Button
+                                    size="sm"
                                     variant="outline"
                                     onClick={() => {
                                       setSelectedSession(session);
@@ -1310,129 +1330,162 @@ export function FacultyPortal() {
                                     Manual Edit
                                   </Button>
                                 </div>
-                                
+
                                 {/* Mobile-First Student List */}
                                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                                  {Array.from({ length: session.totalStudents }, (_, i) => {
-                                    const isPresent = i < session.presentCount;
-                                    const student = {
-                                      id: `student-${i}`,
-                                      name: `Student ${i + 1}`,
-                                      email: `student${i + 1}@university.edu`,
-                                      avatar: `S${i + 1}`,
-                                      isPresent
-                                    };
-                                    
-                                    return (
-                                      <div 
-                                        key={student.id}
-                                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                                          isPresent 
-                                            ? 'bg-green-50 border-green-200' 
-                                            : 'bg-red-50 border-red-200'
-                                        }`}
-                                      >
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                          <Avatar className="w-8 h-8 shrink-0">
-                                            <AvatarFallback className="text-xs">
-                                              {student.avatar}
-                                            </AvatarFallback>
-                                          </Avatar>
-                                          <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-sm truncate">
-                                              {student.name}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground truncate">
-                                              {student.email}
+                                  {Array.from(
+                                    { length: session.totalStudents },
+                                    (_, i) => {
+                                      const isPresent =
+                                        i < session.presentCount;
+                                      const student = {
+                                        id: `student-${i}`,
+                                        name: `Student ${i + 1}`,
+                                        email: `student${i + 1}@university.edu`,
+                                        avatar: `S${i + 1}`,
+                                        isPresent,
+                                      };
+
+                                      return (
+                                        <div
+                                          key={student.id}
+                                          className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                                            isPresent
+                                              ? "bg-green-50 border-green-200"
+                                              : "bg-red-50 border-red-200"
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <Avatar className="w-8 h-8 shrink-0">
+                                              <AvatarFallback className="text-xs">
+                                                {student.avatar}
+                                              </AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1 min-w-0">
+                                              <div className="font-medium text-sm truncate">
+                                                {student.name}
+                                              </div>
+                                              <div className="text-xs text-muted-foreground truncate">
+                                                {student.email}
+                                              </div>
                                             </div>
                                           </div>
+
+                                          <div className="flex items-center gap-2 shrink-0">
+                                            <Badge
+                                              variant={
+                                                isPresent
+                                                  ? "default"
+                                                  : "secondary"
+                                              }
+                                              className={
+                                                isPresent
+                                                  ? "bg-green-100 text-green-700 border-green-200"
+                                                  : "bg-red-100 text-red-700 border-red-200"
+                                              }
+                                            >
+                                              {isPresent ? "Present" : "Absent"}
+                                            </Badge>
+
+                                            <DropdownMenu>
+                                              <DropdownMenuTrigger asChild>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                >
+                                                  <MoreVertical className="w-3 h-3" />
+                                                </Button>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent align="end">
+                                                <DropdownMenuItem
+                                                  onClick={() => {
+                                                    // Toggle attendance status
+                                                    console.log(
+                                                      `Toggle attendance for ${student.name}`
+                                                    );
+                                                  }}
+                                                >
+                                                  <CheckCircle className="w-3 h-3 mr-2" />
+                                                  {isPresent
+                                                    ? "Mark Absent"
+                                                    : "Mark Present"}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                  onClick={() => {
+                                                    setSelectedStudent({
+                                                      id: student.id,
+                                                      name: student.name,
+                                                      email: student.email,
+                                                      studentId: `ST${String(
+                                                        i + 1
+                                                      ).padStart(3, "0")}`,
+                                                      classId: session.classId,
+                                                      enrollmentStatus:
+                                                        "Enrolled",
+                                                      attendanceRate:
+                                                        Math.floor(
+                                                          Math.random() * 20
+                                                        ) + 80,
+                                                      totalSessions: 15,
+                                                      presentSessions:
+                                                        Math.floor(
+                                                          ((Math.random() * 20 +
+                                                            80) *
+                                                            15) /
+                                                            100
+                                                        ),
+                                                    });
+                                                    setViewStudentOpen(true);
+                                                  }}
+                                                >
+                                                  <Eye className="w-3 h-3 mr-2" />
+                                                  View Profile
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem>
+                                                  <Send className="w-3 h-3 mr-2" />
+                                                  Send Message
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                  className="text-red-600"
+                                                  onClick={() => {
+                                                    console.log(
+                                                      `Remove ${student.name} from session`
+                                                    );
+                                                  }}
+                                                >
+                                                  <Trash2 className="w-3 h-3 mr-2" />
+                                                  Remove from Session
+                                                </DropdownMenuItem>
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
+                                          </div>
                                         </div>
-                                        
-                                        <div className="flex items-center gap-2 shrink-0">
-                                          <Badge 
-                                            variant={isPresent ? "default" : "secondary"}
-                                            className={
-                                              isPresent 
-                                                ? "bg-green-100 text-green-700 border-green-200" 
-                                                : "bg-red-100 text-red-700 border-red-200"
-                                            }
-                                          >
-                                            {isPresent ? "Present" : "Absent"}
-                                          </Badge>
-                                          
-                                          <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                              <Button variant="ghost" size="sm">
-                                                <MoreVertical className="w-3 h-3" />
-                                              </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                              <DropdownMenuItem
-                                                onClick={() => {
-                                                  // Toggle attendance status
-                                                  console.log(`Toggle attendance for ${student.name}`);
-                                                }}
-                                              >
-                                                <CheckCircle className="w-3 h-3 mr-2" />
-                                                {isPresent ? "Mark Absent" : "Mark Present"}
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem
-                                                onClick={() => {
-                                                  setSelectedStudent({
-                                                    id: student.id,
-                                                    name: student.name,
-                                                    email: student.email,
-                                                    studentId: `ST${String(i + 1).padStart(3, '0')}`,
-                                                    classId: session.classId,
-                                                    enrollmentStatus: "Enrolled",
-                                                    attendanceRate: Math.floor(Math.random() * 20) + 80,
-                                                    totalSessions: 15,
-                                                    presentSessions: Math.floor((Math.random() * 20 + 80) * 15 / 100)
-                                                  });
-                                                  setViewStudentOpen(true);
-                                                }}
-                                              >
-                                                <Eye className="w-3 h-3 mr-2" />
-                                                View Profile
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem>
-                                                <Send className="w-3 h-3 mr-2" />
-                                                Send Message
-                                              </DropdownMenuItem>
-                                              <DropdownMenuSeparator />
-                                              <DropdownMenuItem 
-                                                className="text-red-600"
-                                                onClick={() => {
-                                                  console.log(`Remove ${student.name} from session`);
-                                                }}
-                                              >
-                                                <Trash2 className="w-3 h-3 mr-2" />
-                                                Remove from Session
-                                              </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                          </DropdownMenu>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
+                                      );
+                                    }
+                                  )}
                                 </div>
-                                
+
                                 {/* Quick Actions */}
                                 <div className="flex gap-2 pt-2 border-t">
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
                                     className="flex-1"
-                                    onClick={() => console.log("Mark all present")}
+                                    onClick={() =>
+                                      console.log("Mark all present")
+                                    }
                                   >
                                     <CheckCircle className="w-3 h-3 mr-1" />
                                     All Present
                                   </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
                                     className="flex-1"
-                                    onClick={() => console.log("Mark all absent")}
+                                    onClick={() =>
+                                      console.log("Mark all absent")
+                                    }
                                   >
                                     <X className="w-3 h-3 mr-1" />
                                     All Absent
@@ -1606,8 +1659,8 @@ export function FacultyPortal() {
                           {announcement.content}
                         </p>
                         <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => {
                               setSelectedAnnouncement(announcement);
@@ -1617,8 +1670,8 @@ export function FacultyPortal() {
                             <Edit className="w-3 h-3 mr-1" />
                             Edit
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => {
                               setSelectedAnnouncement(announcement);
@@ -1702,7 +1755,9 @@ export function FacultyPortal() {
                 />
               </div>
               <div>
-                <Label htmlFor="class-description">Description (optional)</Label>
+                <Label htmlFor="class-description">
+                  Description (optional)
+                </Label>
                 <Textarea
                   id="class-description"
                   value={newClassDescription}
@@ -1713,7 +1768,11 @@ export function FacultyPortal() {
               </div>
             </div>
             <DrawerFooter>
-              <Button onClick={handleAddClass} disabled={addingClass} className="w-full">
+              <Button
+                onClick={handleAddClass}
+                disabled={addingClass}
+                className="w-full"
+              >
                 {addingClass ? (
                   <IconLoader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
@@ -1731,7 +1790,10 @@ export function FacultyPortal() {
         </Drawer>
 
         {/* Add Announcement Drawer */}
-        <Drawer open={addAnnouncementOpen} onOpenChange={setAddAnnouncementOpen}>
+        <Drawer
+          open={addAnnouncementOpen}
+          onOpenChange={setAddAnnouncementOpen}
+        >
           <DrawerContent className="max-h-[90vh]">
             <DrawerHeader>
               <DrawerTitle>Create Announcement</DrawerTitle>
@@ -1780,21 +1842,32 @@ export function FacultyPortal() {
                 <Label>Target Classes</Label>
                 <div className="space-y-2 mt-2 max-h-40 overflow-y-auto border rounded-lg p-3">
                   {classes.map((classItem) => (
-                    <div key={classItem.id} className="flex items-center space-x-2">
+                    <div
+                      key={classItem.id}
+                      className="flex items-center space-x-2"
+                    >
                       <input
                         type="checkbox"
                         id={`class-${classItem.id}`}
                         checked={selectedClasses.includes(classItem.id)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedClasses(prev => [...prev, classItem.id]);
+                            setSelectedClasses((prev) => [
+                              ...prev,
+                              classItem.id,
+                            ]);
                           } else {
-                            setSelectedClasses(prev => prev.filter(id => id !== classItem.id));
+                            setSelectedClasses((prev) =>
+                              prev.filter((id) => id !== classItem.id)
+                            );
                           }
                         }}
                         className="h-4 w-4"
                       />
-                      <Label htmlFor={`class-${classItem.id}`} className="text-sm font-normal flex-1">
+                      <Label
+                        htmlFor={`class-${classItem.id}`}
+                        className="text-sm font-normal flex-1"
+                      >
                         {classItem.name} ({classItem.code})
                       </Label>
                     </div>
@@ -1961,7 +2034,7 @@ export function FacultyPortal() {
           <DrawerContent className="max-h-[90vh]">
             <DrawerHeader>
               <DrawerTitle>
-                {selectedClass?.name || 'Class Details'}
+                {selectedClass?.name || "Class Details"}
               </DrawerTitle>
             </DrawerHeader>
             <div className="px-4 pb-4 space-y-6 overflow-y-auto">
@@ -1969,15 +2042,23 @@ export function FacultyPortal() {
                 <>
                   {/* Class Information */}
                   <div className="space-y-4">
-                    <h3 className="font-medium text-sm text-muted-foreground">Class Information</h3>
+                    <h3 className="font-medium text-sm text-muted-foreground">
+                      Class Information
+                    </h3>
                     <div className="grid grid-cols-1 gap-3 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Class Code:</span>
-                        <span className="font-medium">{selectedClass.code}</span>
+                        <span className="text-muted-foreground">
+                          Class Code:
+                        </span>
+                        <span className="font-medium">
+                          {selectedClass.code}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Schedule:</span>
-                        <span className="font-medium">{selectedClass.schedule}</span>
+                        <span className="font-medium">
+                          {selectedClass.schedule}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Mode:</span>
@@ -1985,11 +2066,19 @@ export function FacultyPortal() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Location:</span>
-                        <span className="font-medium">{selectedClass.location || 'Not specified'}</span>
+                        <span className="font-medium">
+                          {selectedClass.location || "Not specified"}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Status:</span>
-                        <Badge variant={selectedClass.status === 'Active' ? 'default' : 'secondary'}>
+                        <Badge
+                          variant={
+                            selectedClass.status === "Active"
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
                           {selectedClass.status}
                         </Badge>
                       </div>
@@ -2002,7 +2091,11 @@ export function FacultyPortal() {
                       <h3 className="font-medium text-sm text-muted-foreground">
                         Enrolled Students ({selectedClass.enrolledStudents})
                       </h3>
-                      <Button size="sm" variant="outline" onClick={() => setEnrollStudentOpen(true)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEnrollStudentOpen(true)}
+                      >
                         <UserPlus className="w-3 h-3 mr-1" />
                         Enroll
                       </Button>
@@ -2013,62 +2106,69 @@ export function FacultyPortal() {
                           <TableRow>
                             <TableHead className="w-[50px]">#</TableHead>
                             <TableHead>Student</TableHead>
-                            <TableHead className="text-right">Attendance</TableHead>
+                            <TableHead className="text-right">
+                              Attendance
+                            </TableHead>
                             <TableHead className="w-[70px]">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {Array.from({ length: selectedClass.enrolledStudents }, (_, i) => (
-                            <TableRow key={i}>
-                              <TableCell className="font-mono text-xs">
-                                {String(i + 1).padStart(2, '0')}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-3">
-                                  <Avatar className="w-7 h-7">
-                                    <AvatarFallback className="text-xs">
-                                      {`S${i + 1}`}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <div className="font-medium text-sm">Student {i + 1}</div>
-                                    <div className="text-xs text-muted-foreground">
-                                      student{i + 1}@university.edu
+                          {Array.from(
+                            { length: selectedClass.enrolledStudents },
+                            (_, i) => (
+                              <TableRow key={i}>
+                                <TableCell className="font-mono text-xs">
+                                  {String(i + 1).padStart(2, "0")}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="w-7 h-7">
+                                      <AvatarFallback className="text-xs">
+                                        {`S${i + 1}`}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <div className="font-medium text-sm">
+                                        Student {i + 1}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        student{i + 1}@university.edu
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="text-sm font-medium">
-                                  {Math.floor(Math.random() * 20) + 80}%
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm">
-                                      <MoreVertical className="w-3 h-3" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem>
-                                      <Eye className="w-3 h-3 mr-2" />
-                                      View Profile
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                      <Send className="w-3 h-3 mr-2" />
-                                      Send Message
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-red-600">
-                                      <Trash2 className="w-3 h-3 mr-2" />
-                                      Remove
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="text-sm font-medium">
+                                    {Math.floor(Math.random() * 20) + 80}%
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm">
+                                        <MoreVertical className="w-3 h-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem>
+                                        <Eye className="w-3 h-3 mr-2" />
+                                        View Profile
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem>
+                                        <Send className="w-3 h-3 mr-2" />
+                                        Send Message
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem className="text-red-600">
+                                        <Trash2 className="w-3 h-3 mr-2" />
+                                        Remove
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          )}
                         </TableBody>
                       </Table>
                     </div>
@@ -2076,10 +2176,15 @@ export function FacultyPortal() {
 
                   {/* Recent Sessions */}
                   <div className="space-y-4">
-                    <h3 className="font-medium text-sm text-muted-foreground">Recent Sessions</h3>
+                    <h3 className="font-medium text-sm text-muted-foreground">
+                      Recent Sessions
+                    </h3>
                     <div className="space-y-3">
                       {Array.from({ length: 3 }, (_, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-3 border rounded-lg bg-muted/30"
+                        >
                           <div className="flex items-center gap-3">
                             <div className="w-2 h-2 rounded-full bg-green-500"></div>
                             <div>
@@ -2087,7 +2192,9 @@ export function FacultyPortal() {
                                 Session {selectedClass.completedSessions - i}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {new Date(Date.now() - i * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                                {new Date(
+                                  Date.now() - i * 24 * 60 * 60 * 1000
+                                ).toLocaleDateString()}
                               </div>
                             </div>
                           </div>
@@ -2210,13 +2317,16 @@ export function FacultyPortal() {
                   className="mt-1"
                 />
               </div>
-              
+
               {/* Available Students List */}
               <div className="space-y-3">
                 <Label>Available Students</Label>
                 <div className="max-h-60 overflow-y-auto border rounded-lg p-3 space-y-2">
                   {Array.from({ length: 8 }, (_, i) => (
-                    <div key={i} className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/50">
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/50"
+                    >
                       <div className="flex items-center gap-3">
                         <Avatar className="w-8 h-8">
                           <AvatarFallback className="text-xs">
@@ -2224,7 +2334,9 @@ export function FacultyPortal() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium text-sm">Student {i + 1}</div>
+                          <div className="font-medium text-sm">
+                            Student {i + 1}
+                          </div>
                           <div className="text-xs text-muted-foreground">
                             student{i + 1}@university.edu
                           </div>
@@ -2245,10 +2357,7 @@ export function FacultyPortal() {
                 <div className="space-y-3">
                   <div>
                     <Label htmlFor="manual-name">Student Name</Label>
-                    <Input
-                      id="manual-name"
-                      placeholder="Full name"
-                    />
+                    <Input id="manual-name" placeholder="Full name" />
                   </div>
                   <div>
                     <Label htmlFor="manual-email">Email Address</Label>
@@ -2260,10 +2369,7 @@ export function FacultyPortal() {
                   </div>
                   <div>
                     <Label htmlFor="manual-id">Student ID</Label>
-                    <Input
-                      id="manual-id"
-                      placeholder="Student ID number"
-                    />
+                    <Input id="manual-id" placeholder="Student ID number" />
                   </div>
                 </div>
               </div>
@@ -2283,11 +2389,14 @@ export function FacultyPortal() {
         </Drawer>
 
         {/* View Announcement Details Drawer */}
-        <Drawer open={viewAnnouncementOpen} onOpenChange={setViewAnnouncementOpen}>
+        <Drawer
+          open={viewAnnouncementOpen}
+          onOpenChange={setViewAnnouncementOpen}
+        >
           <DrawerContent className="max-h-[90vh]">
             <DrawerHeader>
               <DrawerTitle>
-                {selectedAnnouncement?.title || 'Announcement Details'}
+                {selectedAnnouncement?.title || "Announcement Details"}
               </DrawerTitle>
             </DrawerHeader>
             <div className="px-4 pb-4 space-y-6 overflow-y-auto">
@@ -2322,20 +2431,32 @@ export function FacultyPortal() {
 
                     <div className="space-y-3">
                       <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Content</Label>
+                        <Label className="text-sm font-medium text-muted-foreground">
+                          Content
+                        </Label>
                         <div className="mt-1 p-3 bg-muted/30 rounded-lg">
-                          <p className="text-sm">{selectedAnnouncement.content}</p>
+                          <p className="text-sm">
+                            {selectedAnnouncement.content}
+                          </p>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Created</Label>
-                          <p className="mt-1">{selectedAnnouncement.createdDate}</p>
+                          <Label className="text-sm font-medium text-muted-foreground">
+                            Created
+                          </Label>
+                          <p className="mt-1">
+                            {selectedAnnouncement.createdDate}
+                          </p>
                         </div>
                         <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Priority</Label>
-                          <p className="mt-1">{selectedAnnouncement.priority}</p>
+                          <Label className="text-sm font-medium text-muted-foreground">
+                            Priority
+                          </Label>
+                          <p className="mt-1">
+                            {selectedAnnouncement.priority}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -2348,9 +2469,12 @@ export function FacultyPortal() {
                     </Label>
                     <div className="space-y-2">
                       {selectedAnnouncement.classIds.map((classId, index) => {
-                        const classItem = classes.find(c => c.id === classId);
+                        const classItem = classes.find((c) => c.id === classId);
                         return (
-                          <div key={classId} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                          <div
+                            key={classId}
+                            className="flex items-center justify-between p-3 border rounded-lg bg-muted/30"
+                          >
                             <div className="flex items-center gap-3">
                               <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                               <div>
@@ -2358,7 +2482,8 @@ export function FacultyPortal() {
                                   {classItem?.name || `Class ${classId}`}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  {classItem?.code || classId} • {classItem?.enrolledStudents || 0} students
+                                  {classItem?.code || classId} •{" "}
+                                  {classItem?.enrolledStudents || 0} students
                                 </div>
                               </div>
                             </div>
@@ -2370,22 +2495,33 @@ export function FacultyPortal() {
 
                   {/* Delivery Stats (Mock data) */}
                   <div className="space-y-4">
-                    <Label className="text-sm font-medium text-muted-foreground">Delivery Statistics</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Delivery Statistics
+                    </Label>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 border rounded-lg text-center">
                         <div className="text-lg font-bold text-blue-600">
-                          {selectedAnnouncement.classIds.reduce((total, classId) => {
-                            const classItem = classes.find(c => c.id === classId);
-                            return total + (classItem?.enrolledStudents || 0);
-                          }, 0)}
+                          {selectedAnnouncement.classIds.reduce(
+                            (total, classId) => {
+                              const classItem = classes.find(
+                                (c) => c.id === classId
+                              );
+                              return total + (classItem?.enrolledStudents || 0);
+                            },
+                            0
+                          )}
                         </div>
-                        <div className="text-xs text-muted-foreground">Total Recipients</div>
+                        <div className="text-xs text-muted-foreground">
+                          Total Recipients
+                        </div>
                       </div>
                       <div className="p-3 border rounded-lg text-center">
                         <div className="text-lg font-bold text-green-600">
                           {Math.floor(Math.random() * 20) + 80}%
                         </div>
-                        <div className="text-xs text-muted-foreground">Read Rate</div>
+                        <div className="text-xs text-muted-foreground">
+                          Read Rate
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2393,7 +2529,7 @@ export function FacultyPortal() {
               )}
             </div>
             <DrawerFooter>
-              <Button 
+              <Button
                 onClick={() => {
                   setViewAnnouncementOpen(false);
                   setEditAnnouncementOpen(true);
@@ -2413,7 +2549,10 @@ export function FacultyPortal() {
         </Drawer>
 
         {/* Edit Announcement Drawer */}
-        <Drawer open={editAnnouncementOpen} onOpenChange={setEditAnnouncementOpen}>
+        <Drawer
+          open={editAnnouncementOpen}
+          onOpenChange={setEditAnnouncementOpen}
+        >
           <DrawerContent className="max-h-[90vh]">
             <DrawerHeader>
               <DrawerTitle>Edit Announcement</DrawerTitle>
@@ -2464,19 +2603,27 @@ export function FacultyPortal() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <Label>Target Classes</Label>
                     <div className="space-y-2 mt-2 max-h-40 overflow-y-auto border rounded-lg p-3">
                       {classes.map((classItem) => (
-                        <div key={classItem.id} className="flex items-center space-x-2">
+                        <div
+                          key={classItem.id}
+                          className="flex items-center space-x-2"
+                        >
                           <input
                             type="checkbox"
                             id={`edit-class-${classItem.id}`}
-                            defaultChecked={selectedAnnouncement.classIds.includes(classItem.id)}
+                            defaultChecked={selectedAnnouncement.classIds.includes(
+                              classItem.id
+                            )}
                             className="h-4 w-4"
                           />
-                          <Label htmlFor={`edit-class-${classItem.id}`} className="text-sm font-normal flex-1">
+                          <Label
+                            htmlFor={`edit-class-${classItem.id}`}
+                            className="text-sm font-normal flex-1"
+                          >
                             {classItem.name} ({classItem.code})
                           </Label>
                         </div>
@@ -2505,7 +2652,7 @@ export function FacultyPortal() {
           <DrawerContent className="max-h-[90vh]">
             <DrawerHeader>
               <DrawerTitle>
-                {selectedStudent?.name || 'Student Profile'}
+                {selectedStudent?.name || "Student Profile"}
               </DrawerTitle>
             </DrawerHeader>
             <div className="px-4 pb-4 space-y-6 overflow-y-auto">
@@ -2516,60 +2663,91 @@ export function FacultyPortal() {
                     <div className="flex items-center gap-4">
                       <Avatar className="w-16 h-16">
                         <AvatarFallback className="text-lg">
-                          {selectedStudent.name.split(' ').map(n => n[0]).join('')}
+                          {selectedStudent.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <h3 className="font-semibold text-lg">{selectedStudent.name}</h3>
-                        <p className="text-sm text-muted-foreground">{selectedStudent.email}</p>
-                        <p className="text-sm text-muted-foreground">ID: {selectedStudent.studentId}</p>
+                        <h3 className="font-semibold text-lg">
+                          {selectedStudent.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedStudent.email}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          ID: {selectedStudent.studentId}
+                        </p>
                       </div>
                     </div>
                   </div>
 
                   {/* Attendance Statistics */}
                   <div className="space-y-4">
-                    <h4 className="font-medium text-sm text-muted-foreground">Attendance Statistics</h4>
+                    <h4 className="font-medium text-sm text-muted-foreground">
+                      Attendance Statistics
+                    </h4>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="p-3 border rounded-lg text-center">
                         <div className="text-2xl font-bold text-green-600">
                           {selectedStudent.attendanceRate}%
                         </div>
-                        <div className="text-xs text-muted-foreground">Overall Rate</div>
+                        <div className="text-xs text-muted-foreground">
+                          Overall Rate
+                        </div>
                       </div>
                       <div className="p-3 border rounded-lg text-center">
                         <div className="text-2xl font-bold">
-                          {selectedStudent.presentSessions}/{selectedStudent.totalSessions}
+                          {selectedStudent.presentSessions}/
+                          {selectedStudent.totalSessions}
                         </div>
-                        <div className="text-xs text-muted-foreground">Sessions</div>
+                        <div className="text-xs text-muted-foreground">
+                          Sessions
+                        </div>
                       </div>
                     </div>
-                    <Progress 
-                      value={selectedStudent.attendanceRate} 
+                    <Progress
+                      value={selectedStudent.attendanceRate}
                       className="h-2"
                     />
                   </div>
 
                   {/* Recent Attendance */}
                   <div className="space-y-4">
-                    <h4 className="font-medium text-sm text-muted-foreground">Recent Sessions</h4>
+                    <h4 className="font-medium text-sm text-muted-foreground">
+                      Recent Sessions
+                    </h4>
                     <div className="space-y-2 max-h-40 overflow-y-auto">
                       {Array.from({ length: 5 }, (_, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-3 border rounded-lg"
+                        >
                           <div className="flex items-center gap-3">
-                            <div className={`w-2 h-2 rounded-full ${
-                              Math.random() > 0.2 ? 'bg-green-500' : 'bg-red-500'
-                            }`}></div>
+                            <div
+                              className={`w-2 h-2 rounded-full ${
+                                Math.random() > 0.2
+                                  ? "bg-green-500"
+                                  : "bg-red-500"
+                              }`}
+                            ></div>
                             <div>
                               <div className="text-sm font-medium">
                                 Session {selectedStudent.totalSessions - i}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {new Date(Date.now() - i * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                                {new Date(
+                                  Date.now() - i * 24 * 60 * 60 * 1000
+                                ).toLocaleDateString()}
                               </div>
                             </div>
                           </div>
-                          <Badge variant={Math.random() > 0.2 ? "default" : "secondary"}>
+                          <Badge
+                            variant={
+                              Math.random() > 0.2 ? "default" : "secondary"
+                            }
+                          >
                             {Math.random() > 0.2 ? "Present" : "Absent"}
                           </Badge>
                         </div>
@@ -2579,7 +2757,9 @@ export function FacultyPortal() {
 
                   {/* Contact Information */}
                   <div className="space-y-4">
-                    <h4 className="font-medium text-sm text-muted-foreground">Contact Actions</h4>
+                    <h4 className="font-medium text-sm text-muted-foreground">
+                      Contact Actions
+                    </h4>
                     <div className="grid grid-cols-2 gap-3">
                       <Button variant="outline" size="sm">
                         <Send className="w-3 h-3 mr-2" />
@@ -2605,7 +2785,10 @@ export function FacultyPortal() {
         </Drawer>
 
         {/* Manual Attendance Edit Drawer */}
-        <Drawer open={manualAttendanceOpen} onOpenChange={setManualAttendanceOpen}>
+        <Drawer
+          open={manualAttendanceOpen}
+          onOpenChange={setManualAttendanceOpen}
+        >
           <DrawerContent className="max-h-[90vh]">
             <DrawerHeader>
               <DrawerTitle>Manual Attendance Edit</DrawerTitle>
@@ -2614,69 +2797,95 @@ export function FacultyPortal() {
               {selectedSession && (
                 <>
                   <div className="p-3 bg-muted/30 rounded-lg">
-                    <h4 className="font-medium text-sm">{selectedSession.className}</h4>
+                    <h4 className="font-medium text-sm">
+                      {selectedSession.className}
+                    </h4>
                     <p className="text-xs text-muted-foreground">
-                      Session started: {selectedSession.startTime} • {selectedSession.location}
+                      Session started: {selectedSession.startTime} •{" "}
+                      {selectedSession.location}
                     </p>
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">Student List</Label>
+                      <Label className="text-sm font-medium">
+                        Student List
+                      </Label>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => console.log("Select all")}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => console.log("Select all")}
+                        >
                           Select All
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => console.log("Clear all")}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => console.log("Clear all")}
+                        >
                           Clear All
                         </Button>
                       </div>
                     </div>
 
                     <div className="space-y-2 max-h-80 overflow-y-auto border rounded-lg p-3">
-                      {Array.from({ length: selectedSession.totalStudents }, (_, i) => {
-                        const isPresent = i < selectedSession.presentCount;
-                        return (
-                          <div key={i} className="flex items-center justify-between p-2 border rounded-md">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="w-6 h-6">
-                                <AvatarFallback className="text-xs">
-                                  {`S${i + 1}`}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-medium text-sm">Student {i + 1}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  student{i + 1}@university.edu
+                      {Array.from(
+                        { length: selectedSession.totalStudents },
+                        (_, i) => {
+                          const isPresent = i < selectedSession.presentCount;
+                          return (
+                            <div
+                              key={i}
+                              className="flex items-center justify-between p-2 border rounded-md"
+                            >
+                              <div className="flex items-center gap-3">
+                                <Avatar className="w-6 h-6">
+                                  <AvatarFallback className="text-xs">
+                                    {`S${i + 1}`}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="font-medium text-sm">
+                                    Student {i + 1}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    student{i + 1}@university.edu
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  id={`manual-student-${i}`}
+                                  defaultChecked={isPresent}
+                                  className="h-4 w-4"
+                                  onChange={(e) => {
+                                    console.log(
+                                      `Student ${i + 1} attendance:`,
+                                      e.target.checked
+                                    );
+                                  }}
+                                />
+                                <Label
+                                  htmlFor={`manual-student-${i}`}
+                                  className="text-sm font-normal"
+                                >
+                                  Present
+                                </Label>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                id={`manual-student-${i}`}
-                                defaultChecked={isPresent}
-                                className="h-4 w-4"
-                                onChange={(e) => {
-                                  console.log(`Student ${i + 1} attendance:`, e.target.checked);
-                                }}
-                              />
-                              <Label 
-                                htmlFor={`manual-student-${i}`} 
-                                className="text-sm font-normal"
-                              >
-                                Present
-                              </Label>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        }
+                      )}
                     </div>
                   </div>
 
                   {/* Additional Options */}
                   <div className="space-y-3 pt-3 border-t">
-                    <Label className="text-sm font-medium">Additional Options</Label>
+                    <Label className="text-sm font-medium">
+                      Additional Options
+                    </Label>
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <input
