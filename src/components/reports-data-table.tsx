@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   closestCenter,
   DndContext,
@@ -11,15 +11,15 @@ import {
   useSensors,
   type DragEndEvent,
   type UniqueIdentifier,
-} from "@dnd-kit/core"
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
+} from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   arrayMove,
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   IconChevronDown,
   IconChevronLeft,
@@ -31,8 +31,15 @@ import {
   IconGripVertical,
   IconLayoutColumns,
   IconDownload,
-} from "@tabler/icons-react"
-import { Eye, Edit, Trash2, FileText, Calendar, TrendingUp } from "lucide-react"
+} from "@tabler/icons-react";
+import {
+  Eye,
+  Edit,
+  Trash2,
+  FileText,
+  Calendar,
+  TrendingUp,
+} from "lucide-react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -47,12 +54,12 @@ import {
   SortingState,
   useReactTable,
   VisibilityState,
-} from "@tanstack/react-table"
-import { z } from "zod"
+} from "@tanstack/react-table";
+import { z } from "zod";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -60,7 +67,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Drawer,
   DrawerClose,
@@ -70,7 +77,7 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer"
+} from "@/components/ui/drawer";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -78,17 +85,17 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -96,7 +103,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet"
+} from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -104,13 +111,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const reportSchema = z.object({
   id: z.union([z.number(), z.string()]),
@@ -120,17 +122,24 @@ export const reportSchema = z.object({
   createdDate: z.string(),
   size: z.string().optional(),
   createdBy: z.string(),
-})
+});
 
 // Report action components
-function ViewReportSheet({ report, open, onOpenChange }: { 
-  report: z.infer<typeof reportSchema>; 
-  open: boolean; 
+function ViewReportSheet({
+  report,
+  open,
+  onOpenChange,
+}: {
+  report: z.infer<typeof reportSchema>;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8">
+      <SheetContent
+        side="bottom"
+        className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8"
+      >
         <div className="mx-auto max-w-md">
           <SheetHeader className="space-y-4 text-center">
             <SheetTitle className="text-xl">Report Details</SheetTitle>
@@ -138,7 +147,7 @@ function ViewReportSheet({ report, open, onOpenChange }: {
               View detailed information about this report
             </SheetDescription>
           </SheetHeader>
-          
+
           <div className="py-8 space-y-6">
             {/* Report Icon and Basic Info */}
             <div className="flex flex-col items-center gap-4 text-center">
@@ -155,12 +164,16 @@ function ViewReportSheet({ report, open, onOpenChange }: {
             <div className="space-y-6">
               <div className="grid gap-4">
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Type</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Type
+                  </Label>
                   <Badge variant="outline">{report.type}</Badge>
                 </div>
-                
+
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Status
+                  </Label>
                   <div className="flex items-center justify-center gap-2">
                     <div
                       className={`w-2 h-2 rounded-full ${
@@ -174,57 +187,74 @@ function ViewReportSheet({ report, open, onOpenChange }: {
                     <span className="text-sm">{report.status}</span>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">File Size</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    File Size
+                  </Label>
                   <p className="text-sm">{report.size || "N/A"}</p>
                 </div>
-                
+
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Created Date</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Created Date
+                  </Label>
                   <p className="text-sm">{report.createdDate}</p>
                 </div>
-                
+
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Created By</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Created By
+                  </Label>
                   <p className="text-sm">{report.createdBy}</p>
                 </div>
               </div>
             </div>
           </div>
-          
+
           <SheetFooter className="pb-8">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="w-full"
+            >
               Close
             </Button>
           </SheetFooter>
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }
 
-function EditReportSheet({ report, open, onOpenChange }: { 
-  report: z.infer<typeof reportSchema>; 
-  open: boolean; 
+function EditReportSheet({
+  report,
+  open,
+  onOpenChange,
+}: {
+  report: z.infer<typeof reportSchema>;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [editName, setEditName] = React.useState(report.name || "")
-  const [editType, setEditType] = React.useState(report.type || "")
+  const [editName, setEditName] = React.useState(report.name || "");
+  const [editType, setEditType] = React.useState(report.type || "");
 
   React.useEffect(() => {
-    setEditName(report.name || "")
-    setEditType(report.type || "")
-  }, [report])
+    setEditName(report.name || "");
+    setEditType(report.type || "");
+  }, [report]);
 
   const handleSave = () => {
-    console.log("Saving report:", { editName, editType })
-    onOpenChange(false)
-  }
+    console.log("Saving report:", { editName, editType });
+    onOpenChange(false);
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8">
+      <SheetContent
+        side="bottom"
+        className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8"
+      >
         <div className="mx-auto max-w-md">
           <SheetHeader className="space-y-4 text-center">
             <SheetTitle className="text-xl">Edit Report</SheetTitle>
@@ -232,11 +262,13 @@ function EditReportSheet({ report, open, onOpenChange }: {
               Update report information and settings
             </SheetDescription>
           </SheetHeader>
-          
+
           <div className="py-8 space-y-6">
             <div className="grid gap-6">
               <div className="space-y-3">
-                <Label htmlFor="edit-name" className="text-sm font-medium">Report Name</Label>
+                <Label htmlFor="edit-name" className="text-sm font-medium">
+                  Report Name
+                </Label>
                 <Input
                   id="edit-name"
                   value={editName}
@@ -245,26 +277,36 @@ function EditReportSheet({ report, open, onOpenChange }: {
                   className="w-full"
                 />
               </div>
-              
+
               <div className="space-y-3">
-                <Label htmlFor="edit-type" className="text-sm font-medium">Report Type</Label>
+                <Label htmlFor="edit-type" className="text-sm font-medium">
+                  Report Type
+                </Label>
                 <Select value={editType} onValueChange={setEditType}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Attendance Report">Attendance Report</SelectItem>
+                    <SelectItem value="Attendance Report">
+                      Attendance Report
+                    </SelectItem>
                     <SelectItem value="User Activity">User Activity</SelectItem>
-                    <SelectItem value="System Performance">System Performance</SelectItem>
+                    <SelectItem value="System Performance">
+                      System Performance
+                    </SelectItem>
                     <SelectItem value="Custom Report">Custom Report</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
           </div>
-          
+
           <SheetFooter className="flex gap-4 pb-8">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+            >
               Cancel
             </Button>
             <Button onClick={handleSave} className="flex-1">
@@ -274,21 +316,25 @@ function EditReportSheet({ report, open, onOpenChange }: {
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }
 
-function DeleteReportDialog({ report, open, onOpenChange }: { 
-  report: z.infer<typeof reportSchema>; 
-  open: boolean; 
+function DeleteReportDialog({
+  report,
+  open,
+  onOpenChange,
+}: {
+  report: z.infer<typeof reportSchema>;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [confirmText, setConfirmText] = React.useState("")
-  const expectedText = "DELETE"
+  const [confirmText, setConfirmText] = React.useState("");
+  const expectedText = "DELETE";
 
   const handleDelete = () => {
-    console.log("Deleting report:", report.id)
-    onOpenChange(false)
-  }
+    console.log("Deleting report:", report.id);
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -299,26 +345,35 @@ function DeleteReportDialog({ report, open, onOpenChange }: {
             Delete Report
           </DialogTitle>
           <DialogDescription className="space-y-4">
-            <p className="text-sm text-center">This action cannot be undone. This will permanently delete the report.</p>
-            
+            <p className="text-sm text-center">
+              This action cannot be undone. This will permanently delete the
+              report.
+            </p>
+
             <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
               <div className="flex flex-col items-center gap-2 text-center">
                 <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white">
                   <FileText className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground text-sm">{report.name}</p>
+                  <p className="font-medium text-foreground text-sm">
+                    {report.name}
+                  </p>
                   <p className="text-xs text-muted-foreground">{report.type}</p>
                 </div>
               </div>
             </div>
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="space-y-3 text-center">
             <Label htmlFor="confirm-delete" className="text-sm">
-              Type <code className="px-1 py-0.5 bg-muted rounded text-xs font-mono">DELETE</code> to confirm
+              Type{" "}
+              <code className="px-1 py-0.5 bg-muted rounded text-xs font-mono">
+                DELETE
+              </code>{" "}
+              to confirm
             </Label>
             <Input
               id="confirm-delete"
@@ -329,14 +384,18 @@ function DeleteReportDialog({ report, open, onOpenChange }: {
             />
           </div>
         </div>
-        
+
         <DialogFooter className="flex gap-3 pt-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 text-sm">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="flex-1 text-sm"
+          >
             Cancel
           </Button>
-          <Button 
-            variant="destructive" 
-            onClick={handleDelete} 
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
             className="flex-1 text-sm"
             disabled={confirmText !== expectedText}
           >
@@ -346,13 +405,17 @@ function DeleteReportDialog({ report, open, onOpenChange }: {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
-function ReportActionsCell({ report }: { report: z.infer<typeof reportSchema> }) {
-  const [viewOpen, setViewOpen] = React.useState(false)
-  const [editOpen, setEditOpen] = React.useState(false)
-  const [deleteOpen, setDeleteOpen] = React.useState(false)
+function ReportActionsCell({
+  report,
+}: {
+  report: z.infer<typeof reportSchema>;
+}) {
+  const [viewOpen, setViewOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   return (
     <>
@@ -377,25 +440,40 @@ function ReportActionsCell({ report }: { report: z.infer<typeof reportSchema> })
             Edit
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="text-destructive focus:text-destructive">
+          <DropdownMenuItem
+            onClick={() => setDeleteOpen(true)}
+            className="text-destructive focus:text-destructive"
+          >
             <Trash2 className="w-4 h-4 mr-2" />
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ViewReportSheet report={report} open={viewOpen} onOpenChange={setViewOpen} />
-      <EditReportSheet report={report} open={editOpen} onOpenChange={setEditOpen} />
-      <DeleteReportDialog report={report} open={deleteOpen} onOpenChange={setDeleteOpen} />
+      <ViewReportSheet
+        report={report}
+        open={viewOpen}
+        onOpenChange={setViewOpen}
+      />
+      <EditReportSheet
+        report={report}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
+      <DeleteReportDialog
+        report={report}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+      />
     </>
-  )
+  );
 }
 
 // Create a separate component for the drag handle
 function DragHandle({ id }: { id: number | string }) {
   const { attributes, listeners } = useSortable({
     id,
-  })
+  });
 
   return (
     <Button
@@ -408,7 +486,7 @@ function DragHandle({ id }: { id: number | string }) {
       <IconGripVertical className="text-muted-foreground size-3" />
       <span className="sr-only">Drag to reorder</span>
     </Button>
-  )
+  );
 }
 
 const columns: ColumnDef<z.infer<typeof reportSchema>>[] = [
@@ -447,7 +525,7 @@ const columns: ColumnDef<z.infer<typeof reportSchema>>[] = [
     accessorKey: "name",
     header: "Report Name",
     cell: ({ row }) => {
-      const report = row.original
+      const report = row.original;
       return (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
@@ -458,18 +536,14 @@ const columns: ColumnDef<z.infer<typeof reportSchema>>[] = [
             <div className="text-xs text-muted-foreground">ID: {report.id}</div>
           </div>
         </div>
-      )
+      );
     },
     enableHiding: false,
   },
   {
     accessorKey: "type",
     header: "Type",
-    cell: ({ row }) => (
-      <Badge variant="outline">
-        {row.original.type}
-      </Badge>
-    ),
+    cell: ({ row }) => <Badge variant="outline">{row.original.type}</Badge>,
   },
   {
     accessorKey: "status",
@@ -520,16 +594,14 @@ const columns: ColumnDef<z.infer<typeof reportSchema>>[] = [
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
-      <ReportActionsCell report={row.original} />
-    ),
+    cell: ({ row }) => <ReportActionsCell report={row.original} />,
   },
-]
+];
 
 function DraggableRow({ row }: { row: Row<z.infer<typeof reportSchema>> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
-  })
+  });
 
   return (
     <TableRow
@@ -548,40 +620,40 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof reportSchema>> }) {
         </TableCell>
       ))}
     </TableRow>
-  )
+  );
 }
 
 export function ReportsDataTable({
   data: initialData,
 }: {
-  data: z.infer<typeof reportSchema>[]
+  data: z.infer<typeof reportSchema>[];
 }) {
-  const [data, setData] = React.useState(() => initialData)
-  const [rowSelection, setRowSelection] = React.useState({})
+  const [data, setData] = React.useState(() => initialData);
+  const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
-  )
-  const [sorting, setSorting] = React.useState<SortingState>([])
+  );
+  const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
     pageSize: 10,
-  })
-  const [isFilterOpen, setIsFilterOpen] = React.useState(false)
-  const [statusFilter, setStatusFilter] = React.useState("all")
-  const [typeFilter, setTypeFilter] = React.useState("all")
-  const sortableId = React.useId()
+  });
+  const [isFilterOpen, setIsFilterOpen] = React.useState(false);
+  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [typeFilter, setTypeFilter] = React.useState("all");
+  const sortableId = React.useId();
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
     useSensor(TouchSensor, {}),
     useSensor(KeyboardSensor, {})
-  )
+  );
 
   const dataIds = React.useMemo<UniqueIdentifier[]>(
     () => data?.map(({ id }) => id) || [],
     [data]
-  )
+  );
 
   const table = useReactTable({
     data,
@@ -606,37 +678,39 @@ export function ReportsDataTable({
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
-  })
+  });
 
   // Apply filters to data
   React.useEffect(() => {
-    let filteredData = [...initialData]
-    
+    let filteredData = [...initialData];
+
     if (statusFilter !== "all") {
-      filteredData = filteredData.filter(item => item.status === statusFilter)
+      filteredData = filteredData.filter(
+        (item) => item.status === statusFilter
+      );
     }
-    
+
     if (typeFilter !== "all") {
-      filteredData = filteredData.filter(item => item.type === typeFilter)
+      filteredData = filteredData.filter((item) => item.type === typeFilter);
     }
-    
-    setData(filteredData)
-  }, [statusFilter, typeFilter, initialData])
+
+    setData(filteredData);
+  }, [statusFilter, typeFilter, initialData]);
 
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
+    const { active, over } = event;
     if (active && over && active.id !== over.id) {
       setData((data) => {
-        const oldIndex = dataIds.indexOf(active.id)
-        const newIndex = dataIds.indexOf(over.id)
-        return arrayMove(data, oldIndex, newIndex)
-      })
+        const oldIndex = dataIds.indexOf(active.id);
+        const newIndex = dataIds.indexOf(over.id);
+        return arrayMove(data, oldIndex, newIndex);
+      });
     }
   }
 
   const handleExport = () => {
-    console.log("Exporting reports...")
-  }
+    console.log("Exporting reports...");
+  };
 
   return (
     <Tabs
@@ -646,7 +720,9 @@ export function ReportsDataTable({
       {/* Table Title */}
       <div className="flex items-center justify-between px-4 lg:px-6">
         <div>
-          <h2 className="text-2xl font-semibold text-foreground">Reports Management</h2>
+          <h2 className="text-2xl font-semibold text-foreground">
+            Reports Management
+          </h2>
           <p className="text-sm text-muted-foreground mt-1">
             Generate, view, and manage system reports
           </p>
@@ -698,7 +774,7 @@ export function ReportsDataTable({
                     >
                       {column.id}
                     </DropdownMenuCheckboxItem>
-                  )
+                  );
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -718,7 +794,12 @@ export function ReportsDataTable({
               </DrawerHeader>
               <div className="grid gap-6 py-4 max-w-md mx-auto w-full md:max-w-2xl md:grid-cols-2 md:gap-8">
                 <div className="grid gap-3">
-                  <Label htmlFor="status-filter" className="text-sm font-medium">Status</Label>
+                  <Label
+                    htmlFor="status-filter"
+                    className="text-sm font-medium"
+                  >
+                    Status
+                  </Label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger id="status-filter" className="w-full">
                       <SelectValue placeholder="Select status" />
@@ -732,29 +813,39 @@ export function ReportsDataTable({
                   </Select>
                 </div>
                 <div className="grid gap-3">
-                  <Label htmlFor="type-filter" className="text-sm font-medium">Type</Label>
+                  <Label htmlFor="type-filter" className="text-sm font-medium">
+                    Type
+                  </Label>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
                     <SelectTrigger id="type-filter" className="w-full">
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="Attendance Report">Attendance Report</SelectItem>
-                      <SelectItem value="User Activity">User Activity</SelectItem>
-                      <SelectItem value="System Performance">System Performance</SelectItem>
-                      <SelectItem value="Custom Report">Custom Report</SelectItem>
+                      <SelectItem value="Attendance Report">
+                        Attendance Report
+                      </SelectItem>
+                      <SelectItem value="User Activity">
+                        User Activity
+                      </SelectItem>
+                      <SelectItem value="System Performance">
+                        System Performance
+                      </SelectItem>
+                      <SelectItem value="Custom Report">
+                        Custom Report
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <DrawerFooter className="px-0 pt-4">
                 <div className="flex gap-3 max-w-md mx-auto w-full md:max-w-2xl">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="flex-1"
                     onClick={() => {
-                      setStatusFilter("all")
-                      setTypeFilter("all")
+                      setStatusFilter("all");
+                      setTypeFilter("all");
                     }}
                   >
                     Clear Filters
@@ -787,10 +878,17 @@ export function ReportsDataTable({
             <Table>
               <TableHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20 sticky top-0 z-10">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id} className="border-b-primary/20">
+                  <TableRow
+                    key={headerGroup.id}
+                    className="border-b-primary/20"
+                  >
                     {headerGroup.headers.map((header) => {
                       return (
-                        <TableHead key={header.id} colSpan={header.colSpan} className="text-primary font-semibold">
+                        <TableHead
+                          key={header.id}
+                          colSpan={header.colSpan}
+                          className="text-primary font-semibold"
+                        >
                           {header.isPlaceholder
                             ? null
                             : flexRender(
@@ -798,7 +896,7 @@ export function ReportsDataTable({
                                 header.getContext()
                               )}
                         </TableHead>
-                      )
+                      );
                     })}
                   </TableRow>
                 ))}
@@ -840,7 +938,7 @@ export function ReportsDataTable({
               <Select
                 value={`${table.getState().pagination.pageSize}`}
                 onValueChange={(value) => {
-                  table.setPageSize(Number(value))
+                  table.setPageSize(Number(value));
                 }}
               >
                 <SelectTrigger size="sm" className="w-20" id="rows-per-page">
@@ -906,5 +1004,5 @@ export function ReportsDataTable({
         </div>
       </TabsContent>
     </Tabs>
-  )
+  );
 }

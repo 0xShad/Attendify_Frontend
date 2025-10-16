@@ -1,14 +1,11 @@
 "use client";
 
-import { AppSidebar } from "@/components/app-sidebar"
-import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { DataTable } from "@/components/data-table"
-import { SectionCards } from "@/components/section-cards"
-import { SiteHeader } from "@/components/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar";
+import { ChartAreaInteractive } from "@/components/chart-area-interactive";
+import { DataTable } from "@/components/data-table";
+import { SectionCards } from "@/components/section-cards";
+import { SiteHeader } from "@/components/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 // Sample user data for the dashboard
 const userData = [
@@ -19,44 +16,44 @@ const userData = [
     role: "Faculty",
     status: "Active",
     lastActive: "2 hours ago",
-    department: "Computer Science"
+    department: "Computer Science",
   },
   {
-    id: "USR002", 
+    id: "USR002",
     name: "Bob Smith",
     email: "bob.smith@student.attendify.edu",
     role: "Student",
     status: "Active",
     lastActive: "30 minutes ago",
-    department: "Engineering"
+    department: "Engineering",
   },
   {
     id: "USR003",
     name: "Carol Davis",
-    email: "carol.davis@attendify.edu", 
+    email: "carol.davis@attendify.edu",
     role: "Admin",
     status: "Active",
     lastActive: "1 hour ago",
-    department: "Administration"
+    department: "Administration",
   },
   {
     id: "USR004",
     name: "David Wilson",
     email: "david.wilson@student.attendify.edu",
-    role: "Student", 
+    role: "Student",
     status: "Inactive",
     lastActive: "3 days ago",
-    department: "Mathematics"
+    department: "Mathematics",
   },
   {
     id: "USR005",
     name: "Emma Brown",
     email: "emma.brown@attendify.edu",
     role: "Faculty",
-    status: "Active", 
+    status: "Active",
     lastActive: "15 minutes ago",
-    department: "Physics"
-  }
+    department: "Physics",
+  },
 ];
 
 export default function Page() {
@@ -88,5 +85,5 @@ export default function Page() {
         </div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

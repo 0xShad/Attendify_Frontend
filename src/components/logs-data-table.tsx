@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   closestCenter,
   DndContext,
@@ -11,15 +11,15 @@ import {
   useSensors,
   type DragEndEvent,
   type UniqueIdentifier,
-} from "@dnd-kit/core"
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
+} from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   arrayMove,
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   IconChevronDown,
   IconChevronLeft,
@@ -31,8 +31,16 @@ import {
   IconGripVertical,
   IconLayoutColumns,
   IconRefresh,
-} from "@tabler/icons-react"
-import { Eye, Edit, Trash2, Activity, AlertCircle, CheckCircle, XCircle } from "lucide-react"
+} from "@tabler/icons-react";
+import {
+  Eye,
+  Edit,
+  Trash2,
+  Activity,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -47,12 +55,12 @@ import {
   SortingState,
   useReactTable,
   VisibilityState,
-} from "@tanstack/react-table"
-import { z } from "zod"
+} from "@tanstack/react-table";
+import { z } from "zod";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -60,7 +68,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Drawer,
   DrawerClose,
@@ -70,7 +78,7 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer"
+} from "@/components/ui/drawer";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -78,17 +86,17 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -96,7 +104,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet"
+} from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -104,13 +112,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const logSchema = z.object({
   id: z.union([z.number(), z.string()]),
@@ -120,17 +123,24 @@ export const logSchema = z.object({
   status: z.enum(["success", "warning", "error"]),
   ipAddress: z.string().optional(),
   details: z.string().optional(),
-})
+});
 
 // Log action components
-function ViewLogSheet({ log, open, onOpenChange }: { 
-  log: z.infer<typeof logSchema>; 
-  open: boolean; 
+function ViewLogSheet({
+  log,
+  open,
+  onOpenChange,
+}: {
+  log: z.infer<typeof logSchema>;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8">
+      <SheetContent
+        side="bottom"
+        className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8"
+      >
         <div className="mx-auto max-w-md">
           <SheetHeader className="space-y-4 text-center">
             <SheetTitle className="text-xl">Log Details</SheetTitle>
@@ -138,20 +148,26 @@ function ViewLogSheet({ log, open, onOpenChange }: {
               View detailed information about this log entry
             </SheetDescription>
           </SheetHeader>
-          
+
           <div className="py-8 space-y-6">
             {/* Log Icon and Basic Info */}
             <div className="flex flex-col items-center gap-4 text-center">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center text-white ${
-                log.status === "success" 
-                  ? "bg-green-500" 
-                  : log.status === "error" 
-                  ? "bg-red-500" 
-                  : "bg-yellow-500"
-              }`}>
-                {log.status === "success" && <CheckCircle className="w-8 h-8" />}
+              <div
+                className={`w-20 h-20 rounded-full flex items-center justify-center text-white ${
+                  log.status === "success"
+                    ? "bg-green-500"
+                    : log.status === "error"
+                    ? "bg-red-500"
+                    : "bg-yellow-500"
+                }`}
+              >
+                {log.status === "success" && (
+                  <CheckCircle className="w-8 h-8" />
+                )}
                 {log.status === "error" && <XCircle className="w-8 h-8" />}
-                {log.status === "warning" && <AlertCircle className="w-8 h-8" />}
+                {log.status === "warning" && (
+                  <AlertCircle className="w-8 h-8" />
+                )}
               </div>
               <div>
                 <h3 className="text-lg font-semibold">{log.activity}</h3>
@@ -163,7 +179,9 @@ function ViewLogSheet({ log, open, onOpenChange }: {
             <div className="space-y-6">
               <div className="grid gap-4">
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Status
+                  </Label>
                   <div className="flex items-center justify-center gap-2">
                     <div
                       className={`w-2 h-2 rounded-full ${
@@ -177,62 +195,81 @@ function ViewLogSheet({ log, open, onOpenChange }: {
                     <span className="text-sm capitalize">{log.status}</span>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">User ID</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    User ID
+                  </Label>
                   <p className="text-sm">{log.userId}</p>
                 </div>
-                
+
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Timestamp</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Timestamp
+                  </Label>
                   <p className="text-sm">{log.timestamp}</p>
                 </div>
-                
+
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">IP Address</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    IP Address
+                  </Label>
                   <p className="text-sm">{log.ipAddress || "N/A"}</p>
                 </div>
-                
+
                 {log.details && (
                   <div className="space-y-2 text-center">
-                    <Label className="text-sm font-medium text-muted-foreground">Details</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Details
+                    </Label>
                     <p className="text-sm">{log.details}</p>
                   </div>
                 )}
               </div>
             </div>
           </div>
-          
+
           <SheetFooter className="pb-8">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="w-full"
+            >
               Close
             </Button>
           </SheetFooter>
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }
 
-function EditLogSheet({ log, open, onOpenChange }: { 
-  log: z.infer<typeof logSchema>; 
-  open: boolean; 
+function EditLogSheet({
+  log,
+  open,
+  onOpenChange,
+}: {
+  log: z.infer<typeof logSchema>;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [editDetails, setEditDetails] = React.useState(log.details || "")
+  const [editDetails, setEditDetails] = React.useState(log.details || "");
 
   React.useEffect(() => {
-    setEditDetails(log.details || "")
-  }, [log])
+    setEditDetails(log.details || "");
+  }, [log]);
 
   const handleSave = () => {
-    console.log("Saving log:", { editDetails })
-    onOpenChange(false)
-  }
+    console.log("Saving log:", { editDetails });
+    onOpenChange(false);
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8">
+      <SheetContent
+        side="bottom"
+        className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8"
+      >
         <div className="mx-auto max-w-md">
           <SheetHeader className="space-y-4 text-center">
             <SheetTitle className="text-xl">Edit Log</SheetTitle>
@@ -240,11 +277,13 @@ function EditLogSheet({ log, open, onOpenChange }: {
               Update log entry details and notes
             </SheetDescription>
           </SheetHeader>
-          
+
           <div className="py-8 space-y-6">
             <div className="grid gap-6">
               <div className="space-y-3">
-                <Label htmlFor="edit-details" className="text-sm font-medium">Log Details</Label>
+                <Label htmlFor="edit-details" className="text-sm font-medium">
+                  Log Details
+                </Label>
                 <Input
                   id="edit-details"
                   value={editDetails}
@@ -253,41 +292,55 @@ function EditLogSheet({ log, open, onOpenChange }: {
                   className="w-full"
                 />
               </div>
-              
+
               {/* Read-only fields for context */}
               <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Activity</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      Activity
+                    </Label>
                     <p className="font-medium">{log.activity}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">User ID</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      User ID
+                    </Label>
                     <p className="font-medium">{log.userId}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Status</Label>
-                    <p className={`font-medium capitalize ${
-                      log.status === "success" 
-                        ? "text-green-600" 
-                        : log.status === "error" 
-                        ? "text-red-600" 
-                        : "text-yellow-600"
-                    }`}>
+                    <Label className="text-xs text-muted-foreground">
+                      Status
+                    </Label>
+                    <p
+                      className={`font-medium capitalize ${
+                        log.status === "success"
+                          ? "text-green-600"
+                          : log.status === "error"
+                          ? "text-red-600"
+                          : "text-yellow-600"
+                      }`}
+                    >
                       {log.status}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Timestamp</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      Timestamp
+                    </Label>
                     <p className="font-medium">{log.timestamp}</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          
+
           <SheetFooter className="flex gap-4 pb-8">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+            >
               Cancel
             </Button>
             <Button onClick={handleSave} className="flex-1">
@@ -297,21 +350,25 @@ function EditLogSheet({ log, open, onOpenChange }: {
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }
 
-function DeleteLogDialog({ log, open, onOpenChange }: { 
-  log: z.infer<typeof logSchema>; 
-  open: boolean; 
+function DeleteLogDialog({
+  log,
+  open,
+  onOpenChange,
+}: {
+  log: z.infer<typeof logSchema>;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [confirmText, setConfirmText] = React.useState("")
-  const expectedText = "DELETE"
+  const [confirmText, setConfirmText] = React.useState("");
+  const expectedText = "DELETE";
 
   const handleDelete = () => {
-    console.log("Deleting log:", log.id)
-    onOpenChange(false)
-  }
+    console.log("Deleting log:", log.id);
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -322,32 +379,45 @@ function DeleteLogDialog({ log, open, onOpenChange }: {
             Delete Log Entry
           </DialogTitle>
           <DialogDescription className="space-y-4">
-            <p className="text-sm text-center">This action cannot be undone. This will permanently delete the log entry.</p>
-            
+            <p className="text-sm text-center">
+              This action cannot be undone. This will permanently delete the log
+              entry.
+            </p>
+
             <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
               <div className="flex flex-col items-center gap-2 text-center">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white ${
-                  log.status === "success" 
-                    ? "bg-green-500" 
-                    : log.status === "error" 
-                    ? "bg-red-500" 
-                    : "bg-yellow-500"
-                }`}>
+                <div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center text-white ${
+                    log.status === "success"
+                      ? "bg-green-500"
+                      : log.status === "error"
+                      ? "bg-red-500"
+                      : "bg-yellow-500"
+                  }`}
+                >
                   <Activity className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground text-sm">{log.activity}</p>
-                  <p className="text-xs text-muted-foreground">{log.timestamp}</p>
+                  <p className="font-medium text-foreground text-sm">
+                    {log.activity}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {log.timestamp}
+                  </p>
                 </div>
               </div>
             </div>
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="space-y-3 text-center">
             <Label htmlFor="confirm-delete" className="text-sm">
-              Type <code className="px-1 py-0.5 bg-muted rounded text-xs font-mono">DELETE</code> to confirm
+              Type{" "}
+              <code className="px-1 py-0.5 bg-muted rounded text-xs font-mono">
+                DELETE
+              </code>{" "}
+              to confirm
             </Label>
             <Input
               id="confirm-delete"
@@ -358,14 +428,18 @@ function DeleteLogDialog({ log, open, onOpenChange }: {
             />
           </div>
         </div>
-        
+
         <DialogFooter className="flex gap-3 pt-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 text-sm">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="flex-1 text-sm"
+          >
             Cancel
           </Button>
-          <Button 
-            variant="destructive" 
-            onClick={handleDelete} 
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
             className="flex-1 text-sm"
             disabled={confirmText !== expectedText}
           >
@@ -375,13 +449,13 @@ function DeleteLogDialog({ log, open, onOpenChange }: {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function LogActionsCell({ log }: { log: z.infer<typeof logSchema> }) {
-  const [viewOpen, setViewOpen] = React.useState(false)
-  const [editOpen, setEditOpen] = React.useState(false)
-  const [deleteOpen, setDeleteOpen] = React.useState(false)
+  const [viewOpen, setViewOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   return (
     <>
@@ -406,7 +480,10 @@ function LogActionsCell({ log }: { log: z.infer<typeof logSchema> }) {
             Edit
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="text-destructive focus:text-destructive">
+          <DropdownMenuItem
+            onClick={() => setDeleteOpen(true)}
+            className="text-destructive focus:text-destructive"
+          >
             <Trash2 className="w-4 h-4 mr-2" />
             Delete
           </DropdownMenuItem>
@@ -415,16 +492,20 @@ function LogActionsCell({ log }: { log: z.infer<typeof logSchema> }) {
 
       <ViewLogSheet log={log} open={viewOpen} onOpenChange={setViewOpen} />
       <EditLogSheet log={log} open={editOpen} onOpenChange={setEditOpen} />
-      <DeleteLogDialog log={log} open={deleteOpen} onOpenChange={setDeleteOpen} />
+      <DeleteLogDialog
+        log={log}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+      />
     </>
-  )
+  );
 }
 
 // Create a separate component for the drag handle
 function DragHandle({ id }: { id: number | string }) {
   const { attributes, listeners } = useSortable({
     id,
-  })
+  });
 
   return (
     <Button
@@ -437,7 +518,7 @@ function DragHandle({ id }: { id: number | string }) {
       <IconGripVertical className="text-muted-foreground size-3" />
       <span className="sr-only">Drag to reorder</span>
     </Button>
-  )
+  );
 }
 
 const columns: ColumnDef<z.infer<typeof logSchema>>[] = [
@@ -477,16 +558,22 @@ const columns: ColumnDef<z.infer<typeof logSchema>>[] = [
     header: "Status",
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${
-          row.original.status === "success"
-            ? "bg-green-500"
-            : row.original.status === "error"
-            ? "bg-red-500"
-            : "bg-yellow-500"
-        }`}>
-          {row.original.status === "success" && <CheckCircle className="w-4 h-4" />}
+        <div
+          className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${
+            row.original.status === "success"
+              ? "bg-green-500"
+              : row.original.status === "error"
+              ? "bg-red-500"
+              : "bg-yellow-500"
+          }`}
+        >
+          {row.original.status === "success" && (
+            <CheckCircle className="w-4 h-4" />
+          )}
           {row.original.status === "error" && <XCircle className="w-4 h-4" />}
-          {row.original.status === "warning" && <AlertCircle className="w-4 h-4" />}
+          {row.original.status === "warning" && (
+            <AlertCircle className="w-4 h-4" />
+          )}
         </div>
       </div>
     ),
@@ -503,11 +590,7 @@ const columns: ColumnDef<z.infer<typeof logSchema>>[] = [
   {
     accessorKey: "userId",
     header: "User ID",
-    cell: ({ row }) => (
-      <Badge variant="outline">
-        {row.original.userId}
-      </Badge>
-    ),
+    cell: ({ row }) => <Badge variant="outline">{row.original.userId}</Badge>,
   },
   {
     accessorKey: "activity",
@@ -516,7 +599,9 @@ const columns: ColumnDef<z.infer<typeof logSchema>>[] = [
       <div>
         <div className="font-medium">{row.original.activity}</div>
         {row.original.ipAddress && (
-          <div className="text-xs text-muted-foreground">IP: {row.original.ipAddress}</div>
+          <div className="text-xs text-muted-foreground">
+            IP: {row.original.ipAddress}
+          </div>
         )}
       </div>
     ),
@@ -534,16 +619,14 @@ const columns: ColumnDef<z.infer<typeof logSchema>>[] = [
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
-      <LogActionsCell log={row.original} />
-    ),
+    cell: ({ row }) => <LogActionsCell log={row.original} />,
   },
-]
+];
 
 function DraggableRow({ row }: { row: Row<z.infer<typeof logSchema>> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
-  })
+  });
 
   return (
     <TableRow
@@ -562,40 +645,40 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof logSchema>> }) {
         </TableCell>
       ))}
     </TableRow>
-  )
+  );
 }
 
 export function LogsDataTable({
   data: initialData,
 }: {
-  data: z.infer<typeof logSchema>[]
+  data: z.infer<typeof logSchema>[];
 }) {
-  const [data, setData] = React.useState(() => initialData)
-  const [rowSelection, setRowSelection] = React.useState({})
+  const [data, setData] = React.useState(() => initialData);
+  const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
-  )
-  const [sorting, setSorting] = React.useState<SortingState>([])
+  );
+  const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
     pageSize: 10,
-  })
-  const [isFilterOpen, setIsFilterOpen] = React.useState(false)
-  const [statusFilter, setStatusFilter] = React.useState("all")
-  const [userFilter, setUserFilter] = React.useState("all")
-  const sortableId = React.useId()
+  });
+  const [isFilterOpen, setIsFilterOpen] = React.useState(false);
+  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [userFilter, setUserFilter] = React.useState("all");
+  const sortableId = React.useId();
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
     useSensor(TouchSensor, {}),
     useSensor(KeyboardSensor, {})
-  )
+  );
 
   const dataIds = React.useMemo<UniqueIdentifier[]>(
     () => data?.map(({ id }) => id) || [],
     [data]
-  )
+  );
 
   const table = useReactTable({
     data,
@@ -620,37 +703,39 @@ export function LogsDataTable({
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
-  })
+  });
 
   // Apply filters to data
   React.useEffect(() => {
-    let filteredData = [...initialData]
-    
+    let filteredData = [...initialData];
+
     if (statusFilter !== "all") {
-      filteredData = filteredData.filter(item => item.status === statusFilter)
+      filteredData = filteredData.filter(
+        (item) => item.status === statusFilter
+      );
     }
-    
+
     if (userFilter !== "all") {
-      filteredData = filteredData.filter(item => item.userId === userFilter)
+      filteredData = filteredData.filter((item) => item.userId === userFilter);
     }
-    
-    setData(filteredData)
-  }, [statusFilter, userFilter, initialData])
+
+    setData(filteredData);
+  }, [statusFilter, userFilter, initialData]);
 
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
+    const { active, over } = event;
     if (active && over && active.id !== over.id) {
       setData((data) => {
-        const oldIndex = dataIds.indexOf(active.id)
-        const newIndex = dataIds.indexOf(over.id)
-        return arrayMove(data, oldIndex, newIndex)
-      })
+        const oldIndex = dataIds.indexOf(active.id);
+        const newIndex = dataIds.indexOf(over.id);
+        return arrayMove(data, oldIndex, newIndex);
+      });
     }
   }
 
   const handleRefresh = () => {
-    console.log("Refreshing logs...")
-  }
+    console.log("Refreshing logs...");
+  };
 
   return (
     <Tabs
@@ -660,7 +745,9 @@ export function LogsDataTable({
       {/* Table Title */}
       <div className="flex items-center justify-between px-4 lg:px-6">
         <div>
-          <h2 className="text-2xl font-semibold text-foreground">System Logs</h2>
+          <h2 className="text-2xl font-semibold text-foreground">
+            System Logs
+          </h2>
           <p className="text-sm text-muted-foreground mt-1">
             Monitor system activities and user actions
           </p>
@@ -712,7 +799,7 @@ export function LogsDataTable({
                     >
                       {column.id}
                     </DropdownMenuCheckboxItem>
-                  )
+                  );
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -732,7 +819,12 @@ export function LogsDataTable({
               </DrawerHeader>
               <div className="grid gap-6 py-4 max-w-md mx-auto w-full md:max-w-2xl md:grid-cols-2 md:gap-8">
                 <div className="grid gap-3">
-                  <Label htmlFor="status-filter" className="text-sm font-medium">Status</Label>
+                  <Label
+                    htmlFor="status-filter"
+                    className="text-sm font-medium"
+                  >
+                    Status
+                  </Label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger id="status-filter" className="w-full">
                       <SelectValue placeholder="Select status" />
@@ -746,7 +838,9 @@ export function LogsDataTable({
                   </Select>
                 </div>
                 <div className="grid gap-3">
-                  <Label htmlFor="user-filter" className="text-sm font-medium">User</Label>
+                  <Label htmlFor="user-filter" className="text-sm font-medium">
+                    User
+                  </Label>
                   <Select value={userFilter} onValueChange={setUserFilter}>
                     <SelectTrigger id="user-filter" className="w-full">
                       <SelectValue placeholder="Select user" />
@@ -762,12 +856,12 @@ export function LogsDataTable({
               </div>
               <DrawerFooter className="px-0 pt-4">
                 <div className="flex gap-3 max-w-md mx-auto w-full md:max-w-2xl">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="flex-1"
                     onClick={() => {
-                      setStatusFilter("all")
-                      setUserFilter("all")
+                      setStatusFilter("all");
+                      setUserFilter("all");
                     }}
                   >
                     Clear Filters
@@ -800,10 +894,17 @@ export function LogsDataTable({
             <Table>
               <TableHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20 sticky top-0 z-10">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id} className="border-b-primary/20">
+                  <TableRow
+                    key={headerGroup.id}
+                    className="border-b-primary/20"
+                  >
                     {headerGroup.headers.map((header) => {
                       return (
-                        <TableHead key={header.id} colSpan={header.colSpan} className="text-primary font-semibold">
+                        <TableHead
+                          key={header.id}
+                          colSpan={header.colSpan}
+                          className="text-primary font-semibold"
+                        >
                           {header.isPlaceholder
                             ? null
                             : flexRender(
@@ -811,7 +912,7 @@ export function LogsDataTable({
                                 header.getContext()
                               )}
                         </TableHead>
-                      )
+                      );
                     })}
                   </TableRow>
                 ))}
@@ -853,7 +954,7 @@ export function LogsDataTable({
               <Select
                 value={`${table.getState().pagination.pageSize}`}
                 onValueChange={(value) => {
-                  table.setPageSize(Number(value))
+                  table.setPageSize(Number(value));
                 }}
               >
                 <SelectTrigger size="sm" className="w-20" id="rows-per-page">
@@ -919,5 +1020,5 @@ export function LogsDataTable({
         </div>
       </TabsContent>
     </Tabs>
-  )
+  );
 }

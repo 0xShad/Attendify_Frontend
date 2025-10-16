@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   closestCenter,
   DndContext,
@@ -11,15 +11,15 @@ import {
   useSensors,
   type DragEndEvent,
   type UniqueIdentifier,
-} from "@dnd-kit/core"
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
+} from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   arrayMove,
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   IconChevronDown,
   IconChevronLeft,
@@ -34,8 +34,8 @@ import {
   IconLoader,
   IconPlus,
   IconTrendingUp,
-} from "@tabler/icons-react"
-import { Eye, Edit, UserX, Trash2 } from "lucide-react"
+} from "@tabler/icons-react";
+import { Eye, Edit, UserX, Trash2 } from "lucide-react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -50,12 +50,12 @@ import {
   SortingState,
   useReactTable,
   VisibilityState,
-} from "@tanstack/react-table"
-import { z } from "zod"
+} from "@tanstack/react-table";
+import { z } from "zod";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -63,7 +63,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Drawer,
   DrawerClose,
@@ -73,7 +73,7 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer"
+} from "@/components/ui/drawer";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -81,17 +81,17 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -99,7 +99,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet"
+} from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -107,13 +107,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const schema = z.object({
   id: z.union([z.number(), z.string()]),
@@ -123,17 +118,24 @@ export const schema = z.object({
   status: z.string(),
   lastActive: z.string().optional(),
   department: z.string().optional(),
-})
+});
 
 // User action components
-function ViewUserSheet({ user, open, onOpenChange }: { 
-  user: z.infer<typeof schema>; 
-  open: boolean; 
+function ViewUserSheet({
+  user,
+  open,
+  onOpenChange,
+}: {
+  user: z.infer<typeof schema>;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8">
+      <SheetContent
+        side="bottom"
+        className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8"
+      >
         <div className="mx-auto max-w-md">
           <SheetHeader className="space-y-4 text-center">
             <SheetTitle className="text-xl">User Profile</SheetTitle>
@@ -141,18 +143,24 @@ function ViewUserSheet({ user, open, onOpenChange }: {
               View detailed information about this user
             </SheetDescription>
           </SheetHeader>
-          
+
           <div className="py-8 space-y-6">
             {/* User Avatar and Basic Info */}
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="w-20 h-20 rounded-full bg-slate-500 flex items-center justify-center text-white text-xl font-medium">
-                {user.name 
-                  ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-                  : "?"
-                }
+                {user.name
+                  ? user.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .substring(0, 2)
+                      .toUpperCase()
+                  : "?"}
               </div>
               <div>
-                <h3 className="text-lg font-semibold">{user.name || "Unknown User"}</h3>
+                <h3 className="text-lg font-semibold">
+                  {user.name || "Unknown User"}
+                </h3>
                 <p className="text-sm text-muted-foreground">ID: {user.id}</p>
               </div>
             </div>
@@ -161,19 +169,23 @@ function ViewUserSheet({ user, open, onOpenChange }: {
             <div className="space-y-6">
               <div className="grid gap-4">
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Email Address</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Email Address
+                  </Label>
                   <p className="text-sm">{user.email || "Not provided"}</p>
                 </div>
-                
+
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Role</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Role
+                  </Label>
                   <div className="flex justify-center">
-                    <Badge 
+                    <Badge
                       variant={
-                        user.role === "Admin" 
-                          ? "default" 
-                          : user.role === "Faculty" 
-                          ? "secondary" 
+                        user.role === "Admin"
+                          ? "default"
+                          : user.role === "Faculty"
+                          ? "secondary"
                           : "outline"
                       }
                     >
@@ -181,9 +193,11 @@ function ViewUserSheet({ user, open, onOpenChange }: {
                     </Badge>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Status
+                  </Label>
                   <div className="flex items-center justify-center gap-2">
                     <div
                       className={`w-2 h-2 rounded-full ${
@@ -195,57 +209,79 @@ function ViewUserSheet({ user, open, onOpenChange }: {
                     <span className="text-sm">{user.status}</span>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Department</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Department
+                  </Label>
                   <p className="text-sm">{user.department || "Not assigned"}</p>
                 </div>
-                
+
                 <div className="space-y-2 text-center">
-                  <Label className="text-sm font-medium text-muted-foreground">Last Active</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Last Active
+                  </Label>
                   <p className="text-sm">{user.lastActive || "Never"}</p>
                 </div>
               </div>
             </div>
           </div>
-          
+
           <SheetFooter className="pb-8">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="w-full"
+            >
               Close
             </Button>
           </SheetFooter>
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }
 
-function EditUserSheet({ user, open, onOpenChange }: { 
-  user: z.infer<typeof schema>; 
-  open: boolean; 
+function EditUserSheet({
+  user,
+  open,
+  onOpenChange,
+}: {
+  user: z.infer<typeof schema>;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [editName, setEditName] = React.useState(user.name || "")
-  const [editEmail, setEditEmail] = React.useState(user.email || "")
-  const [editRole, setEditRole] = React.useState(user.role || "")
-  const [editDepartment, setEditDepartment] = React.useState(user.department || "")
+  const [editName, setEditName] = React.useState(user.name || "");
+  const [editEmail, setEditEmail] = React.useState(user.email || "");
+  const [editRole, setEditRole] = React.useState(user.role || "");
+  const [editDepartment, setEditDepartment] = React.useState(
+    user.department || ""
+  );
 
   React.useEffect(() => {
-    setEditName(user.name || "")
-    setEditEmail(user.email || "")
-    setEditRole(user.role || "")
-    setEditDepartment(user.department || "")
-  }, [user])
+    setEditName(user.name || "");
+    setEditEmail(user.email || "");
+    setEditRole(user.role || "");
+    setEditDepartment(user.department || "");
+  }, [user]);
 
   const handleSave = () => {
     // TODO: Implement save logic
-    console.log("Saving user:", { editName, editEmail, editRole, editDepartment })
-    onOpenChange(false)
-  }
+    console.log("Saving user:", {
+      editName,
+      editEmail,
+      editRole,
+      editDepartment,
+    });
+    onOpenChange(false);
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8">
+      <SheetContent
+        side="bottom"
+        className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8"
+      >
         <div className="mx-auto max-w-md">
           <SheetHeader className="space-y-4 text-center">
             <SheetTitle className="text-xl">Edit User</SheetTitle>
@@ -253,11 +289,13 @@ function EditUserSheet({ user, open, onOpenChange }: {
               Update user information and settings
             </SheetDescription>
           </SheetHeader>
-          
+
           <div className="py-8 space-y-6">
             <div className="grid gap-6">
               <div className="space-y-3">
-                <Label htmlFor="edit-name" className="text-sm font-medium">Full Name</Label>
+                <Label htmlFor="edit-name" className="text-sm font-medium">
+                  Full Name
+                </Label>
                 <Input
                   id="edit-name"
                   value={editName}
@@ -266,9 +304,11 @@ function EditUserSheet({ user, open, onOpenChange }: {
                   className="w-full"
                 />
               </div>
-              
+
               <div className="space-y-3">
-                <Label htmlFor="edit-email" className="text-sm font-medium">Email Address</Label>
+                <Label htmlFor="edit-email" className="text-sm font-medium">
+                  Email Address
+                </Label>
                 <Input
                   id="edit-email"
                   type="email"
@@ -278,9 +318,11 @@ function EditUserSheet({ user, open, onOpenChange }: {
                   className="w-full"
                 />
               </div>
-              
+
               <div className="space-y-3">
-                <Label htmlFor="edit-role" className="text-sm font-medium">Role</Label>
+                <Label htmlFor="edit-role" className="text-sm font-medium">
+                  Role
+                </Label>
                 <Select value={editRole} onValueChange={setEditRole}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select role" />
@@ -293,9 +335,14 @@ function EditUserSheet({ user, open, onOpenChange }: {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-3">
-                <Label htmlFor="edit-department" className="text-sm font-medium">Department</Label>
+                <Label
+                  htmlFor="edit-department"
+                  className="text-sm font-medium"
+                >
+                  Department
+                </Label>
                 <Input
                   id="edit-department"
                   value={editDepartment}
@@ -306,9 +353,13 @@ function EditUserSheet({ user, open, onOpenChange }: {
               </div>
             </div>
           </div>
-          
+
           <SheetFooter className="flex gap-4 pb-8">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+            >
               Cancel
             </Button>
             <Button onClick={handleSave} className="flex-1">
@@ -318,25 +369,32 @@ function EditUserSheet({ user, open, onOpenChange }: {
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }
 
-function DeactivateUserSheet({ user, open, onOpenChange }: { 
-  user: z.infer<typeof schema>; 
-  open: boolean; 
+function DeactivateUserSheet({
+  user,
+  open,
+  onOpenChange,
+}: {
+  user: z.infer<typeof schema>;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [reason, setReason] = React.useState("")
+  const [reason, setReason] = React.useState("");
 
   const handleDeactivate = () => {
     // TODO: Implement deactivate logic
-    console.log("Deactivating user:", user.id, "Reason:", reason)
-    onOpenChange(false)
-  }
+    console.log("Deactivating user:", user.id, "Reason:", reason);
+    onOpenChange(false);
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8">
+      <SheetContent
+        side="bottom"
+        className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8"
+      >
         <div className="mx-auto max-w-md">
           <SheetHeader className="space-y-4 text-center">
             <SheetTitle className="text-xl">Deactivate User</SheetTitle>
@@ -344,33 +402,50 @@ function DeactivateUserSheet({ user, open, onOpenChange }: {
               Temporarily disable this user account
             </SheetDescription>
           </SheetHeader>
-          
+
           <div className="py-8 space-y-6">
             {/* User Info */}
             <div className="flex flex-col items-center gap-3 p-6 bg-muted/30 rounded-lg">
               <div className="w-14 h-14 rounded-full bg-slate-500 flex items-center justify-center text-white text-sm font-medium">
-                {user.name 
-                  ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-                  : "?"
-                }
+                {user.name
+                  ? user.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .substring(0, 2)
+                      .toUpperCase()
+                  : "?"}
               </div>
               <div className="text-center">
                 <p className="font-medium">{user.name || "Unknown User"}</p>
-                <p className="text-sm text-muted-foreground">{user.email || "No email"}</p>
+                <p className="text-sm text-muted-foreground">
+                  {user.email || "No email"}
+                </p>
               </div>
             </div>
 
             <div className="space-y-6">
               <div className="space-y-3">
-                <Label htmlFor="deactivate-reason" className="text-sm font-medium">Reason for Deactivation</Label>
+                <Label
+                  htmlFor="deactivate-reason"
+                  className="text-sm font-medium"
+                >
+                  Reason for Deactivation
+                </Label>
                 <Select value={reason} onValueChange={setReason}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a reason" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="temporary_leave">Temporary Leave</SelectItem>
-                    <SelectItem value="policy_violation">Policy Violation</SelectItem>
-                    <SelectItem value="inactive_account">Inactive Account</SelectItem>
+                    <SelectItem value="temporary_leave">
+                      Temporary Leave
+                    </SelectItem>
+                    <SelectItem value="policy_violation">
+                      Policy Violation
+                    </SelectItem>
+                    <SelectItem value="inactive_account">
+                      Inactive Account
+                    </SelectItem>
                     <SelectItem value="user_request">User Request</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
@@ -379,20 +454,25 @@ function DeactivateUserSheet({ user, open, onOpenChange }: {
 
               <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-sm text-yellow-800 text-center">
-                  <strong>Note:</strong> Deactivating this user will prevent them from logging in. 
-                  Their data will be preserved and the account can be reactivated later.
+                  <strong>Note:</strong> Deactivating this user will prevent
+                  them from logging in. Their data will be preserved and the
+                  account can be reactivated later.
                 </p>
               </div>
             </div>
           </div>
-          
+
           <SheetFooter className="flex gap-4 pb-8">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+            >
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDeactivate} 
+            <Button
+              variant="destructive"
+              onClick={handleDeactivate}
               className="flex-1"
               disabled={!reason}
             >
@@ -402,22 +482,26 @@ function DeactivateUserSheet({ user, open, onOpenChange }: {
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }
 
-function DeleteUserDialog({ user, open, onOpenChange }: { 
-  user: z.infer<typeof schema>; 
-  open: boolean; 
+function DeleteUserDialog({
+  user,
+  open,
+  onOpenChange,
+}: {
+  user: z.infer<typeof schema>;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [confirmText, setConfirmText] = React.useState("")
-  const expectedText = "DELETE"
+  const [confirmText, setConfirmText] = React.useState("");
+  const expectedText = "DELETE";
 
   const handleDelete = () => {
     // TODO: Implement delete logic
-    console.log("Deleting user:", user.id)
-    onOpenChange(false)
-  }
+    console.log("Deleting user:", user.id);
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -428,29 +512,44 @@ function DeleteUserDialog({ user, open, onOpenChange }: {
             Delete User
           </DialogTitle>
           <DialogDescription className="space-y-4">
-            <p className="text-sm text-center">This action cannot be undone. This will permanently delete the user account and remove all associated data.</p>
-            
+            <p className="text-sm text-center">
+              This action cannot be undone. This will permanently delete the
+              user account and remove all associated data.
+            </p>
+
             <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
               <div className="flex flex-col items-center gap-2 text-center">
                 <div className="w-12 h-12 rounded-full bg-slate-500 flex items-center justify-center text-white text-sm font-medium">
-                  {user.name 
-                    ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-                    : "?"
-                  }
+                  {user.name
+                    ? user.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .substring(0, 2)
+                        .toUpperCase()
+                    : "?"}
                 </div>
                 <div>
-                  <p className="font-medium text-foreground text-sm">{user.name || "Unknown User"}</p>
-                  <p className="text-xs text-muted-foreground">{user.email || "No email"}</p>
+                  <p className="font-medium text-foreground text-sm">
+                    {user.name || "Unknown User"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {user.email || "No email"}
+                  </p>
                 </div>
               </div>
             </div>
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="space-y-3 text-center">
             <Label htmlFor="confirm-delete" className="text-sm">
-              Type <code className="px-1 py-0.5 bg-muted rounded text-xs font-mono">DELETE</code> to confirm
+              Type{" "}
+              <code className="px-1 py-0.5 bg-muted rounded text-xs font-mono">
+                DELETE
+              </code>{" "}
+              to confirm
             </Label>
             <Input
               id="confirm-delete"
@@ -461,14 +560,18 @@ function DeleteUserDialog({ user, open, onOpenChange }: {
             />
           </div>
         </div>
-        
+
         <DialogFooter className="flex gap-3 pt-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 text-sm">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="flex-1 text-sm"
+          >
             Cancel
           </Button>
-          <Button 
-            variant="destructive" 
-            onClick={handleDelete} 
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
             className="flex-1 text-sm"
             disabled={confirmText !== expectedText}
           >
@@ -478,14 +581,14 @@ function DeleteUserDialog({ user, open, onOpenChange }: {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function UserActionsCell({ user }: { user: z.infer<typeof schema> }) {
-  const [viewOpen, setViewOpen] = React.useState(false)
-  const [editOpen, setEditOpen] = React.useState(false)
-  const [deactivateOpen, setDeactivateOpen] = React.useState(false)
-  const [deleteOpen, setDeleteOpen] = React.useState(false)
+  const [viewOpen, setViewOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [deactivateOpen, setDeactivateOpen] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   return (
     <>
@@ -514,7 +617,10 @@ function UserActionsCell({ user }: { user: z.infer<typeof schema> }) {
             Deactivate
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="text-destructive focus:text-destructive">
+          <DropdownMenuItem
+            onClick={() => setDeleteOpen(true)}
+            className="text-destructive focus:text-destructive"
+          >
             <Trash2 className="w-4 h-4 mr-2" />
             Delete
           </DropdownMenuItem>
@@ -524,17 +630,25 @@ function UserActionsCell({ user }: { user: z.infer<typeof schema> }) {
       {/* Action Modals */}
       <ViewUserSheet user={user} open={viewOpen} onOpenChange={setViewOpen} />
       <EditUserSheet user={user} open={editOpen} onOpenChange={setEditOpen} />
-      <DeactivateUserSheet user={user} open={deactivateOpen} onOpenChange={setDeactivateOpen} />
-      <DeleteUserDialog user={user} open={deleteOpen} onOpenChange={setDeleteOpen} />
+      <DeactivateUserSheet
+        user={user}
+        open={deactivateOpen}
+        onOpenChange={setDeactivateOpen}
+      />
+      <DeleteUserDialog
+        user={user}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+      />
     </>
-  )
+  );
 }
 
 // Create a separate component for the drag handle
 function DragHandle({ id }: { id: number | string }) {
   const { attributes, listeners } = useSortable({
     id,
-  })
+  });
 
   return (
     <Button
@@ -547,7 +661,7 @@ function DragHandle({ id }: { id: number | string }) {
       <IconGripVertical className="text-muted-foreground size-3" />
       <span className="sr-only">Drag to reorder</span>
     </Button>
-  )
+  );
 }
 
 const columns: ColumnDef<z.infer<typeof schema>>[] = [
@@ -586,11 +700,16 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     accessorKey: "name",
     header: "User",
     cell: ({ row }) => {
-      const user = row.original
-      const initials = user.name 
-        ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-        : "?"
-      
+      const user = row.original;
+      const initials = user.name
+        ? user.name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .substring(0, 2)
+            .toUpperCase()
+        : "?";
+
       return (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-slate-500 flex items-center justify-center text-white text-sm font-medium">
@@ -604,7 +723,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
             <div className="text-xs text-muted-foreground">ID: {user.id}</div>
           </div>
         </div>
-      )
+      );
     },
     enableHiding: false,
   },
@@ -612,12 +731,12 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     accessorKey: "role",
     header: "Role",
     cell: ({ row }) => (
-      <Badge 
+      <Badge
         variant={
-          row.original.role === "Admin" 
-            ? "default" 
-            : row.original.role === "Faculty" 
-            ? "secondary" 
+          row.original.role === "Admin"
+            ? "default"
+            : row.original.role === "Faculty"
+            ? "secondary"
             : "outline"
         }
       >
@@ -670,16 +789,14 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
-      <UserActionsCell user={row.original} />
-    ),
+    cell: ({ row }) => <UserActionsCell user={row.original} />,
   },
-]
+];
 
 function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
-  })
+  });
 
   return (
     <TableRow
@@ -698,44 +815,44 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
         </TableCell>
       ))}
     </TableRow>
-  )
+  );
 }
 
 export function DataTable({
   data: initialData,
 }: {
-  data: z.infer<typeof schema>[]
+  data: z.infer<typeof schema>[];
 }) {
-  const [data, setData] = React.useState(() => initialData)
-  const [rowSelection, setRowSelection] = React.useState({})
+  const [data, setData] = React.useState(() => initialData);
+  const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
-  )
-  const [sorting, setSorting] = React.useState<SortingState>([])
+  );
+  const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
     pageSize: 10,
-  })
-  const [isFilterOpen, setIsFilterOpen] = React.useState(false)
-  const [isAddUserOpen, setIsAddUserOpen] = React.useState(false)
-  const [statusFilter, setStatusFilter] = React.useState("all")
-  const [typeFilter, setTypeFilter] = React.useState("all")
-  const [newUserName, setNewUserName] = React.useState("")
-  const [newUserEmail, setNewUserEmail] = React.useState("")
-  const [newUserRole, setNewUserRole] = React.useState("")
-  const sortableId = React.useId()
+  });
+  const [isFilterOpen, setIsFilterOpen] = React.useState(false);
+  const [isAddUserOpen, setIsAddUserOpen] = React.useState(false);
+  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [typeFilter, setTypeFilter] = React.useState("all");
+  const [newUserName, setNewUserName] = React.useState("");
+  const [newUserEmail, setNewUserEmail] = React.useState("");
+  const [newUserRole, setNewUserRole] = React.useState("");
+  const sortableId = React.useId();
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
     useSensor(TouchSensor, {}),
     useSensor(KeyboardSensor, {})
-  )
+  );
 
   const dataIds = React.useMemo<UniqueIdentifier[]>(
     () => data?.map(({ id }) => id) || [],
     [data]
-  )
+  );
 
   const table = useReactTable({
     data,
@@ -760,31 +877,33 @@ export function DataTable({
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
-  })
+  });
 
   // Apply filters to data
   React.useEffect(() => {
-    let filteredData = [...initialData]
-    
+    let filteredData = [...initialData];
+
     if (statusFilter !== "all") {
-      filteredData = filteredData.filter(item => item.status === statusFilter)
+      filteredData = filteredData.filter(
+        (item) => item.status === statusFilter
+      );
     }
-    
+
     if (typeFilter !== "all") {
-      filteredData = filteredData.filter(item => item.role === typeFilter)
+      filteredData = filteredData.filter((item) => item.role === typeFilter);
     }
-    
-    setData(filteredData)
-  }, [statusFilter, typeFilter, initialData])
+
+    setData(filteredData);
+  }, [statusFilter, typeFilter, initialData]);
 
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
+    const { active, over } = event;
     if (active && over && active.id !== over.id) {
       setData((data) => {
-        const oldIndex = dataIds.indexOf(active.id)
-        const newIndex = dataIds.indexOf(over.id)
-        return arrayMove(data, oldIndex, newIndex)
-      })
+        const oldIndex = dataIds.indexOf(active.id);
+        const newIndex = dataIds.indexOf(over.id);
+        return arrayMove(data, oldIndex, newIndex);
+      });
     }
   }
 
@@ -796,7 +915,9 @@ export function DataTable({
       {/* Table Title */}
       <div className="flex items-center justify-between px-4 lg:px-6">
         <div>
-          <h2 className="text-2xl font-semibold text-foreground">User Management</h2>
+          <h2 className="text-2xl font-semibold text-foreground">
+            User Management
+          </h2>
           <p className="text-sm text-muted-foreground mt-1">
             Manage and monitor user accounts and permissions
           </p>
@@ -844,7 +965,7 @@ export function DataTable({
                     >
                       {column.id}
                     </DropdownMenuCheckboxItem>
-                  )
+                  );
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -864,7 +985,12 @@ export function DataTable({
               </DrawerHeader>
               <div className="grid gap-6 py-4 max-w-md mx-auto w-full md:max-w-2xl md:grid-cols-2 md:gap-8">
                 <div className="grid gap-3">
-                  <Label htmlFor="status-filter" className="text-sm font-medium">Status</Label>
+                  <Label
+                    htmlFor="status-filter"
+                    className="text-sm font-medium"
+                  >
+                    Status
+                  </Label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger id="status-filter" className="w-full">
                       <SelectValue placeholder="Select status" />
@@ -878,7 +1004,9 @@ export function DataTable({
                   </Select>
                 </div>
                 <div className="grid gap-3">
-                  <Label htmlFor="role-filter" className="text-sm font-medium">Role</Label>
+                  <Label htmlFor="role-filter" className="text-sm font-medium">
+                    Role
+                  </Label>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
                     <SelectTrigger id="role-filter" className="w-full">
                       <SelectValue placeholder="Select role" />
@@ -895,12 +1023,12 @@ export function DataTable({
               </div>
               <DrawerFooter className="px-0 pt-4">
                 <div className="flex gap-3 max-w-md mx-auto w-full md:max-w-2xl">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="flex-1"
                     onClick={() => {
-                      setStatusFilter("all")
-                      setTypeFilter("all")
+                      setStatusFilter("all");
+                      setTypeFilter("all");
                     }}
                   >
                     Clear Filters
@@ -928,7 +1056,9 @@ export function DataTable({
               </DrawerHeader>
               <div className="grid gap-6 py-4 max-w-md mx-auto w-full">
                 <div className="grid gap-3">
-                  <Label htmlFor="user-name" className="text-sm font-medium">Full Name</Label>
+                  <Label htmlFor="user-name" className="text-sm font-medium">
+                    Full Name
+                  </Label>
                   <Input
                     id="user-name"
                     placeholder="Enter full name"
@@ -938,7 +1068,9 @@ export function DataTable({
                   />
                 </div>
                 <div className="grid gap-3">
-                  <Label htmlFor="user-email" className="text-sm font-medium">Email</Label>
+                  <Label htmlFor="user-email" className="text-sm font-medium">
+                    Email
+                  </Label>
                   <Input
                     id="user-email"
                     type="email"
@@ -949,7 +1081,9 @@ export function DataTable({
                   />
                 </div>
                 <div className="grid gap-3">
-                  <Label htmlFor="user-role" className="text-sm font-medium">Role</Label>
+                  <Label htmlFor="user-role" className="text-sm font-medium">
+                    Role
+                  </Label>
                   <Select value={newUserRole} onValueChange={setNewUserRole}>
                     <SelectTrigger id="user-role" className="w-full">
                       <SelectValue placeholder="Select role" />
@@ -964,14 +1098,14 @@ export function DataTable({
               </div>
               <DrawerFooter className="px-0 pt-4">
                 <div className="flex gap-3 max-w-md mx-auto w-full">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="flex-1"
                     onClick={() => {
-                      setNewUserName("")
-                      setNewUserEmail("")
-                      setNewUserRole("")
-                      setIsAddUserOpen(false)
+                      setNewUserName("");
+                      setNewUserEmail("");
+                      setNewUserRole("");
+                      setIsAddUserOpen(false);
                     }}
                   >
                     Cancel
@@ -981,10 +1115,14 @@ export function DataTable({
                       className="flex-1"
                       onClick={() => {
                         // Handle add user logic here
-                        console.log("Adding user:", { newUserName, newUserEmail, newUserRole })
-                        setNewUserName("")
-                        setNewUserEmail("")
-                        setNewUserRole("")
+                        console.log("Adding user:", {
+                          newUserName,
+                          newUserEmail,
+                          newUserRole,
+                        });
+                        setNewUserName("");
+                        setNewUserEmail("");
+                        setNewUserRole("");
                       }}
                     >
                       Add User
@@ -1011,10 +1149,17 @@ export function DataTable({
             <Table>
               <TableHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20 sticky top-0 z-10">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id} className="border-b-primary/20">
+                  <TableRow
+                    key={headerGroup.id}
+                    className="border-b-primary/20"
+                  >
                     {headerGroup.headers.map((header) => {
                       return (
-                        <TableHead key={header.id} colSpan={header.colSpan} className="text-primary font-semibold">
+                        <TableHead
+                          key={header.id}
+                          colSpan={header.colSpan}
+                          className="text-primary font-semibold"
+                        >
                           {header.isPlaceholder
                             ? null
                             : flexRender(
@@ -1022,7 +1167,7 @@ export function DataTable({
                                 header.getContext()
                               )}
                         </TableHead>
-                      )
+                      );
                     })}
                   </TableRow>
                 ))}
@@ -1064,7 +1209,7 @@ export function DataTable({
               <Select
                 value={`${table.getState().pagination.pageSize}`}
                 onValueChange={(value) => {
-                  table.setPageSize(Number(value))
+                  table.setPageSize(Number(value));
                 }}
               >
                 <SelectTrigger size="sm" className="w-20" id="rows-per-page">
@@ -1130,5 +1275,5 @@ export function DataTable({
         </div>
       </TabsContent>
     </Tabs>
-  )
+  );
 }

@@ -186,7 +186,11 @@ function NotificationMenu() {
 }
 
 // Separate component for sidebar user menu that can use useSidebar hook
-function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean) => void }) {
+function SidebarUserMenu({
+  setSettingsOpen,
+}: {
+  setSettingsOpen: (open: boolean) => void;
+}) {
   const { isMobile } = useSidebar();
 
   return (
@@ -226,9 +230,7 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">
-                    Admin User
-                  </span>
+                  <span className="truncate font-medium">Admin User</span>
                   <span className="text-muted-foreground truncate text-xs">
                     admin@attendify.com
                   </span>
@@ -307,25 +309,25 @@ export function AdminPortal() {
       status: "Completed",
       createdDate: "2025-10-13",
       size: "2.3 MB",
-      createdBy: "Admin User"
+      createdBy: "Admin User",
     },
     {
-      id: "RPT002", 
+      id: "RPT002",
       name: "User Activity Summary",
       type: "User Activity",
       status: "Processing",
       createdDate: "2025-10-13",
       size: "1.8 MB",
-      createdBy: "System Admin"
+      createdBy: "System Admin",
     },
     {
       id: "RPT003",
       name: "System Performance Analysis",
-      type: "System Performance", 
+      type: "System Performance",
       status: "Completed",
       createdDate: "2025-10-12",
       size: "4.5 MB",
-      createdBy: "Tech Lead"
+      createdBy: "Tech Lead",
     },
     {
       id: "RPT004",
@@ -334,8 +336,8 @@ export function AdminPortal() {
       status: "Failed",
       createdDate: "2025-10-12",
       size: null,
-      createdBy: "Admin User"
-    }
+      createdBy: "Admin User",
+    },
   ]);
 
   const [logs] = useState([
@@ -346,16 +348,16 @@ export function AdminPortal() {
       activity: "Login Success",
       status: "success" as const,
       ipAddress: "192.168.1.100",
-      details: "Successful authentication from desktop application"
+      details: "Successful authentication from desktop application",
     },
     {
       id: 2,
       timestamp: "2025-10-13 08:15",
-      userId: "U002", 
+      userId: "U002",
       activity: "Attendance Submission",
       status: "success" as const,
       ipAddress: "192.168.1.101",
-      details: "Attendance recorded for morning session"
+      details: "Attendance recorded for morning session",
     },
     {
       id: 3,
@@ -363,17 +365,17 @@ export function AdminPortal() {
       userId: "U003",
       activity: "Failed Login",
       status: "error" as const,
-      ipAddress: "192.168.1.102", 
-      details: "Invalid credentials - account locked after 3 attempts"
+      ipAddress: "192.168.1.102",
+      details: "Invalid credentials - account locked after 3 attempts",
     },
     {
       id: 4,
-      timestamp: "2025-10-11 09:44", 
+      timestamp: "2025-10-11 09:44",
       userId: "U002",
       activity: "Login Success",
       status: "success" as const,
       ipAddress: "192.168.1.101",
-      details: "Mobile application login"
+      details: "Mobile application login",
     },
     {
       id: 5,
@@ -382,8 +384,8 @@ export function AdminPortal() {
       activity: "Password Change",
       status: "warning" as const,
       ipAddress: "192.168.1.100",
-      details: "Password updated - security notification sent"
-    }
+      details: "Password updated - security notification sent",
+    },
   ]);
 
   // Reports
@@ -683,7 +685,15 @@ export function AdminPortal() {
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         isActive={activeTab === item.id}
-                        onClick={() => setActiveTab(item.id as "dashboard" | "users" | "reports" | "logs")}
+                        onClick={() =>
+                          setActiveTab(
+                            item.id as
+                              | "dashboard"
+                              | "users"
+                              | "reports"
+                              | "logs"
+                          )
+                        }
                         className="w-full justify-start"
                         size="lg"
                       >
@@ -1026,38 +1036,38 @@ export function AdminPortal() {
                 <div className="space-y-3">
                   <div>
                     <Label htmlFor="full-name">Full Name</Label>
-                    <Input 
-                      id="full-name" 
-                      type="text" 
+                    <Input
+                      id="full-name"
+                      type="text"
                       defaultValue="Admin User"
-                      className="mt-1" 
+                      className="mt-1"
                     />
                   </div>
                   <div>
                     <Label htmlFor="email">Email Address</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
+                    <Input
+                      id="email"
+                      type="email"
                       defaultValue="admin@attendify.com"
-                      className="mt-1" 
+                      className="mt-1"
                     />
                   </div>
                   <div>
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input 
-                      id="phone" 
-                      type="tel" 
+                    <Input
+                      id="phone"
+                      type="tel"
                       placeholder="+1 (555) 123-4567"
-                      className="mt-1" 
+                      className="mt-1"
                     />
                   </div>
                   <div>
                     <Label htmlFor="department">Department</Label>
-                    <Input 
-                      id="department" 
-                      type="text" 
+                    <Input
+                      id="department"
+                      type="text"
                       defaultValue="Administration"
-                      className="mt-1" 
+                      className="mt-1"
                     />
                   </div>
                 </div>
@@ -1071,29 +1081,31 @@ export function AdminPortal() {
                 <div className="space-y-3">
                   <div>
                     <Label htmlFor="current-password">Current Password</Label>
-                    <Input 
-                      id="current-password" 
-                      type="password" 
+                    <Input
+                      id="current-password"
+                      type="password"
                       placeholder="Enter current password"
-                      className="mt-1" 
+                      className="mt-1"
                     />
                   </div>
                   <div>
                     <Label htmlFor="new-password">New Password</Label>
-                    <Input 
-                      id="new-password" 
-                      type="password" 
+                    <Input
+                      id="new-password"
+                      type="password"
                       placeholder="Enter new password"
-                      className="mt-1" 
+                      className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="confirm-password">Confirm New Password</Label>
-                    <Input 
-                      id="confirm-password" 
-                      type="password" 
+                    <Label htmlFor="confirm-password">
+                      Confirm New Password
+                    </Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
                       placeholder="Confirm new password"
-                      className="mt-1" 
+                      className="mt-1"
                     />
                   </div>
                 </div>
@@ -1139,7 +1151,10 @@ export function AdminPortal() {
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="email-notifications" className="text-sm font-normal">
+                    <Label
+                      htmlFor="email-notifications"
+                      className="text-sm font-normal"
+                    >
                       Email Notifications
                     </Label>
                     <input
@@ -1150,7 +1165,10 @@ export function AdminPortal() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="push-notifications" className="text-sm font-normal">
+                    <Label
+                      htmlFor="push-notifications"
+                      className="text-sm font-normal"
+                    >
                       Push Notifications
                     </Label>
                     <input
@@ -1161,7 +1179,10 @@ export function AdminPortal() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="attendance-alerts" className="text-sm font-normal">
+                    <Label
+                      htmlFor="attendance-alerts"
+                      className="text-sm font-normal"
+                    >
                       Attendance Alerts
                     </Label>
                     <input
@@ -1172,7 +1193,10 @@ export function AdminPortal() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="system-updates" className="text-sm font-normal">
+                    <Label
+                      htmlFor="system-updates"
+                      className="text-sm font-normal"
+                    >
                       System Updates
                     </Label>
                     <input
@@ -1186,7 +1210,7 @@ export function AdminPortal() {
             </div>
             <DrawerFooter className="border-t">
               <div className="flex gap-2 w-full">
-                <Button 
+                <Button
                   onClick={() => setSettingsOpen(false)}
                   className="flex-1"
                 >
