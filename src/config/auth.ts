@@ -8,11 +8,11 @@
  */
 export const COOKIE_CONFIG = {
   ACCESS_TOKEN: {
-    name: 'access_token',
+    name: "access_token",
     maxAge: 60 * 60 * 24 * 7, // 7 days
   },
   REFRESH_TOKEN: {
-    name: 'refresh_token',
+    name: "refresh_token",
     maxAge: 60 * 60 * 24 * 30, // 30 days
   },
 } as const;
@@ -34,15 +34,16 @@ export const VALIDATION_CONFIG = {
 export const getCookieOptions = (isProduction: boolean) => ({
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'lax' as const,
-  path: '/',
+  sameSite: "lax" as const,
+  path: "/",
 });
 
 /**
  * Redirect URLs
  */
 export const REDIRECT_URLS = {
-  LOGIN: '/auth/login',
-  DASHBOARD: '/dashboard',
-  ADMIN_DASHBOARD: '/admin/dashboard',
+  LOGIN: "/auth/login",
+  DASHBOARD: "/dashboard",
+  ADMIN_DASHBOARD: "/admin/dashboard",
+  FACULTY_DASHBOARD: "/faculty/dashboard",
 } as const;
