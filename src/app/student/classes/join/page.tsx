@@ -601,61 +601,61 @@ export default function JoinClass() {
             <DrawerTitle>Request to Join Class</DrawerTitle>
           </DrawerHeader>
           <div className="px-4 pb-4 space-y-4">
-          {selectedClass && (
-            <div className="space-y-4">
-              <div className="p-3 bg-muted rounded-lg">
-                <h4 className="font-medium">{selectedClass.name}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {selectedClass.code} • {selectedClass.instructor}
-                </p>
-              </div>
+            {selectedClass && (
+              <div className="space-y-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <h4 className="font-medium">{selectedClass.name}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedClass.code} • {selectedClass.instructor}
+                  </p>
+                </div>
 
-              <div>
-                <Label htmlFor="join-reason">
-                  Reason for Joining (Optional)
-                </Label>
-                <Textarea
-                  id="join-reason"
-                  value={joinReason}
-                  onChange={(e) => setJoinReason(e.target.value)}
-                  placeholder="Briefly explain why you want to join this class..."
-                  rows={3}
-                  className="mt-1"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  This helps the instructor understand your interest in the
-                  course
-                </p>
-              </div>
+                <div>
+                  <Label htmlFor="join-reason">
+                    Reason for Joining (Optional)
+                  </Label>
+                  <Textarea
+                    id="join-reason"
+                    value={joinReason}
+                    onChange={(e) => setJoinReason(e.target.value)}
+                    placeholder="Briefly explain why you want to join this class..."
+                    rows={3}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This helps the instructor understand your interest in the
+                    course
+                  </p>
+                </div>
 
-              <div className="flex gap-2">
-                <Button
-                  onClick={confirmJoinRequest}
-                  disabled={isJoining}
-                  className="flex-1"
-                >
-                  {isJoining ? (
-                    <>
-                      <IconLoader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <IconCheck className="w-4 h-4 mr-2" />
-                      Send Request
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setJoinDrawerOpen(false)}
-                  disabled={isJoining}
-                >
-                  Cancel
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={confirmJoinRequest}
+                    disabled={isJoining}
+                    className="flex-1"
+                  >
+                    {isJoining ? (
+                      <>
+                        <IconLoader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <IconCheck className="w-4 h-4 mr-2" />
+                        Send Request
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setJoinDrawerOpen(false)}
+                    disabled={isJoining}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
           </div>
           <DrawerFooter className="px-4 pb-4">
             <DrawerClose asChild>

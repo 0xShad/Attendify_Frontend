@@ -384,9 +384,7 @@ export default function StudentAttendance() {
         <Card className="border-yellow-200 bg-yellow-50">
           <CardContent className="flex items-center gap-2 p-4">
             <AlertTriangle className="w-4 h-4 text-yellow-600" />
-            <p className="text-yellow-700 text-sm">
-              {locationError}
-            </p>
+            <p className="text-yellow-700 text-sm">{locationError}</p>
           </CardContent>
         </Card>
       )}
@@ -742,79 +740,79 @@ export default function StudentAttendance() {
             <DrawerTitle>Face Recognition Attendance</DrawerTitle>
           </DrawerHeader>
           <div className="px-4 pb-4 space-y-4">
-          <div className="space-y-4">
-            <div className="text-center space-y-4">
-              {/* Camera Preview */}
-              <div className="relative mx-auto w-64 h-48 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
-                {isProcessing ? (
-                  <div className="space-y-2">
-                    <Loader2 className="w-8 h-8 mx-auto animate-spin text-blue-500" />
-                    <p className="text-sm text-muted-foreground">
-                      Processing face recognition...
-                    </p>
-                  </div>
-                ) : cameraActive ? (
-                  <div className="space-y-2">
-                    <div className="w-32 h-32 border-2 border-blue-500 rounded-lg flex items-center justify-center animate-pulse">
-                      <Camera className="w-8 h-8 text-blue-500" />
+            <div className="space-y-4">
+              <div className="text-center space-y-4">
+                {/* Camera Preview */}
+                <div className="relative mx-auto w-64 h-48 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
+                  {isProcessing ? (
+                    <div className="space-y-2">
+                      <Loader2 className="w-8 h-8 mx-auto animate-spin text-blue-500" />
+                      <p className="text-sm text-muted-foreground">
+                        Processing face recognition...
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Position your face in the frame
+                  ) : cameraActive ? (
+                    <div className="space-y-2">
+                      <div className="w-32 h-32 border-2 border-blue-500 rounded-lg flex items-center justify-center animate-pulse">
+                        <Camera className="w-8 h-8 text-blue-500" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Position your face in the frame
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Camera className="w-8 h-8 mx-auto text-gray-400" />
+                      <p className="text-sm text-muted-foreground">
+                        Starting camera...
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {selectedSession && (
+                  <div className="text-sm space-y-1">
+                    <p className="font-medium">{selectedSession.className}</p>
+                    <p className="text-muted-foreground">
+                      {selectedSession.date} • {selectedSession.startTime}
                     </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Camera className="w-8 h-8 mx-auto text-gray-400" />
-                    <p className="text-sm text-muted-foreground">
-                      Starting camera...
-                    </p>
+                    {selectedSession.location && (
+                      <p className="text-muted-foreground flex items-center justify-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {selectedSession.location}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
 
-              {selectedSession && (
-                <div className="text-sm space-y-1">
-                  <p className="font-medium">{selectedSession.className}</p>
-                  <p className="text-muted-foreground">
-                    {selectedSession.date} • {selectedSession.startTime}
-                  </p>
-                  {selectedSession.location && (
-                    <p className="text-muted-foreground flex items-center justify-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      {selectedSession.location}
-                    </p>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleFaceRecognition}
+                  disabled={isProcessing || !cameraActive}
+                  className="flex-1"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Scan className="w-4 h-4 mr-2" />
+                      Record Attendance
+                    </>
                   )}
-                </div>
-              )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setFaceRecognitionOpen(false)}
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={handleFaceRecognition}
-                disabled={isProcessing || !cameraActive}
-                className="flex-1"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Scan className="w-4 h-4 mr-2" />
-                    Record Attendance
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setFaceRecognitionOpen(false)}
-                disabled={isProcessing}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
           </div>
           <DrawerFooter className="px-4 pb-4">
             <DrawerClose asChild>

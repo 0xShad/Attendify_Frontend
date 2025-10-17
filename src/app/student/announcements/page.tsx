@@ -574,153 +574,155 @@ export default function StudentAnnouncements() {
             </DrawerTitle>
           </DrawerHeader>
           <div className="px-4 pb-4 space-y-6 overflow-y-auto">
-
-          {selectedAnnouncement && (
-            <div className="space-y-6">
-              {/* Announcement Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-10 h-10">
-                    <AvatarImage src={selectedAnnouncement.instructorAvatar} />
-                    <AvatarFallback>
-                      {selectedAnnouncement.instructor
-                        .split(" ")
-                        .map((n: string) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">
-                      {selectedAnnouncement.instructor}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedAnnouncement.className || "General Announcement"}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right text-sm text-muted-foreground">
-                  <p>{selectedAnnouncement.date}</p>
-                  <p>{selectedAnnouncement.time}</p>
-                </div>
-              </div>
-
-              {/* Category and Class */}
-              <div className="flex items-center gap-2">
-                <Badge
-                  className={getCategoryColor(selectedAnnouncement.category)}
-                >
-                  {selectedAnnouncement.category}
-                </Badge>
-                {selectedAnnouncement.className && (
-                  <Badge variant="outline">
-                    {selectedAnnouncement.className}
-                  </Badge>
-                )}
-                {selectedAnnouncement.isPinned && (
-                  <Badge variant="outline" className="bg-blue-50">
-                    <Pin className="w-3 h-3 mr-1" />
-                    Pinned
-                  </Badge>
-                )}
-              </div>
-
-              {/* Full Content */}
-              <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                  {selectedAnnouncement.fullContent}
-                </div>
-              </div>
-
-              {/* Attachments */}
-              {selectedAnnouncement.attachments &&
-                selectedAnnouncement.attachments.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm">Attachments</h4>
-                    <div className="space-y-2">
-                      {selectedAnnouncement.attachments.map(
-                        (attachment: string, index: number) => (
-                          <div
-                            key={index}
-                            className="flex items-center gap-2 p-2 border rounded"
-                          >
-                            <BookOpen className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm">{attachment}</span>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="ml-auto"
-                            >
-                              Download
-                            </Button>
-                          </div>
-                        )
-                      )}
+            {selectedAnnouncement && (
+              <div className="space-y-6">
+                {/* Announcement Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage
+                        src={selectedAnnouncement.instructorAvatar}
+                      />
+                      <AvatarFallback>
+                        {selectedAnnouncement.instructor
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">
+                        {selectedAnnouncement.instructor}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedAnnouncement.className ||
+                          "General Announcement"}
+                      </p>
                     </div>
                   </div>
-                )}
+                  <div className="text-right text-sm text-muted-foreground">
+                    <p>{selectedAnnouncement.date}</p>
+                    <p>{selectedAnnouncement.time}</p>
+                  </div>
+                </div>
 
-              {/* Actions */}
-              <div className="flex flex-wrap gap-2 pt-4 border-t">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleToggleStar(selectedAnnouncement.id)}
-                >
-                  {selectedAnnouncement.isStarred ? (
-                    <>
-                      <StarOff className="w-3 h-3 mr-1" />
-                      Unstar
-                    </>
-                  ) : (
-                    <>
-                      <Star className="w-3 h-3 mr-1" />
-                      Star
-                    </>
+                {/* Category and Class */}
+                <div className="flex items-center gap-2">
+                  <Badge
+                    className={getCategoryColor(selectedAnnouncement.category)}
+                  >
+                    {selectedAnnouncement.category}
+                  </Badge>
+                  {selectedAnnouncement.className && (
+                    <Badge variant="outline">
+                      {selectedAnnouncement.className}
+                    </Badge>
                   )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleTogglePin(selectedAnnouncement.id)}
-                >
-                  {selectedAnnouncement.isPinned ? (
-                    <>
-                      <PinOff className="w-3 h-3 mr-1" />
-                      Unpin
-                    </>
-                  ) : (
-                    <>
+                  {selectedAnnouncement.isPinned && (
+                    <Badge variant="outline" className="bg-blue-50">
                       <Pin className="w-3 h-3 mr-1" />
-                      Pin
-                    </>
+                      Pinned
+                    </Badge>
                   )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    if (selectedAnnouncement.isRead) {
-                      handleMarkAsUnread(selectedAnnouncement.id);
-                    } else {
-                      handleMarkAsRead(selectedAnnouncement.id);
-                    }
-                  }}
-                >
-                  {selectedAnnouncement.isRead ? (
-                    <>
-                      <X className="w-3 h-3 mr-1" />
-                      Mark Unread
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-3 h-3 mr-1" />
-                      Mark Read
-                    </>
+                </div>
+
+                {/* Full Content */}
+                <div className="prose prose-sm max-w-none">
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {selectedAnnouncement.fullContent}
+                  </div>
+                </div>
+
+                {/* Attachments */}
+                {selectedAnnouncement.attachments &&
+                  selectedAnnouncement.attachments.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm">Attachments</h4>
+                      <div className="space-y-2">
+                        {selectedAnnouncement.attachments.map(
+                          (attachment: string, index: number) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 p-2 border rounded"
+                            >
+                              <BookOpen className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm">{attachment}</span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="ml-auto"
+                              >
+                                Download
+                              </Button>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
                   )}
-                </Button>
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2 pt-4 border-t">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleToggleStar(selectedAnnouncement.id)}
+                  >
+                    {selectedAnnouncement.isStarred ? (
+                      <>
+                        <StarOff className="w-3 h-3 mr-1" />
+                        Unstar
+                      </>
+                    ) : (
+                      <>
+                        <Star className="w-3 h-3 mr-1" />
+                        Star
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleTogglePin(selectedAnnouncement.id)}
+                  >
+                    {selectedAnnouncement.isPinned ? (
+                      <>
+                        <PinOff className="w-3 h-3 mr-1" />
+                        Unpin
+                      </>
+                    ) : (
+                      <>
+                        <Pin className="w-3 h-3 mr-1" />
+                        Pin
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      if (selectedAnnouncement.isRead) {
+                        handleMarkAsUnread(selectedAnnouncement.id);
+                      } else {
+                        handleMarkAsRead(selectedAnnouncement.id);
+                      }
+                    }}
+                  >
+                    {selectedAnnouncement.isRead ? (
+                      <>
+                        <X className="w-3 h-3 mr-1" />
+                        Mark Unread
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3 h-3 mr-1" />
+                        Mark Read
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
           </div>
           <DrawerFooter className="px-4 pb-4">
             <DrawerClose asChild>

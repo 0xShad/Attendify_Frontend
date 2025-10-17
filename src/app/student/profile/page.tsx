@@ -1045,69 +1045,69 @@ export default function StudentProfile() {
             </DrawerTitle>
           </DrawerHeader>
           <div className="px-4 pb-4 space-y-4">
-          <div className="space-y-4">
-            <div className="text-center space-y-4">
-              <div className="relative mx-auto w-64 h-48 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                {isProcessingFace ? (
-                  <div className="space-y-2">
-                    <Loader2 className="w-8 h-8 mx-auto animate-spin text-blue-500" />
-                    <p className="text-sm text-muted-foreground">
-                      Processing...
-                    </p>
-                  </div>
-                ) : cameraActive ? (
-                  <div className="space-y-2">
-                    <div className="w-32 h-32 border-2 border-blue-500 rounded-lg flex items-center justify-center animate-pulse">
-                      <Camera className="w-8 h-8 text-blue-500" />
+            <div className="space-y-4">
+              <div className="text-center space-y-4">
+                <div className="relative mx-auto w-64 h-48 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                  {isProcessingFace ? (
+                    <div className="space-y-2">
+                      <Loader2 className="w-8 h-8 mx-auto animate-spin text-blue-500" />
+                      <p className="text-sm text-muted-foreground">
+                        Processing...
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Look straight at the camera
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Camera className="w-8 h-8 mx-auto text-gray-400" />
-                    <p className="text-sm text-muted-foreground">
-                      Camera starting...
-                    </p>
-                  </div>
-                )}
+                  ) : cameraActive ? (
+                    <div className="space-y-2">
+                      <div className="w-32 h-32 border-2 border-blue-500 rounded-lg flex items-center justify-center animate-pulse">
+                        <Camera className="w-8 h-8 text-blue-500" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Look straight at the camera
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Camera className="w-8 h-8 mx-auto text-gray-400" />
+                      <p className="text-sm text-muted-foreground">
+                        Camera starting...
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• Keep your face well-lit and clearly visible</p>
+                  <p>• Remove any face coverings</p>
+                  <p>• Look directly at the camera</p>
+                </div>
               </div>
 
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p>• Keep your face well-lit and clearly visible</p>
-                <p>• Remove any face coverings</p>
-                <p>• Look directly at the camera</p>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleFaceDataUpdate}
+                  disabled={isProcessingFace || !cameraActive}
+                  className="flex-1"
+                >
+                  {isProcessingFace ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Scan className="w-4 h-4 mr-2" />
+                      {faceDataStatus.isRegistered ? "Update" : "Register"}
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setFaceDataDrawerOpen(false)}
+                  disabled={isProcessingFace}
+                >
+                  Cancel
+                </Button>
               </div>
             </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={handleFaceDataUpdate}
-                disabled={isProcessingFace || !cameraActive}
-                className="flex-1"
-              >
-                {isProcessingFace ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Scan className="w-4 h-4 mr-2" />
-                    {faceDataStatus.isRegistered ? "Update" : "Register"}
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setFaceDataDrawerOpen(false)}
-                disabled={isProcessingFace}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
           </div>
           <DrawerFooter className="px-4 pb-4">
             <DrawerClose asChild>
