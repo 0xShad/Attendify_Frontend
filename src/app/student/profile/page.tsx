@@ -95,22 +95,7 @@ export default function StudentProfile() {
     emergencyContact: "Jane Johnson",
     emergencyPhone: "+1 (555) 987-6543",
 
-    // Preferences
-    theme: "system",
-    language: "en",
-    timezone: "America/New_York",
 
-    // Notifications
-    emailNotifications: true,
-    pushNotifications: true,
-    attendanceReminders: true,
-    gradeUpdates: true,
-    announcementAlerts: true,
-
-    // Privacy
-    profileVisibility: "students",
-    showEmail: false,
-    showPhone: false,
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -261,11 +246,10 @@ export default function StudentProfile() {
       </div>
 
       <Tabs defaultValue="personal" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="personal">Personal</TabsTrigger>
           <TabsTrigger value="academic">Academic</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="preferences">Preferences</TabsTrigger>
         </TabsList>
 
         {/* Personal Information */}
@@ -280,7 +264,7 @@ export default function StudentProfile() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Profile Picture */}
-              <div className="flex flex-col sm:flex-row items-start gap-4">
+              <div className="flex items-center gap-4">
                 <Avatar className="w-24 h-24">
                   <AvatarImage src="/avatars/student-alex.jpg" />
                   <AvatarFallback className="text-lg font-semibold bg-purple-100 text-purple-700">
@@ -288,23 +272,11 @@ export default function StudentProfile() {
                     {profileData.lastName[0]}
                   </AvatarFallback>
                 </Avatar>
-                <div className="space-y-2">
-                  <div>
-                    <Label>Profile Picture</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Update your profile picture (recommended: 400x400px)
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" disabled={!isEditing}>
-                      <Upload className="w-3 h-3 mr-2" />
-                      Upload New
-                    </Button>
-                    <Button size="sm" variant="outline" disabled={!isEditing}>
-                      <Trash2 className="w-3 h-3 mr-2" />
-                      Remove
-                    </Button>
-                  </div>
+                <div>
+                  <Label>Profile Picture</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Your avatar is generated from your initials
+                  </p>
                 </div>
               </div>
 
@@ -784,246 +756,7 @@ export default function StudentProfile() {
           </Card>
         </TabsContent>
 
-        {/* Preferences */}
-        <TabsContent value="preferences" className="space-y-6">
-          {/* Notification Preferences */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Notifications</CardTitle>
-              <CardDescription>
-                Choose which notifications you'd like to receive
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receive notifications via email
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={profileData.emailNotifications}
-                  onChange={(e) =>
-                    setProfileData({
-                      ...profileData,
-                      emailNotifications: e.target.checked,
-                    })
-                  }
-                  className="h-4 w-4"
-                  disabled={!isEditing}
-                />
-              </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Push Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receive push notifications on your device
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={profileData.pushNotifications}
-                  onChange={(e) =>
-                    setProfileData({
-                      ...profileData,
-                      pushNotifications: e.target.checked,
-                    })
-                  }
-                  className="h-4 w-4"
-                  disabled={!isEditing}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Attendance Reminders</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Get reminded before classes start
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={profileData.attendanceReminders}
-                  onChange={(e) =>
-                    setProfileData({
-                      ...profileData,
-                      attendanceReminders: e.target.checked,
-                    })
-                  }
-                  className="h-4 w-4"
-                  disabled={!isEditing}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Grade Updates</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Get notified when grades are posted
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={profileData.gradeUpdates}
-                  onChange={(e) =>
-                    setProfileData({
-                      ...profileData,
-                      gradeUpdates: e.target.checked,
-                    })
-                  }
-                  className="h-4 w-4"
-                  disabled={!isEditing}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Announcement Alerts</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Get notified about class announcements
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={profileData.announcementAlerts}
-                  onChange={(e) =>
-                    setProfileData({
-                      ...profileData,
-                      announcementAlerts: e.target.checked,
-                    })
-                  }
-                  className="h-4 w-4"
-                  disabled={!isEditing}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Display Preferences */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Display & Privacy</CardTitle>
-              <CardDescription>
-                Customize your display settings and privacy preferences
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="theme">Theme</Label>
-                <Select
-                  value={profileData.theme}
-                  onValueChange={(value) =>
-                    setProfileData({ ...profileData, theme: value })
-                  }
-                  disabled={!isEditing}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="language">Language</Label>
-                <Select
-                  value={profileData.language}
-                  onValueChange={(value) =>
-                    setProfileData({ ...profileData, language: value })
-                  }
-                  disabled={!isEditing}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="es">Spanish</SelectItem>
-                    <SelectItem value="fr">French</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="timezone">Timezone</Label>
-                <Select
-                  value={profileData.timezone}
-                  onValueChange={(value) =>
-                    setProfileData({ ...profileData, timezone: value })
-                  }
-                  disabled={!isEditing}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="America/New_York">
-                      Eastern Time
-                    </SelectItem>
-                    <SelectItem value="America/Chicago">
-                      Central Time
-                    </SelectItem>
-                    <SelectItem value="America/Denver">
-                      Mountain Time
-                    </SelectItem>
-                    <SelectItem value="America/Los_Angeles">
-                      Pacific Time
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Show Email to Other Students</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Allow classmates to see your email
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={profileData.showEmail}
-                  onChange={(e) =>
-                    setProfileData({
-                      ...profileData,
-                      showEmail: e.target.checked,
-                    })
-                  }
-                  className="h-4 w-4"
-                  disabled={!isEditing}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Show Phone to Other Students</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Allow classmates to see your phone number
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={profileData.showPhone}
-                  onChange={(e) =>
-                    setProfileData({
-                      ...profileData,
-                      showPhone: e.target.checked,
-                    })
-                  }
-                  className="h-4 w-4"
-                  disabled={!isEditing}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Face Data Update Drawer */}
