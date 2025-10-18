@@ -94,8 +94,6 @@ export default function StudentProfile() {
     zipCode: "12345",
     emergencyContact: "Jane Johnson",
     emergencyPhone: "+1 (555) 987-6543",
-
-
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -755,8 +753,6 @@ export default function StudentProfile() {
             </CardContent>
           </Card>
         </TabsContent>
-
-
       </Tabs>
 
       {/* Face Data Update Drawer */}

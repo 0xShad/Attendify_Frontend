@@ -82,7 +82,8 @@ export default function StudentClasses() {
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [classDetailsOpen, setClassDetailsOpen] = useState(false);
   const [attendanceHistoryOpen, setAttendanceHistoryOpen] = useState(false);
-  const [selectedAttendanceClass, setSelectedAttendanceClass] = useState<any>(null);
+  const [selectedAttendanceClass, setSelectedAttendanceClass] =
+    useState<any>(null);
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [sortBy, setSortBy] = useState("name");
@@ -166,29 +167,38 @@ export default function StudentClasses() {
     const sessions = [];
     const startDate = new Date("2024-08-15"); // Start of semester
     const today = new Date();
-    
+
     // Generate attendance records for the class
     for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
       const dayOfWeek = d.getDay();
-      
+
       // Check if this day has classes for the specific course
       let hasClass = false;
       if (classId === "CS101" && [1, 3, 5].includes(dayOfWeek)) hasClass = true; // Mon, Wed, Fri
-      if (classId === "MATH201" && [2, 4].includes(dayOfWeek)) hasClass = true; // Tue, Thu  
+      if (classId === "MATH201" && [2, 4].includes(dayOfWeek)) hasClass = true; // Tue, Thu
       if (classId === "ENG102" && [1, 3].includes(dayOfWeek)) hasClass = true; // Mon, Wed
-      
+
       if (hasClass) {
         const isPresent = Math.random() > 0.1; // 90% attendance rate
         sessions.push({
-          date: new Date(d).toISOString().split('T')[0],
-          dayOfWeek: d.toLocaleDateString('en-US', { weekday: 'long' }),
-          status: isPresent ? 'Present' : 'Absent',
-          time: classId === "CS101" ? "9:00 AM" : classId === "MATH201" ? "2:00 PM" : "11:00 AM",
-          method: isPresent ? (Math.random() > 0.5 ? 'Face Recognition' : 'Manual Check-in') : '-',
+          date: new Date(d).toISOString().split("T")[0],
+          dayOfWeek: d.toLocaleDateString("en-US", { weekday: "long" }),
+          status: isPresent ? "Present" : "Absent",
+          time:
+            classId === "CS101"
+              ? "9:00 AM"
+              : classId === "MATH201"
+              ? "2:00 PM"
+              : "11:00 AM",
+          method: isPresent
+            ? Math.random() > 0.5
+              ? "Face Recognition"
+              : "Manual Check-in"
+            : "-",
         });
       }
     }
-    
+
     return sessions.reverse(); // Most recent first
   };
 
@@ -223,13 +233,14 @@ export default function StudentClasses() {
   const filteredClasses = enrolledClasses
     .filter((cls) => {
       // Search filter
-      const matchesSearch = 
+      const matchesSearch =
         cls.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         cls.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
         cls.instructor.toLowerCase().includes(searchQuery.toLowerCase());
 
       // Status filter
-      const matchesStatus = statusFilter === "all" || cls.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "all" || cls.status === statusFilter;
 
       // Mode filter
       const matchesMode = modeFilter === "all" || cls.mode === modeFilter;
@@ -238,7 +249,8 @@ export default function StudentClasses() {
     })
     .sort((a, b) => {
       if (sortBy === "name") return a.name.localeCompare(b.name);
-      if (sortBy === "instructor") return a.instructor.localeCompare(b.instructor);
+      if (sortBy === "instructor")
+        return a.instructor.localeCompare(b.instructor);
       if (sortBy === "status") return a.status.localeCompare(b.status);
       return 0;
     });
@@ -334,7 +346,11 @@ export default function StudentClasses() {
               className="pl-9"
             />
           </div>
-          <Button variant="outline" size="sm" onClick={() => setFilterDrawerOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFilterDrawerOpen(true)}
+          >
             <Filter className="w-4 h-4 mr-2" />
             Filter
           </Button>
@@ -396,7 +412,9 @@ export default function StudentClasses() {
                             View Details
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleViewAttendanceHistory(classItem)}
+                            onClick={() =>
+                              handleViewAttendanceHistory(classItem)
+                            }
                           >
                             <UserCheck className="w-4 h-4 mr-2" />
                             Attendance History
@@ -801,8 +819,8 @@ export default function StudentClasses() {
 
             {/* Filter Actions */}
             <div className="flex gap-2 pt-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="flex-1"
                 onClick={() => {
                   setSortBy("name");
@@ -813,9 +831,7 @@ export default function StudentClasses() {
                 Reset Filters
               </Button>
               <DrawerClose asChild>
-                <Button className="flex-1">
-                  Apply Filters
-                </Button>
+                <Button className="flex-1">Apply Filters</Button>
               </DrawerClose>
             </div>
           </div>
@@ -823,7 +839,10 @@ export default function StudentClasses() {
       </Drawer>
 
       {/* Attendance History Drawer */}
-      <Drawer open={attendanceHistoryOpen} onOpenChange={setAttendanceHistoryOpen}>
+      <Drawer
+        open={attendanceHistoryOpen}
+        onOpenChange={setAttendanceHistoryOpen}
+      >
         <DrawerContent>
           <DrawerHeader className="px-4 pt-4">
             <DrawerTitle>
@@ -837,15 +856,27 @@ export default function StudentClasses() {
                 <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Class Code:</span>
-                    <span className="text-sm font-medium">{selectedAttendanceClass.code}</span>
+                    <span className="text-sm font-medium">
+                      {selectedAttendanceClass.code}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Instructor:</span>
-                    <span className="text-sm font-medium">{selectedAttendanceClass.instructor}</span>
+                    <span className="text-sm font-medium">
+                      {selectedAttendanceClass.instructor}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Attendance Rate:</span>
-                    <Badge variant={selectedAttendanceClass.attendanceRate >= 85 ? "default" : "destructive"}>
+                    <span className="text-sm text-gray-600">
+                      Attendance Rate:
+                    </span>
+                    <Badge
+                      variant={
+                        selectedAttendanceClass.attendanceRate >= 85
+                          ? "default"
+                          : "destructive"
+                      }
+                    >
                       {selectedAttendanceClass.attendanceRate}%
                     </Badge>
                   </div>
@@ -869,7 +900,11 @@ export default function StudentClasses() {
                           </TableCell>
                           <TableCell>
                             <Badge
-                              variant={record.status === "Present" ? "default" : "destructive"}
+                              variant={
+                                record.status === "Present"
+                                  ? "default"
+                                  : "destructive"
+                              }
                               className="text-xs"
                             >
                               {record.status}
@@ -888,13 +923,19 @@ export default function StudentClasses() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
                     <div className="text-lg font-bold text-green-600">
-                      {attendanceHistory.filter(r => r.status === "Present").length}
+                      {
+                        attendanceHistory.filter((r) => r.status === "Present")
+                          .length
+                      }
                     </div>
                     <div className="text-xs text-green-600">Present</div>
                   </div>
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
                     <div className="text-lg font-bold text-red-600">
-                      {attendanceHistory.filter(r => r.status === "Absent").length}
+                      {
+                        attendanceHistory.filter((r) => r.status === "Absent")
+                          .length
+                      }
                     </div>
                     <div className="text-xs text-red-600">Absent</div>
                   </div>
