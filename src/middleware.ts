@@ -125,30 +125,20 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // DEV BYPASS: If NEXT_PUBLIC_DEV_AUTH_BYPASS is set to "1" or "true"
-  // and we're not in production, short-circuit authentication checks.
-  // This allows frontend development without the backend. Keep this
-  // opt-in and only enabled in local/dev envs.
-  const devBypass =
-    ["1", "true"].includes(
-      String(process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS).toLowerCase()
-    ) && process.env.NODE_ENV !== "production";
+  // This allows frontend development/deployment without the backend.
+  const devBypass = ["1", "true"].includes(
+    String(process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS).toLowerCase()
+  );
+
   if (devBypass) {
-    // If bypass is enabled, treat all requests as authenticated for
-    // protected route checks, but still redirect away from auth pages
-    // if needed. This mirrors the normal flow but without backend calls.
-    const isAuthenticated = true;
-
-    if (isProtectedRoute(pathname) && !isAuthenticated) {
-      const loginUrl = new URL(REDIRECT_URLS.LOGIN, request.url);
-      loginUrl.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    if (isAuthRoute(pathname) && isAuthenticated) {
+    // If bypass is enabled, allow access to all protected routes
+    // but still redirect away from auth pages to dashboard for better UX
+    if (isAuthRoute(pathname)) {
       const dashboardUrl = new URL(REDIRECT_URLS.DASHBOARD, request.url);
       return NextResponse.redirect(dashboardUrl);
     }
 
+    // Allow all other requests to proceed (including protected routes)
     return NextResponse.next();
   }
 
