@@ -131,14 +131,8 @@ export async function middleware(request: NextRequest) {
   );
 
   if (devBypass) {
-    // If bypass is enabled, allow access to all protected routes
-    // but still redirect away from auth pages to dashboard for better UX
-    if (isAuthRoute(pathname)) {
-      const dashboardUrl = new URL(REDIRECT_URLS.DASHBOARD, request.url);
-      return NextResponse.redirect(dashboardUrl);
-    }
-
-    // Allow all other requests to proceed (including protected routes)
+    // If bypass is enabled, allow access to ALL routes including auth pages
+    // This allows testing of login/signup forms even without backend
     return NextResponse.next();
   }
 
