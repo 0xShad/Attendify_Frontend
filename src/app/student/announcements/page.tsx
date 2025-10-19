@@ -3,36 +3,25 @@
 import React, { useState } from "react";
 import {
   Search,
-  Filter,
   Eye,
   AlertTriangle,
   Info,
   CheckCircle,
   Clock,
   BookOpen,
-  User,
   Pin,
   PinOff,
   Archive,
-  Trash2,
   MoreVertical,
   Star,
   StarOff,
   Check,
   X,
   Megaphone,
-  Calendar,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -60,13 +49,36 @@ import {
 } from "@/components/ui/drawer";
 import { useToast } from "@/hooks/use-toast";
 
-export default function StudentAnnouncements() {
+interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  fullContent: string;
+  classId: string | null;
+  className: string | null;
+  instructor: string;
+  instructorAvatar: string;
+  date: string;
+  time: string;
+  priority: "High" | "Medium" | "Low";
+  isRead: boolean;
+  isPinned: boolean;
+  isStarred: boolean;
+  category: string;
+  hasAttachments?: boolean;
+  attachments?: string[];
+  dueDate?: string;
+  canReply?: boolean;
+}
+
+export default function StudentAnnouncementsPage() {
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [classFilter, setClassFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null);
+  const [selectedAnnouncement, setSelectedAnnouncement] =
+    useState<Announcement | null>(null);
   const [announcementDetailsOpen, setAnnouncementDetailsOpen] = useState(false);
 
   // Mock data
@@ -273,7 +285,7 @@ export default function StudentAnnouncements() {
     });
   };
 
-  const handleViewDetails = (announcement: any) => {
+  const handleViewDetails = (announcement: Announcement) => {
     if (!announcement.isRead) {
       handleMarkAsRead(announcement.id);
     }
@@ -562,8 +574,9 @@ export default function StudentAnnouncements() {
                 <Badge
                   variant="outline"
                   className={
-                    selectedAnnouncement &&
-                    getPriorityColor(selectedAnnouncement.priority)
+                    selectedAnnouncement
+                      ? getPriorityColor(selectedAnnouncement.priority)
+                      : undefined
                   }
                 >
                   {selectedAnnouncement &&
@@ -750,8 +763,8 @@ function AnnouncementCard({
   getCategoryColor,
   formatTimeAgo,
 }: {
-  announcement: any;
-  onViewDetails: (announcement: any) => void;
+  announcement: Announcement;
+  onViewDetails: (announcement: Announcement) => void;
   onMarkRead: (id: string) => void;
   onMarkUnread: (id: string) => void;
   onTogglePin: (id: string) => void;

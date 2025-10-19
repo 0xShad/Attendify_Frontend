@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  IconPlay,
   IconPlayerStop,
   IconEdit,
   IconDownload,
@@ -634,7 +633,9 @@ export function AttendanceManagement({
               </div>
               <Select
                 value={filterStatus}
-                onValueChange={(value: any) => setFilterStatus(value)}
+                onValueChange={(
+                  value: "all" | "present" | "absent" | "late" | "excused"
+                ) => setFilterStatus(value)}
               >
                 <SelectTrigger className="w-48">
                   <SelectValue />

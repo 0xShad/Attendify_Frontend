@@ -15,7 +15,6 @@ import {
   IconSettings,
   IconChevronDown,
 } from "@tabler/icons-react";
-import { Users, Clock, MapPin, Settings, ChevronDown } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -38,7 +37,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -63,6 +61,7 @@ interface Student {
   id: string;
   name: string;
   email: string;
+  classId?: string;
   enrollmentStatus: "Enrolled" | "Pending" | "Rejected";
   attendanceRate: number;
   totalSessions: number;
@@ -256,16 +255,16 @@ export function ClassManagement({
               </CardDescription>
               <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
+                  <IconUsers className="w-4 h-4" />
                   {enrolledStudents.length} enrolled
                 </div>
                 <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
+                  <IconClock className="w-4 h-4" />
                   {classData.mode}
                 </div>
                 {classData.location && (
                   <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
+                    <IconMapPin className="w-4 h-4" />
                     {classData.location}
                   </div>
                 )}
@@ -285,8 +284,8 @@ export function ClassManagement({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
-                    <Settings className="w-4 h-4" />
-                    <ChevronDown className="w-3 h-3 ml-1" />
+                    <IconSettings className="w-4 h-4" />
+                    <IconChevronDown className="w-3 h-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

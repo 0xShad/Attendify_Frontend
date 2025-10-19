@@ -7,16 +7,7 @@ import {
   IconSearch,
   IconLoader2,
   IconCheck,
-  IconX,
-  IconMapPin,
   IconClock,
-  IconUsers,
-  IconBook,
-  IconCalendar,
-  IconWifi,
-  IconVideo,
-  IconSchool,
-  IconArrowLeft,
 } from "@tabler/icons-react";
 import {
   Users,
@@ -25,12 +16,9 @@ import {
   Video,
   Wifi,
   BookOpen,
-  Calendar,
-  School,
-  Star,
-  CheckCircle,
-  XCircle,
+  Filter,
   ArrowLeft,
+  Star,
 } from "lucide-react";
 import {
   Card,
@@ -56,7 +44,29 @@ import {
 } from "@/components/ui/drawer";
 import { useToast } from "@/hooks/use-toast";
 
-export default function JoinClass() {
+interface ClassItem {
+  id: string;
+  name: string;
+  code: string;
+  instructor: string;
+  instructorAvatar: string;
+  schedule: string;
+  mode: string;
+  location: string;
+  enrolledCount: number;
+  maxCapacity: number;
+  credits: number;
+  semester: string;
+  department: string;
+  description: string;
+  prerequisites: string[];
+  rating: number;
+  difficulty: string;
+  workload: string;
+  status: "Open" | "Closed" | "Full" | "Waitlist";
+}
+
+export default function JoinClassPage() {
   const { toast } = useToast();
   const router = useRouter();
 
@@ -64,7 +74,7 @@ export default function JoinClass() {
   const [searchQuery, setSearchQuery] = useState("");
   const [joinReason, setJoinReason] = useState("");
   const [isJoining, setIsJoining] = useState(false);
-  const [selectedClass, setSelectedClass] = useState<any>(null);
+  const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
   const [joinDrawerOpen, setJoinDrawerOpen] = useState(false);
 
   // Mock available classes
@@ -219,7 +229,7 @@ export default function JoinClass() {
     }
   };
 
-  const handleJoinRequest = async (classItem: any) => {
+  const handleJoinRequest = async (classItem: ClassItem) => {
     setSelectedClass(classItem);
     if (classItem.status === "Waitlist") {
       // Direct join to waitlist

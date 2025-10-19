@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import {
   TrendingUp,
@@ -13,15 +13,10 @@ import {
   Plus,
   ChevronRight,
   MapPin,
-  Video,
-  Wifi,
-  WifiOff,
   AlertTriangle,
-  CheckCircle,
+  Wifi,
   Camera,
-  Play,
   Eye,
-  Users,
 } from "lucide-react";
 import {
   Card,
@@ -29,126 +24,117 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import {
-  Bar,
-  BarChart,
-  Line,
-  LineChart,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
 
 type TrendType = "up" | "down" | "neutral";
 
 export default function StudentDashboard() {
   // Mock data
-  const enrolledClasses = [
-    {
-      id: "CS101",
-      name: "Introduction to Computer Science",
-      code: "CS101",
-      instructor: "Dr. Sarah Johnson",
-      schedule: "Mon, Wed, Fri 9:00 AM",
-      mode: "Hybrid" as const,
-      location: "Room 202 / Online",
-      nextSession: new Date("2025-10-17T09:00:00"),
-      attendanceRate: 92.5,
-      totalSessions: 32,
-      attendedSessions: 30,
-      status: "Active" as const,
-    },
-    {
-      id: "MATH201",
-      name: "Calculus II",
-      code: "MATH201",
-      instructor: "Prof. Michael Chen",
-      schedule: "Tue, Thu 2:00 PM",
-      mode: "In-Person" as const,
-      location: "Math Building 104",
-      nextSession: new Date("2025-10-17T14:00:00"),
-      attendanceRate: 88.0,
-      totalSessions: 28,
-      attendedSessions: 25,
-      status: "Active" as const,
-    },
-    {
-      id: "ENG102",
-      name: "English Composition",
-      code: "ENG102",
-      instructor: "Dr. Emily Rodriguez",
-      schedule: "Mon, Wed 11:00 AM",
-      mode: "Online" as const,
-      nextSession: new Date("2025-10-17T11:00:00"),
-      attendanceRate: 96.0,
-      totalSessions: 24,
-      attendedSessions: 23,
-      status: "Active" as const,
-    },
-  ];
+  const enrolledClasses = useMemo(
+    () => [
+      {
+        id: "CS101",
+        name: "Introduction to Computer Science",
+        code: "CS101",
+        instructor: "Dr. Sarah Johnson",
+        schedule: "Mon, Wed, Fri 9:00 AM",
+        mode: "Hybrid" as const,
+        location: "Room 202 / Online",
+        nextSession: new Date("2025-10-17T09:00:00"),
+        attendanceRate: 92.5,
+        totalSessions: 32,
+        attendedSessions: 30,
+        status: "Active" as const,
+      },
+      {
+        id: "MATH201",
+        name: "Calculus II",
+        code: "MATH201",
+        instructor: "Prof. Michael Chen",
+        schedule: "Tue, Thu 2:00 PM",
+        mode: "In-Person" as const,
+        location: "Math Building 104",
+        nextSession: new Date("2025-10-17T14:00:00"),
+        attendanceRate: 88.0,
+        totalSessions: 28,
+        attendedSessions: 25,
+        status: "Active" as const,
+      },
+      {
+        id: "ENG102",
+        name: "English Composition",
+        code: "ENG102",
+        instructor: "Dr. Emily Rodriguez",
+        schedule: "Mon, Wed 11:00 AM",
+        mode: "Online" as const,
+        nextSession: new Date("2025-10-17T11:00:00"),
+        attendanceRate: 96.0,
+        totalSessions: 24,
+        attendedSessions: 23,
+        status: "Active" as const,
+      },
+    ],
+    []
+  );
 
-  const activeSessions = [
-    {
-      id: "SESSION001",
-      classId: "CS101",
-      className: "Introduction to Computer Science",
-      date: "2025-10-17",
-      startTime: "09:00",
-      endTime: "10:30",
-      isActive: true,
-      mode: "Hybrid" as const,
-      location: "Room 202",
-      requiresFaceRecognition: true,
-      allowOnlineMode: true,
-      cutoffTime: 10,
-    },
-  ];
+  const activeSessions = useMemo(
+    () => [
+      {
+        id: "SESSION001",
+        classId: "CS101",
+        className: "Introduction to Computer Science",
+        date: "2025-10-17",
+        startTime: "09:00",
+        endTime: "10:30",
+        isActive: true,
+        mode: "Hybrid" as const,
+        location: "Room 202",
+        requiresFaceRecognition: true,
+        allowOnlineMode: true,
+        cutoffTime: 10,
+      },
+    ],
+    []
+  );
 
-  const announcements = [
-    {
-      id: "ANN001",
-      title: "Midterm Exam Schedule Released",
-      content: "The midterm examination schedule has been posted.",
-      classId: "CS101",
-      className: "Introduction to Computer Science",
-      instructor: "Dr. Sarah Johnson",
-      date: "2025-10-15",
-      priority: "High" as const,
-      isRead: false,
-    },
-    {
-      id: "ANN002",
-      title: "Assignment 3 Due Friday",
-      content: "Don't forget that Assignment 3 is due this Friday at 11:59 PM.",
-      classId: "MATH201",
-      className: "Calculus II",
-      instructor: "Prof. Michael Chen",
-      date: "2025-10-14",
-      priority: "Medium" as const,
-      isRead: false,
-    },
-  ];
-
-  const recentAttendance = [
-    { date: "Mon", attended: true, className: "CS101" },
-    { date: "Tue", attended: true, className: "MATH201" },
-    { date: "Wed", attended: false, className: "CS101" },
-    { date: "Thu", attended: true, className: "MATH201" },
-    { date: "Fri", attended: true, className: "CS101" },
-  ];
+  const announcements = useMemo(
+    () => [
+      {
+        id: "ANN001",
+        title: "Midterm Exam Schedule Released",
+        content: "The midterm examination schedule has been posted.",
+        classId: "CS101",
+        className: "Introduction to Computer Science",
+        instructor: "Dr. Sarah Johnson",
+        date: "2025-10-15",
+        priority: "High" as const,
+        isRead: false,
+      },
+      {
+        id: "ANN002",
+        title: "Assignment 3 Due Friday",
+        content:
+          "Don&apos;t forget that Assignment 3 is due this Friday at 11:59 PM.",
+        classId: "MATH201",
+        className: "Calculus II",
+        instructor: "Prof. Michael Chen",
+        date: "2025-10-14",
+        priority: "Medium" as const,
+        isRead: false,
+      },
+    ],
+    []
+  );
 
   // Calculate metrics
   const metricCards = useMemo(
@@ -230,7 +216,7 @@ export default function StudentDashboard() {
             Welcome back, Alex!
           </h1>
           <p className="text-muted-foreground">
-            Here's what's happening with your classes today.
+            Here&apos;s what&apos;s happening with your classes today.
           </p>
         </div>
       </div>
@@ -394,7 +380,7 @@ export default function StudentDashboard() {
         {/* Upcoming Sessions */}
         <Card className="border shadow-sm bg-stone-50/40 supports-[backdrop-filter]:backdrop-blur-md border-stone-200/50">
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Today's Schedule</CardTitle>
+            <CardTitle className="text-lg">Today&apos;s Schedule</CardTitle>
           </CardHeader>
           <CardContent>
             {upcomingSessions.length === 0 ? (

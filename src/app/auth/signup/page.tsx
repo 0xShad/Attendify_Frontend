@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -20,22 +20,6 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { DatePicker } from "@/components/ui/date-picker";
-
-// Debounce utility
-function debounce<T extends (...args: never[]) => void>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
-  return function executedFunction(...args: Parameters<T>) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
 
 type FormData = {
   firstName: string;
@@ -66,8 +50,14 @@ type ValidationErrors = {
 };
 
 export default function SignUpPage() {
-  const { registerInitiate, registerVerify, checkAvailability, isLoading, error: authError } = useAuth();
-  
+  const {
+    registerInitiate,
+    registerVerify,
+    checkAvailability,
+    isLoading,
+    error: authError,
+  } = useAuth();
+
   const [currentStep, setCurrentStep] = useState(1);
   const [currentSubStep, setCurrentSubStep] = useState(1); // Sub-steps within registration
   const [showPassword, setShowPassword] = useState(false);
@@ -130,7 +120,8 @@ export default function SignUpPage() {
     if (!name.trim()) return "First name is required";
     if (name.trim().length < 2)
       return "First name must be at least 2 characters";
-    if (!/^[a-zA-Z\s]+$/.test(name)) return "First name can only contain letters and spaces";
+    if (!/^[a-zA-Z\s]+$/.test(name))
+      return "First name can only contain letters and spaces";
     return "";
   };
 
@@ -138,7 +129,8 @@ export default function SignUpPage() {
     if (!name.trim()) return "Last name is required";
     if (name.trim().length < 2)
       return "Last name must be at least 2 characters";
-    if (!/^[a-zA-Z\s]+$/.test(name)) return "Last name can only contain letters and spaces";
+    if (!/^[a-zA-Z\s]+$/.test(name))
+      return "Last name can only contain letters and spaces";
     return "";
   };
 
@@ -147,7 +139,8 @@ export default function SignUpPage() {
     if (name && name.trim()) {
       if (name.trim().length < 2)
         return "Middle name must be at least 2 characters";
-      if (!/^[a-zA-Z\s]+$/.test(name)) return "Middle name can only contain letters and spaces";
+      if (!/^[a-zA-Z\s]+$/.test(name))
+        return "Middle name can only contain letters and spaces";
     }
     return "";
   };
@@ -319,13 +312,22 @@ export default function SignUpPage() {
         username: usernameError,
       }));
 
-      hasErrors = !!(contactError || studentError || emailError || usernameError);
-      
+      hasErrors = !!(
+        contactError ||
+        studentError ||
+        emailError ||
+        usernameError
+      );
+
       // If validation passes, check availability
       if (!hasErrors) {
-        setAvailabilityChecking({ email: true, username: true, studentNumber: true });
+        setAvailabilityChecking({
+          email: true,
+          username: true,
+          studentNumber: true,
+        });
         setAvailabilityError(""); // Clear previous availability errors
-        
+
         try {
           const result = await checkAvailability({
             email: formData.email,
@@ -335,25 +337,40 @@ export default function SignUpPage() {
 
           // Check each field's availability
           if (result.email_available === false) {
-            setErrors((prev) => ({ ...prev, email: 'This email is already registered' }));
+            setErrors((prev) => ({
+              ...prev,
+              email: "This email is already registered",
+            }));
             hasErrors = true;
           }
-          
+
           if (result.username_available === false) {
-            setErrors((prev) => ({ ...prev, username: 'This username is already taken' }));
+            setErrors((prev) => ({
+              ...prev,
+              username: "This username is already taken",
+            }));
             hasErrors = true;
           }
-          
+
           if (result.student_number_available === false) {
-            setErrors((prev) => ({ ...prev, studentNumber: 'This student number is already registered' }));
+            setErrors((prev) => ({
+              ...prev,
+              studentNumber: "This student number is already registered",
+            }));
             hasErrors = true;
           }
         } catch (error) {
-          console.error('Availability check failed:', error);
+          console.error("Availability check failed:", error);
           hasErrors = true;
-          setAvailabilityError('Unable to connect to server. Please check your connection and try again.');
+          setAvailabilityError(
+            "Unable to connect to server. Please check your connection and try again."
+          );
         } finally {
-          setAvailabilityChecking({ email: false, username: false, studentNumber: false });
+          setAvailabilityChecking({
+            email: false,
+            username: false,
+            studentNumber: false,
+          });
         }
       }
     } else if (currentSubStep === 3) {
@@ -419,24 +436,27 @@ export default function SignUpPage() {
       lastname: formData.lastName,
     };
 
-    console.log('📤 Sending registration data:', {
+    console.log("📤 Sending registration data:", {
       ...registrationData,
-      password: '***REDACTED***',
-      confirmPassword: '***REDACTED***',
+      password: "***REDACTED***",
+      confirmPassword: "***REDACTED***",
     });
 
     // Call API to initiate registration and send OTP
     const result = await registerInitiate(registrationData);
 
-    console.log('✅ Registration initiate result:', JSON.stringify(result, null, 2));
+    console.log(
+      "✅ Registration initiate result:",
+      JSON.stringify(result, null, 2)
+    );
 
     if (result.success) {
-      console.log('🎯 Setting otpSent to true');
+      console.log("🎯 Setting otpSent to true");
       setOtpSent(true);
       setCanResend(false);
       setResendTimer(60);
     } else {
-      console.log('❌ Registration failed, otpSent remains false');
+      console.log("❌ Registration failed, otpSent remains false");
     }
   };
 
@@ -720,7 +740,7 @@ export default function SignUpPage() {
                         {availabilityError}
                       </div>
                     )}
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="contactNumber">Contact Number</Label>
                       <Input
@@ -811,7 +831,9 @@ export default function SignUpPage() {
                         required
                       />
                       {errors.username && (
-                        <p className="text-sm text-red-500">{errors.username}</p>
+                        <p className="text-sm text-red-500">
+                          {errors.username}
+                        </p>
                       )}
                     </div>
 
@@ -820,16 +842,26 @@ export default function SignUpPage() {
                         variant="outline"
                         className="flex-1"
                         onClick={handlePreviousSubStep}
-                        disabled={availabilityChecking.email || availabilityChecking.username || availabilityChecking.studentNumber}
+                        disabled={
+                          availabilityChecking.email ||
+                          availabilityChecking.username ||
+                          availabilityChecking.studentNumber
+                        }
                       >
                         Back
                       </Button>
-                      <Button 
-                        className="flex-1" 
+                      <Button
+                        className="flex-1"
                         onClick={handleNextSubStep}
-                        disabled={availabilityChecking.email || availabilityChecking.username || availabilityChecking.studentNumber}
+                        disabled={
+                          availabilityChecking.email ||
+                          availabilityChecking.username ||
+                          availabilityChecking.studentNumber
+                        }
                       >
-                        {(availabilityChecking.email || availabilityChecking.username || availabilityChecking.studentNumber) ? (
+                        {availabilityChecking.email ||
+                        availabilityChecking.username ||
+                        availabilityChecking.studentNumber ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Checking availability...

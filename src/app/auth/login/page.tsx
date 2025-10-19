@@ -103,7 +103,7 @@ export default function LoginPage() {
                       if (Array.isArray(parsed) && parsed.length > 0) {
                         return (
                           <ul className="list-disc list-inside space-y-1">
-                            {parsed.map((err: any, index: number) => (
+                            {parsed.map((err: { message: string }, index: number) => (
                               <li key={index}>{err.message}</li>
                             ))}
                           </ul>

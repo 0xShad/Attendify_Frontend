@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import Image from "next/image";
 import {
   IconHome,
@@ -8,35 +8,16 @@ import {
   IconFileText,
   IconList,
   IconSettings,
-  IconPlus,
-  IconCheck,
-  IconLoader2,
-  IconX,
-  IconChartBar,
   IconBell,
-  IconSearch,
-  IconCalendar,
   IconTrendingUp,
   IconTrendingDown,
-  IconEye,
-  IconEdit,
-  IconTrash,
-  IconDownload,
-  IconFilter,
-  IconRefresh,
-  IconMenu2,
-  IconChevronRight,
-  IconChevronDown,
   IconDots,
   IconLogout,
-  IconCreditCard,
-  IconNotification,
   IconUserCheck,
   IconClockHour4,
   IconSchool,
   IconUser,
 } from "@tabler/icons-react";
-import { Trash2, Eye, Edit, User } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -49,26 +30,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
   DrawerClose,
   DrawerFooter,
 } from "@/components/ui/drawer";
@@ -79,20 +50,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/data-table";
 import { ReportsDataTable } from "@/components/reports-data-table";
@@ -117,15 +77,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import {
-  Bar,
-  BarChart,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
 
 interface User {
   id: string;
@@ -135,14 +87,6 @@ interface User {
   lastActive?: string;
   email?: string;
   avatar?: string;
-}
-
-interface LogEntry {
-  id: number;
-  timestamp: string;
-  userId: string;
-  activity: string;
-  status: "success" | "warning" | "error";
 }
 
 interface MetricCard {
@@ -204,7 +148,7 @@ function SidebarUserMenu({
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
                 <AvatarFallback className="rounded-lg bg-blue-500 text-white">
-                  <User className="w-4 h-4" />
+                  <IconUser className="w-4 h-4" />
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -226,7 +170,7 @@ function SidebarUserMenu({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarFallback className="rounded-lg bg-blue-500 text-white">
-                    <User className="w-4 h-4" />
+                    <IconUser className="w-4 h-4" />
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
@@ -262,15 +206,12 @@ export function AdminPortal() {
   >("dashboard");
 
   // Sheet and Dialog states
-  const [addUserOpen, setAddUserOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleteUserOpen, setDeleteUserOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
-  const [addingUser, setAddingUser] = useState(false);
-  const [generating, setGenerating] = useState(false);
 
   // Mock data
   const [users, setUsers] = useState<User[]>([
@@ -335,7 +276,7 @@ export function AdminPortal() {
       type: "Custom Report",
       status: "Failed",
       createdDate: "2025-10-12",
-      size: null,
+      size: undefined,
       createdBy: "Admin User",
     },
   ]);
@@ -388,21 +329,8 @@ export function AdminPortal() {
     },
   ]);
 
-  // Reports
-  const [reportTab, setReportTab] = useState("daily");
-
   // Attendance chart timeframe
   const [attendanceTimeframe, setAttendanceTimeframe] = useState("7days");
-
-  // User filtering and search
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-
-  // New user form
-  const [newName, setNewName] = useState("");
-  const [newId, setNewId] = useState("");
-  const [newRole, setNewRole] = useState("Student");
 
   // Navigation items
   const navigationItems = [
@@ -452,7 +380,7 @@ export function AdminPortal() {
         trendData: [420, 395, 370, 360, 350, 342],
       },
     ],
-    [users]
+    []
   );
 
   // Attendance data for different timeframes
@@ -519,121 +447,10 @@ export function AdminPortal() {
     },
   };
 
-  // Line chart configuration for user growth
-  const lineChartConfig = {
-    users: {
-      label: "Active Users",
-      color: "hsl(142, 76%, 36%)",
-    },
-    sessions: {
-      label: "Sessions",
-      color: "hsl(262, 83%, 58%)",
-    },
-  };
-
-  // Sample data for line chart
-  const lineChartData = useMemo(
-    () => [
-      { month: "Jan", users: 186, sessions: 80 },
-      { month: "Feb", users: 305, sessions: 200 },
-      { month: "Mar", users: 237, sessions: 120 },
-      { month: "Apr", users: 373, sessions: 190 },
-      { month: "May", users: 209, sessions: 130 },
-      { month: "Jun", users: 314, sessions: 140 },
-      { month: "Jul", users: 290, sessions: 160 },
-      { month: "Aug", users: 420, sessions: 210 },
-      { month: "Sep", users: 380, sessions: 180 },
-      { month: "Oct", users: 450, sessions: 230 },
-      { month: "Nov", users: 520, sessions: 250 },
-      { month: "Dec", users: 600, sessions: 290 },
-    ],
-    []
-  );
-
-  // Filtered users based on search and filters
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const matchesSearch =
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.id.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesRole = roleFilter === "all" || user.role === roleFilter;
-      const matchesStatus =
-        statusFilter === "all" || user.status === statusFilter;
-
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  }, [users, searchQuery, roleFilter, statusFilter]);
-
   // Handlers
-  const handleAddUser = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!newName || !newId) {
-      toast({
-        title: "Error",
-        description: "Name and ID are required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setAddingUser(true);
-    await new Promise((r) => setTimeout(r, 800));
-
-    setUsers((prev) => [
-      { id: newId, name: newName, role: newRole, status: "Active" },
-      ...prev,
-    ]);
-
-    setAddingUser(false);
-    setAddUserOpen(false);
-    setNewName("");
-    setNewId("");
-    setNewRole("Student");
-
-    toast({
-      title: "Success",
-      description: "User added successfully",
-    });
-  };
-
-  const handleGenerateReport = async () => {
-    setGenerating(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setGenerating(false);
-
-    toast({
-      title: "Success",
-      description: "Report generated and exported",
-    });
-  };
-
   const loadDashboard = () => {
     setIsLoading(true);
     setTimeout(() => setIsLoading(false), 1000);
-  };
-
-  const handleRefreshUsers = () => {
-    toast({
-      title: "Refreshing",
-      description: "User data refreshed successfully",
-    });
-  };
-
-  const handleResetFilters = () => {
-    setSearchQuery("");
-    setRoleFilter("all");
-    setStatusFilter("all");
-    toast({
-      title: "Filters Reset",
-      description: "All filters have been cleared",
-    });
-  };
-
-  const handleDeleteUser = (userId: string) => {
-    setUserToDelete(userId);
-    setDeleteUserOpen(true);
   };
 
   const confirmDeleteUser = () => {
@@ -786,9 +603,9 @@ export function AdminPortal() {
                   <>
                     {/* Dashboard Metrics Cards */}
                     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-                      {metricCards.map((metric, index) => (
+                      {metricCards.map((metric) => (
                         <Card
-                          key={index}
+                          key={metric.title}
                           className="@container/card"
                           data-slot="card"
                         >

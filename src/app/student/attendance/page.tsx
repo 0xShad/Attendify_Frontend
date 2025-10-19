@@ -5,22 +5,12 @@ import {
   Camera,
   MapPin,
   Wifi,
-  WifiOff,
   Clock,
-  CheckCircle,
-  XCircle,
   AlertTriangle,
   Loader2,
   Scan,
-  Video,
-  Mic,
-  MicOff,
-  VideoOff,
-  RefreshCw,
-  Eye,
   Calendar,
   TrendingUp,
-  TrendingDown,
   BarChart3,
 } from "lucide-react";
 import {
@@ -49,12 +39,33 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, Line, LineChart, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
+
+interface AttendanceSession {
+  id: string;
+  classId: string;
+  className: string;
+  instructor: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+  mode: "Online" | "In-Person";
+  location: string;
+  coordinates: { lat: number; lng: number };
+  requiresFaceRecognition: boolean;
+  allowOnlineMode: boolean;
+  cutoffTime: number;
+  studentsPresent: number;
+  totalStudents: number;
+  timeRemaining: number;
+}
 
 export default function StudentAttendance() {
   const { toast } = useToast();
 
-  const [selectedSession, setSelectedSession] = useState<any>(null);
+  const [selectedSession, setSelectedSession] =
+    useState<AttendanceSession | null>(null);
   const [faceRecognitionOpen, setFaceRecognitionOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{
@@ -63,9 +74,7 @@ export default function StudentAttendance() {
   } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
-  const [attendanceMode, setAttendanceMode] = useState<"face" | "online">(
-    "face"
-  );
+
   const [stream, setStream] = useState<MediaStream | null>(null);
 
   // Mock data
@@ -228,7 +237,7 @@ export default function StudentAttendance() {
     return R * c; // Distance in meters
   };
 
-  const isWithinLocationRange = (session: any) => {
+  const isWithinLocationRange = (session: AttendanceSession) => {
     if (!currentLocation || !session.coordinates) return true;
     const distance = calculateDistance(
       currentLocation.lat,
@@ -239,9 +248,11 @@ export default function StudentAttendance() {
     return distance <= 100; // 100 meters range
   };
 
-  const handleStartAttendance = (session: any, mode: "face" | "online") => {
+  const handleStartAttendance = (
+    session: AttendanceSession,
+    mode: "face" | "online"
+  ) => {
     setSelectedSession(session);
-    setAttendanceMode(mode);
 
     if (mode === "face") {
       setFaceRecognitionOpen(true);

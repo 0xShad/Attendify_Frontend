@@ -379,7 +379,9 @@ export function AnnouncementManagement({
             </div>
             <Select
               value={filterStatus}
-              onValueChange={(value: any) => setFilterStatus(value)}
+              onValueChange={(
+                value: "all" | "draft" | "published" | "scheduled"
+              ) => setFilterStatus(value)}
             >
               <SelectTrigger className="w-48">
                 <SelectValue />
@@ -393,7 +395,9 @@ export function AnnouncementManagement({
             </Select>
             <Select
               value={filterPriority}
-              onValueChange={(value: any) => setFilterPriority(value)}
+              onValueChange={(value: "all" | "high" | "medium" | "low") =>
+                setFilterPriority(value)
+              }
             >
               <SelectTrigger className="w-48">
                 <SelectValue />

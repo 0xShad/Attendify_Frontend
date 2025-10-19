@@ -3,25 +3,13 @@
 import React, { useState } from "react";
 import {
   Camera,
-  Upload,
   Trash2,
   Scan,
   Loader2,
-  Check,
-  X,
   Edit,
   Save,
   Eye,
   EyeOff,
-  Bell,
-  Shield,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  BookOpen,
-  Settings,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -36,7 +24,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -131,7 +118,7 @@ export default function StudentProfile() {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast({
         title: "Password Mismatch",
-        description: "New password and confirmation don't match.",
+        description: "New password and confirmation don&apos;t match.",
         variant: "destructive",
       });
       return;
@@ -540,7 +527,7 @@ export default function StudentProfile() {
             <CardHeader>
               <CardTitle>Enrolled Classes</CardTitle>
               <CardDescription>
-                Classes you're currently enrolled in
+                Classes you&apos;re currently enrolled in
               </CardDescription>
             </CardHeader>
             <CardContent>

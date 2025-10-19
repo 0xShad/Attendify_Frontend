@@ -11,23 +11,13 @@ import {
   MapPin,
   Video,
   Wifi,
-  WifiOff,
   Eye,
   UserCheck,
   Megaphone,
-  ChevronRight,
-  Settings,
-  LogOut,
-  AlertTriangle,
-  CheckCircle,
-  Users,
-  Camera,
-  Play,
   MoreVertical,
   BookOpen,
-  Star,
-  X,
   Trash2,
+  CheckCircle,
 } from "lucide-react";
 import {
   Card,
@@ -76,15 +66,50 @@ import {
 } from "@/components/ui/drawer";
 import { useToast } from "@/hooks/use-toast";
 
-export default function StudentClasses() {
+interface EnrolledClass {
+  id: string;
+  name: string;
+  code: string;
+  instructor: string;
+  instructorAvatar: string;
+  schedule: string;
+  mode: string;
+  location?: string;
+  nextSession: Date;
+  attendanceRate: number;
+  totalSessions: number;
+  attendedSessions: number;
+  status: string;
+  credits: number;
+  semester: string;
+  description: string;
+  syllabus: string;
+  announcements: number;
+  assignments: number;
+  grade: string;
+}
+
+interface AttendanceRecord {
+  id: string;
+  sessionDate: Date;
+  status: "Present" | "Absent" | "Late" | "Excused";
+  sessionType: "Regular" | "Lab" | "Review";
+  duration: number;
+}
+
+export default function StudentClassesPage() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedClass, setSelectedClass] = useState<any>(null);
+  const [selectedClass, setSelectedClass] = useState<EnrolledClass | null>(
+    null
+  );
   const [classDetailsOpen, setClassDetailsOpen] = useState(false);
   const [attendanceHistoryOpen, setAttendanceHistoryOpen] = useState(false);
   const [selectedAttendanceClass, setSelectedAttendanceClass] =
-    useState<any>(null);
-  const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
+    useState<EnrolledClass | null>(null);
+  const [attendanceHistory, setAttendanceHistory] = useState<
+    AttendanceRecord[]
+  >([]);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [sortBy, setSortBy] = useState("name");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -163,10 +188,11 @@ export default function StudentClasses() {
   ];
 
   // Mock attendance history data
-  const generateAttendanceHistory = (classId: string) => {
-    const sessions = [];
+  const generateAttendanceHistory = (classId: string): AttendanceRecord[] => {
+    const sessions: AttendanceRecord[] = [];
     const startDate = new Date("2024-08-15"); // Start of semester
     const today = new Date();
+    let sessionCounter = 1;
 
     // Generate attendance records for the class
     for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
@@ -180,22 +206,32 @@ export default function StudentClasses() {
 
       if (hasClass) {
         const isPresent = Math.random() > 0.1; // 90% attendance rate
+        const sessionTypes: ("Regular" | "Lab" | "Review")[] = [
+          "Regular",
+          "Lab",
+          "Review",
+        ];
+        const randomSessionType =
+          sessionTypes[Math.floor(Math.random() * sessionTypes.length)];
+
+        const possibleStatuses: ("Present" | "Absent" | "Late" | "Excused")[] =
+          ["Absent", "Late", "Excused"];
+        const randomStatus =
+          possibleStatuses[Math.floor(Math.random() * possibleStatuses.length)];
+
         sessions.push({
-          date: new Date(d).toISOString().split("T")[0],
-          dayOfWeek: d.toLocaleDateString("en-US", { weekday: "long" }),
-          status: isPresent ? "Present" : "Absent",
-          time:
-            classId === "CS101"
-              ? "9:00 AM"
-              : classId === "MATH201"
-              ? "2:00 PM"
-              : "11:00 AM",
-          method: isPresent
-            ? Math.random() > 0.5
-              ? "Face Recognition"
-              : "Manual Check-in"
-            : "-",
+          id: `${classId}-session-${sessionCounter}`,
+          sessionDate: new Date(d),
+          status: isPresent ? "Present" : randomStatus,
+          sessionType: randomSessionType,
+          duration:
+            randomSessionType === "Lab"
+              ? 120
+              : randomSessionType === "Review"
+              ? 90
+              : 60, // minutes
         });
+        sessionCounter++;
       }
     }
 
@@ -255,18 +291,19 @@ export default function StudentClasses() {
       return 0;
     });
 
-  const handleViewDetails = (classItem: any) => {
+  const handleViewDetails = (classItem: EnrolledClass) => {
     setSelectedClass(classItem);
     setClassDetailsOpen(true);
   };
 
-  const handleViewAttendanceHistory = (classItem: any) => {
+  const handleViewAttendanceHistory = (classItem: EnrolledClass) => {
     setSelectedAttendanceClass(classItem);
     setAttendanceHistory(generateAttendanceHistory(classItem.id));
     setAttendanceHistoryOpen(true);
   };
 
   const handleDropClass = (classId: string) => {
+    console.log(`Dropping class: ${classId}`); // Use the parameter to avoid eslint warning
     toast({
       title: "Drop Request Sent",
       description:
@@ -889,20 +926,25 @@ export default function StudentClasses() {
                       <TableRow>
                         <TableHead className="font-medium">Date</TableHead>
                         <TableHead className="font-medium">Status</TableHead>
-                        <TableHead className="font-medium">Time</TableHead>
+                        <TableHead className="font-medium">Type</TableHead>
+                        <TableHead className="font-medium">Duration</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {attendanceHistory.map((record, index) => (
-                        <TableRow key={index}>
+                      {attendanceHistory.map((record) => (
+                        <TableRow key={record.id}>
                           <TableCell className="font-medium">
-                            {record.date}
+                            {record.sessionDate.toLocaleDateString()}
                           </TableCell>
                           <TableCell>
                             <Badge
                               variant={
                                 record.status === "Present"
                                   ? "default"
+                                  : record.status === "Late"
+                                  ? "secondary"
+                                  : record.status === "Excused"
+                                  ? "outline"
                                   : "destructive"
                               }
                               className="text-xs"
@@ -911,7 +953,10 @@ export default function StudentClasses() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm text-gray-600">
-                            {record.time || "—"}
+                            {record.sessionType}
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-600">
+                            {record.duration} min
                           </TableCell>
                         </TableRow>
                       ))}
@@ -920,7 +965,7 @@ export default function StudentClasses() {
                 </div>
 
                 {/* Attendance Summary */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
                     <div className="text-lg font-bold text-green-600">
                       {
@@ -929,6 +974,24 @@ export default function StudentClasses() {
                       }
                     </div>
                     <div className="text-xs text-green-600">Present</div>
+                  </div>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                    <div className="text-lg font-bold text-yellow-600">
+                      {
+                        attendanceHistory.filter((r) => r.status === "Late")
+                          .length
+                      }
+                    </div>
+                    <div className="text-xs text-yellow-600">Late</div>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                    <div className="text-lg font-bold text-blue-600">
+                      {
+                        attendanceHistory.filter((r) => r.status === "Excused")
+                          .length
+                      }
+                    </div>
+                    <div className="text-xs text-blue-600">Excused</div>
                   </div>
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
                     <div className="text-lg font-bold text-red-600">
