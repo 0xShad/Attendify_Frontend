@@ -9,7 +9,6 @@
 
 export const REDIRECT_URLS = {
   LOGIN: "/auth/login",
-  DASHBOARD: "/dashboard",
   ADMIN_DASHBOARD: "/admin/dashboard",
   FACULTY_DASHBOARD: "/faculty/dashboard",
   STUDENT_DASHBOARD: "/student/dashboard"
