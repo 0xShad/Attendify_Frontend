@@ -6,6 +6,15 @@
 /**
  * Cookie configuration
  */
+
+export const REDIRECT_URLS = {
+  LOGIN: "/auth/login",
+  DASHBOARD: "/dashboard",
+  ADMIN_DASHBOARD: "/admin/dashboard",
+  FACULTY_DASHBOARD: "/faculty/dashboard",
+  STUDENT_DASHBOARD: "/student/dashboard"
+} as const;
+
 export const COOKIE_CONFIG = {
   ACCESS_TOKEN: {
     name: "access_token",
@@ -38,12 +47,3 @@ export const getCookieOptions = (isProduction: boolean) => ({
   path: "/",
 });
 
-/**
- * Redirect URLs
- */
-export const REDIRECT_URLS = {
-  LOGIN: "/auth/login",
-  DASHBOARD: "/dashboard",
-  ADMIN_DASHBOARD: "/admin/dashboard",
-  FACULTY_DASHBOARD: "/faculty/dashboard",
-} as const;

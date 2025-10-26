@@ -16,6 +16,7 @@ import {
   type CheckAvailabilityResponse,
 } from "@/lib/api/auth";
 import { toast } from "sonner";
+import { REDIRECT_URLS } from "@/config/auth";
 
 interface AuthState {
   user: User | null;
@@ -226,7 +227,7 @@ export function useAuth(): UseAuthReturn {
           description: "Welcome back!",
         });
 
-        router.push("/dashboard");
+  router.push(REDIRECT_URLS.STUDENT_DASHBOARD);
         return { success: true, requiresOTP: false };
       }
 
@@ -271,7 +272,7 @@ export function useAuth(): UseAuthReturn {
         description: "Welcome back!",
       });
 
-      router.push("/dashboard");
+  router.push(REDIRECT_URLS.STUDENT_DASHBOARD);
       // Loading will be set to false by the useEffect in the dashboard or by unmount
       return true;
     } catch (error) {
