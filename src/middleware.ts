@@ -163,6 +163,43 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Role-based route access restriction
+  // Only allow users to access routes for their own role
+  if (isAuthenticated && userRole) {
+    const roleRouteMap = {
+      Admin: "/admin",
+      Faculty: "/faculty",
+      Student: "/student",
+    };
+    const allowedPrefix = roleRouteMap[userRole as keyof typeof roleRouteMap];
+    // If trying to access another role's route, redirect to their dashboard
+    if (
+      allowedPrefix &&
+      ((pathname.startsWith("/admin") && userRole !== "Admin") ||
+        (pathname.startsWith("/faculty") && userRole !== "Faculty") ||
+        (pathname.startsWith("/student") && userRole !== "Student"))
+    ) {
+      // Exception: allow /profile/create for onboarding
+      if (pathname === "/profile/create") {
+        return NextResponse.next();
+      }
+      // Redirect to correct dashboard
+      let redirectUrl = "/";
+      switch (userRole) {
+        case "Admin":
+          redirectUrl = REDIRECT_URLS.ADMIN_DASHBOARD;
+          break;
+        case "Faculty":
+          redirectUrl = REDIRECT_URLS.FACULTY_DASHBOARD;
+          break;
+        case "Student":
+          redirectUrl = REDIRECT_URLS.STUDENT_DASHBOARD;
+          break;
+      }
+      return NextResponse.redirect(new URL(redirectUrl, request.url));
+    }
+  }
+
 
   // Redirect unauthenticated users from protected routes to login
   if (isProtectedRoute(pathname) && !isAuthenticated) {
