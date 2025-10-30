@@ -100,7 +100,35 @@ export default function ProfileCreatePage() {
     province: "",
     school: "",
     program: "",
+    degreeType: "",
+    customDegreeType: "",
+    fieldOfStudy: "",
+    major: "",
   });
+
+  function expandFieldAbbreviation(field: string) {
+    const map: Record<string, string> = {
+      "IT": "Information Technology",
+      "CS": "Computer Science",
+      "Eng": "Engineering",
+      "Acctg": "Accountancy",
+      "Mgmt": "Management",
+      "Econ": "Economics",
+      // Add more as needed
+    };
+    const trimmed = field.trim();
+    return map[trimmed] || trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  }
+
+  function formatProgram(degreeType: string = "", field: string = "", major: string = "") {
+    let deg = degreeType?.trim();
+    if (!deg) return "";
+    if (deg === "Other") deg = form.customDegreeType?.trim() || "";
+    let str = deg;
+    if (field) str += ` ${expandFieldAbbreviation(field)}`;
+    if (major) str += ` Major in ${major.trim()}`;
+    return str;
+  }
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>("/default_profile_image.png");
   const [loading, setLoading] = useState(false);
@@ -347,14 +375,15 @@ export default function ProfileCreatePage() {
             </div>
             <div>
               <Label htmlFor="program" className="font-semibold">Program / Department</Label>
-              <Input
+              <select
                 id="program"
                 name="program"
-                value={form.program}
-                onChange={handleChange}
-                placeholder="e.g. Computer Science"
-                className="mt-2 rounded-xl shadow-inner"
-              />
+                className="mt-2 w-full rounded-xl border px-3 py-2 text-sm shadow-inner bg-gray-100 text-gray-500 cursor-not-allowed"
+                disabled
+                value=""
+              >
+                <option value="">(Select a school to load programs...)</option>
+              </select>
             </div>
             <div className="flex justify-between">
               <Button type="button" variant="outline" onClick={handleBack} className="rounded-xl px-8 py-2 text-base font-semibold">
