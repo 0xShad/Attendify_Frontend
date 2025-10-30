@@ -191,7 +191,16 @@ export default function ProfileCreatePage() {
   <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-700 via-slate-200 to-slate-500 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 p-4">
     <Card className="w-full max-w-lg p-0 overflow-hidden shadow-2xl border-0 rounded-3xl bg-linear-to-br from-blue-600/70 via-blue-500/15 to-indigo-600/10 dark:from-blue-900/40 dark:via-indigo-900/30 backdrop-blur-md">
       <div className="bg-linear-to-r from-blue-600 to-slate-600 px-8 py-6 text-white">
-        <h1 className="text-3xl font-extrabold tracking-tight mb-1">Create Your Profile</h1>
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-3xl font-extrabold tracking-tight">Create Your Profile</h1>
+          <button
+            type="button"
+            onClick={() => router.push('/auth/logout')}
+            className="ml-4 bg-red-800 hover:bg-red-700 text-white font-semibold px-4 py-1.5 rounded-xl text-sm shadow transition-all"
+          >
+            Logout
+          </button>
+        </div>
         <p className="text-sm opacity-90 mb-2">
           {step === 0 && "Let us know who you are!"}
           {step === 1 && "Tell us your school and program."}
