@@ -1,11 +1,54 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import sharp from 'sharp';
 
-// Utility: Calculate image blur using Laplacian variance (simple focus measure)
-function calculateBlur(imageData: Uint8ClampedArray, width: number, height: number): number {
-  // Placeholder: In production, use OpenCV.js or a WASM library for Laplacian
-  // Here, just return a dummy value
-  return Math.random() * 100; // Replace with real blur detection
+// Utility: Calculate image blur using Laplacian variance (focus measure) with sharp (Node.js)
+async function calculateBlur(imageBuffer: Buffer): Promise<number> {
+  // Convert to grayscale and get raw pixel data
+  const { data, info } = await sharp(imageBuffer)
+    .ensureAlpha()
+    .greyscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const width = info.width;
+  const height = info.height;
+  // Laplacian kernel (3x3)
+  const kernel = [
+    0,  1, 0,
+    1, -4, 1,
+    0,  1, 0
+  ];
+  // Apply Laplacian filter
+  const laplacian = new Float32Array(width * height);
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      let sum = 0;
+      for (let ky = -1; ky <= 1; ky++) {
+        for (let kx = -1; kx <= 1; kx++) {
+          const px = x + kx;
+          const py = y + ky;
+          const pixel = data[py * width + px];
+          const kval = kernel[(ky + 1) * 3 + (kx + 1)];
+          sum += pixel * kval;
+        }
+      }
+      laplacian[y * width + x] = sum;
+    }
+  }
+  // Compute variance of Laplacian
+  let mean = 0;
+  let count = 0;
+  for (let i = 0; i < laplacian.length; i++) {
+    mean += laplacian[i];
+    count++;
+  }
+  mean /= count;
+  let variance = 0;
+  for (let i = 0; i < laplacian.length; i++) {
+    variance += Math.pow(laplacian[i] - mean, 2);
+  }
+  variance /= count;
+  return variance;
 }
 
 // Utility: Simple texture analysis (placeholder)
@@ -51,12 +94,11 @@ export async function POST(req: NextRequest) {
     // Decode base64 image (assume RGBA PNG data URL)
     const base64 = image.replace(/^data:image\/(png|jpeg);base64,/, '');
     const buffer = Buffer.from(base64, 'base64');
-    // In real code, decode to pixel data (e.g., using sharp, jimp, or canvas)
-    // Here, just create a dummy Uint8ClampedArray
-    const imageData = new Uint8ClampedArray(buffer);
 
-    // Run anti-spoofing checks (placeholders)
-    const blur = calculateBlur(imageData, width, height);
+    // Run anti-spoofing checks (blur is real, others are placeholders)
+    const blur = await calculateBlur(buffer);
+    // For now, keep other checks as placeholders
+    const imageData = new Uint8ClampedArray(buffer);
     const texture = analyzeTexture(imageData, width, height);
     const reflection = analyzeReflection(imageData, width, height);
     const colorSpectrum = analyzeColorSpectrum(imageData, width, height);
