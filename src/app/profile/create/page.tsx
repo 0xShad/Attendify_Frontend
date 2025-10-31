@@ -384,15 +384,26 @@ export default function ProfileCreatePage() {
             </div>
             <div>
               <Label htmlFor="program" className="font-semibold">Program / Department</Label>
-              <select
-                id="program"
-                name="program"
-                className="mt-2 w-full rounded-xl border px-3 py-2 text-sm shadow-inner bg-gray-100 text-gray-500 cursor-not-allowed"
-                disabled
-                value=""
+              <Select
+                value={form.program}
+                onValueChange={val => setForm(f => ({ ...f, program: val }))}
+                disabled={!form.school}
               >
-                <option value="">(Select a school to load programs...)</option>
-              </select>
+                <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200" disabled={!form.school}>
+                  <SelectValue placeholder={form.school ? "Select your program/department" : "Select a school first"} />
+                </SelectTrigger>
+                <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
+                  <SelectItem value="BS Computer Science">BS Computer Science</SelectItem>
+                  <SelectItem value="BS Information Technology">BS Information Technology</SelectItem>
+                  <SelectItem value="BS Accountancy">BS Accountancy</SelectItem>
+                  <SelectItem value="BS Psychology">BS Psychology</SelectItem>
+                  <SelectItem value="BA Communication">BA Communication</SelectItem>
+                  <SelectItem value="BS Civil Engineering">BS Civil Engineering</SelectItem>
+                  <SelectItem value="BS Nursing">BS Nursing</SelectItem>
+                  <SelectItem value="BS Business Administration">BS Business Administration</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex justify-between">
               <Button type="button" variant="outline" onClick={handleBack} className="rounded-xl px-8 py-2 text-base font-semibold">
