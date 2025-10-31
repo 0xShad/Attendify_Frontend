@@ -17,6 +17,7 @@ import {
   IconClockHour4,
   IconSchool,
   IconUser,
+  IconBooks,
 } from "@tabler/icons-react";
 import {
   Card,
@@ -57,6 +58,9 @@ import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/data-table";
 import { ReportsDataTable } from "@/components/reports-data-table";
 import { LogsDataTable } from "@/components/logs-data-table";
+import { SchoolsManagement } from "@/components/schools-management";
+import { ProgramsManagement } from "@/components/programs-management";
+import { CoursesManagement } from "@/components/courses-management";
 import {
   Sidebar,
   SidebarContent,
@@ -202,7 +206,7 @@ export function AdminPortal() {
 
   // Navigation
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "users" | "reports" | "logs"
+    "dashboard" | "schools" | "programs" | "courses" | "users" | "reports" | "logs"
   >("dashboard");
 
   // Sheet and Dialog states
@@ -335,6 +339,9 @@ export function AdminPortal() {
   // Navigation items
   const navigationItems = [
     { id: "dashboard", icon: IconHome, label: "Dashboard" },
+    { id: "schools", icon: IconSchool, label: "Schools" },
+    { id: "programs", icon: IconSchool, label: "Programs" },
+    { id: "courses", icon: IconBooks, label: "Courses" },
     { id: "users", icon: IconUsers, label: "Users" },
     { id: "reports", icon: IconFileText, label: "Reports" },
     { id: "logs", icon: IconList, label: "System Logs" },
@@ -564,6 +571,12 @@ export function AdminPortal() {
                       <p className="text-sm text-muted-foreground">
                         {activeTab === "dashboard" &&
                           "Overview of system performance"}
+                        {activeTab === "schools" &&
+                          "Manage universities and institutions"}
+                        {activeTab === "programs" &&
+                          "Manage academic programs and degrees"}
+                        {activeTab === "courses" &&
+                          "Manage course curriculum and subjects"}
                         {activeTab === "users" &&
                           "Manage system users and permissions"}
                         {activeTab === "reports" &&
@@ -804,6 +817,15 @@ export function AdminPortal() {
                 )}
               </div>
             )}
+
+            {/* Schools Management */}
+            {activeTab === "schools" && <SchoolsManagement />}
+
+            {/* Programs Management */}
+            {activeTab === "programs" && <ProgramsManagement />}
+
+            {/* Courses Management */}
+            {activeTab === "courses" && <CoursesManagement />}
 
             {/* Users Management */}
             {activeTab === "users" && (

@@ -8,6 +8,8 @@
  */
 export const PROTECTED_ROUTES = [
   "/admin/dashboard",
+  "/admin/schools",
+  "/admin/programs",
   "/admin/courses",
   "/admin/attendance",
   "/faculty/dashboard",
