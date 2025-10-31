@@ -4,15 +4,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CameraIcon, UserIcon, SchoolIcon, SmileIcon } from "lucide-react";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { UserIcon, SchoolIcon, SmileIcon } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import AboutYouStep from "./steps/AboutYouStep";
+import SchoolProgramStep from "./steps/SchoolProgramStep";
+import FaceSubmissionStep from "./steps/FaceSubmissionStep";
 
 
 
@@ -249,197 +249,50 @@ export default function ProfileCreatePage() {
 
           {/* Step 1: Avatar/Bio */}
           {step === 0 && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="flex flex-col items-center gap-4">
-                <Avatar className="w-24 h-24 shadow-lg ring-4 ring-blue-100 dark:ring-blue-900">
-                  <AvatarImage src={avatarPreview} alt="Avatar" />
-                  <AvatarFallback>?</AvatarFallback>
-                </Avatar>
-                <div className="w-full flex flex-col items-center gap-2">
-                  <Label htmlFor="avatar_file" className="font-semibold mb-1">Avatar Image</Label>
-                  <label htmlFor="avatar_file" className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow cursor-pointer transition-all duration-150 focus:ring-2 focus:ring-blue-300">
-                    <CameraIcon size={18} className="mr-1" />
-                    {avatarFile ? "Change Image" : "Upload Image"}
-                    <Input
-                      id="avatar_file"
-                      name="avatar_file"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className="hidden"
-                    />
-                  </label>
-                  {avatarFile && <span className="text-xs text-muted-foreground mt-1">{avatarFile.name}</span>}
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="bio" className="font-semibold">Bio</Label>
-                <Textarea
-                  id="bio"
-                  name="bio"
-                  value={form.bio}
-                  onChange={handleChange}
-                  placeholder="Tell us about yourself..."
-                  className="mt-2 min-h-20 rounded-xl shadow-inner"
-                />
-              </div>
-              <div className="flex justify-end">
-                <Button type="button" onClick={handleNext} className="rounded-xl px-8 py-2 text-base font-semibold bg-blue-600 hover:bg-blue-700">
-                  Next
-                </Button>
-              </div>
-            </div>
+            <AboutYouStep
+              form={form}
+              avatarFile={avatarFile}
+              avatarPreview={avatarPreview}
+              loading={loading}
+              onChange={handleChange}
+              onAvatarChange={handleAvatarChange}
+              onNext={handleNext}
+            />
           )}
 
           {/* Step 2: School/Program */}
-        {step === 1 && (
-          <div className="space-y-6 animate-fade-in">
-            <div>
-              <Label htmlFor="region" className="font-semibold">Region</Label>
-              {csvLoading ? (
-                <div className="mt-2 text-sm text-muted-foreground">Loading regions...</div>
-              ) : csvError ? (
-                <div className="mt-2 text-sm text-red-600">{csvError}</div>
-              ) : regionOptions.length === 0 ? (
-                <div className="mt-2 text-sm text-red-600">No regions found. Check CSV data.</div>
-              ) : (
-                <Select value={form.region} onValueChange={(val) => { handleSelectRegion(val); setRegionSearch(""); }}>
-                  <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200">
-                    <SelectValue placeholder="Select your region" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
-                    <div className="px-2 py-1">
-                      <input
-                        type="text"
-                        value={regionSearch}
-                        onChange={e => setRegionSearch(e.target.value)}
-                        placeholder="Search region..."
-                        className="w-full px-2 py-1 rounded border border-gray-200 text-sm mb-1"
-                        autoFocus
-                      />
-                    </div>
-                    {regionOptions
-                      .filter(region => region.replace(/^\d+\s*-\s*/, '').toLowerCase().includes(regionSearch.toLowerCase()))
-                      .map(region => {
-                        const displayRegion = region.replace(/^\d+\s*-\s*/, '');
-                        return (
-                          <SelectItem key={region} value={region}>{displayRegion}</SelectItem>
-                        );
-                      })}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="province" className="font-semibold">Province</Label>
-              <Select value={form.province} onValueChange={(val) => { handleSelectProvince(val); setProvinceSearch(""); }} disabled={!form.region}>
-                <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200" disabled={!form.region}>
-                  <SelectValue placeholder="Select your province" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
-                  <div className="px-2 py-1">
-                    <input
-                      type="text"
-                      value={provinceSearch}
-                      onChange={e => setProvinceSearch(e.target.value)}
-                      placeholder="Search province..."
-                      className="w-full px-2 py-1 rounded border border-gray-200 text-sm mb-1"
-                      autoFocus
-                      disabled={!form.region}
-                    />
-                  </div>
-                  {getProvinceOptions(form.region)
-                    .filter(province => province.toLowerCase().includes(provinceSearch.toLowerCase()))
-                    .map(province => (
-                      <SelectItem key={province} value={province}>{province}</SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="school" className="font-semibold">School</Label>
-              <Select value={form.school} onValueChange={(val) => { handleSelectSchool(val); setSchoolSearch(""); }} disabled={!form.region || !form.province}>
-                <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200" disabled={!form.region || !form.province}>
-                  <SelectValue placeholder="Select your school" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
-                  <div className="px-2 py-1">
-                    <input
-                      type="text"
-                      value={schoolSearch}
-                      onChange={e => setSchoolSearch(e.target.value)}
-                      placeholder="Search school..."
-                      className="w-full px-2 py-1 rounded border border-gray-200 text-sm mb-1"
-                      autoFocus
-                      disabled={!form.region || !form.province}
-                    />
-                  </div>
-                  {getSchoolOptions(form.region, form.province)
-                    .filter(school => school.name.toLowerCase().includes(schoolSearch.toLowerCase()))
-                    .map(school => (
-                      <SelectItem key={school.name} value={school.name}>{school.name}</SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="program" className="font-semibold">Program / Department</Label>
-              <Select
-                value={form.program}
-                onValueChange={val => setForm(f => ({ ...f, program: val }))}
-                disabled={!form.school}
-              >
-                <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200" disabled={!form.school}>
-                  <SelectValue placeholder={form.school ? "Select your program/department" : "Select a school first"} />
-                </SelectTrigger>
-                <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
-                  <SelectItem value="BS Computer Science">BS Computer Science</SelectItem>
-                  <SelectItem value="BS Information Technology">BS Information Technology</SelectItem>
-                  <SelectItem value="BS Accountancy">BS Accountancy</SelectItem>
-                  <SelectItem value="BS Psychology">BS Psychology</SelectItem>
-                  <SelectItem value="BA Communication">BA Communication</SelectItem>
-                  <SelectItem value="BS Civil Engineering">BS Civil Engineering</SelectItem>
-                  <SelectItem value="BS Nursing">BS Nursing</SelectItem>
-                  <SelectItem value="BS Business Administration">BS Business Administration</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={handleBack} className="rounded-xl px-8 py-2 text-base font-semibold">
-                Back
-              </Button>
-              <Button type="button" onClick={handleNext} disabled={!form.region || !form.province || !form.school || !form.program} className="rounded-xl px-8 py-2 text-base font-semibold bg-blue-600 hover:bg-blue-700">
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
-        {/* Step 3: Face Submission Placeholder */}
-        {step === 2 && (
-          <div className="space-y-6 animate-fade-in">
-            <div>
-              <Label htmlFor="face_image" className="font-semibold">Face Image URL</Label>
-              <Input
-                id="face_image"
-                name="face_image"
-                value={form.face_image}
-                onChange={handleChange}
-                placeholder="https://..."
-                className="mt-2 rounded-xl shadow-inner"
-              />
-              <p className="text-xs text-muted-foreground mt-2">(Face submission coming soon. For now, paste a photo URL.)</p>
-            </div>
-            <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={handleBack} className="rounded-xl px-8 py-2 text-base font-semibold">
-                Back
-              </Button>
-              <Button type="submit" className="rounded-xl px-8 py-2 text-base font-semibold bg-blue-600 hover:bg-blue-700" disabled={loading || !form.face_image}>
-                {loading ? "Creating..." : "Create Profile"}
-              </Button>
-            </div>
-          </div>
-        )}
+          {step === 1 && (
+            <SchoolProgramStep
+              form={form}
+              regionOptions={regionOptions}
+              csvLoading={csvLoading}
+              csvError={csvError}
+              getProvinceOptions={getProvinceOptions}
+              getSchoolOptions={getSchoolOptions}
+              regionSearch={regionSearch}
+              setRegionSearch={setRegionSearch}
+              provinceSearch={provinceSearch}
+              setProvinceSearch={setProvinceSearch}
+              schoolSearch={schoolSearch}
+              setSchoolSearch={setSchoolSearch}
+              handleSelectRegion={handleSelectRegion}
+              handleSelectProvince={handleSelectProvince}
+              handleSelectSchool={handleSelectSchool}
+              onProgramChange={val => setForm(f => ({ ...f, program: val }))}
+              onBack={handleBack}
+              onNext={handleNext}
+            />
+          )}
+          {/* Step 3: Face Submission Placeholder */}
+          {step === 2 && (
+            <FaceSubmissionStep
+              form={form}
+              loading={loading}
+              onChange={handleChange}
+              onBack={handleBack}
+              onSubmit={handleSubmit}
+            />
+          )}
       </form>
     </Card>
   </div>
