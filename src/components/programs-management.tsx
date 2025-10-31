@@ -14,12 +14,7 @@ import {
   IconChevronDown,
   IconDots,
 } from "@tabler/icons-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -90,7 +85,8 @@ export function ProgramsManagement() {
       status: "Active",
       totalStudents: 320,
       totalCourses: 45,
-      description: "Comprehensive computer science program covering software development, algorithms, and system design",
+      description:
+        "Comprehensive computer science program covering software development, algorithms, and system design",
     },
     {
       id: "PROG002",
@@ -101,7 +97,8 @@ export function ProgramsManagement() {
       status: "Active",
       totalStudents: 285,
       totalCourses: 42,
-      description: "IT program focusing on technology applications and system management",
+      description:
+        "IT program focusing on technology applications and system management",
     },
     {
       id: "PROG003",
@@ -112,7 +109,8 @@ export function ProgramsManagement() {
       status: "Active",
       totalStudents: 45,
       totalCourses: 18,
-      description: "Graduate program for advanced computer science research and development",
+      description:
+        "Graduate program for advanced computer science research and development",
     },
     {
       id: "PROG004",
@@ -123,7 +121,8 @@ export function ProgramsManagement() {
       status: "Active",
       totalStudents: 450,
       totalCourses: 12,
-      description: "Senior high school program preparing students for STEM careers",
+      description:
+        "Senior high school program preparing students for STEM careers",
     },
     {
       id: "PROG005",
@@ -134,7 +133,8 @@ export function ProgramsManagement() {
       status: "Active",
       totalStudents: 380,
       totalCourses: 10,
-      description: "Senior high school program focusing on humanities and social sciences",
+      description:
+        "Senior high school program focusing on humanities and social sciences",
     },
     {
       id: "PROG006",
@@ -170,19 +170,20 @@ export function ProgramsManagement() {
   });
 
   // Get unique schools for filter
-  const schools = Array.from(new Set(programs.map(p => p.school)));
+  const schools = Array.from(new Set(programs.map((p) => p.school)));
 
   // Filter programs
-  const filteredPrograms = programs.filter(program => {
-    const matchesSearch = program.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         program.code.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || program.status.toLowerCase() === statusFilter;
-    const matchesSchool = schoolFilter === "all" || program.school === schoolFilter;
-    
+  const filteredPrograms = programs.filter((program) => {
+    const matchesSearch =
+      program.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      program.code.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || program.status.toLowerCase() === statusFilter;
+    const matchesSchool =
+      schoolFilter === "all" || program.school === schoolFilter;
+
     return matchesSearch && matchesStatus && matchesSchool;
   });
-
-
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -239,7 +240,11 @@ export function ProgramsManagement() {
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="outline" size="sm" onClick={() => setAddProgramOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAddProgramOpen(true)}
+          >
             <IconPlus className="h-4 w-4" />
             <span className="hidden lg:inline">Add Program</span>
           </Button>
@@ -259,14 +264,30 @@ export function ProgramsManagement() {
             <Table>
               <TableHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20 sticky top-0 z-10">
                 <TableRow className="border-b-primary/20">
-                  <TableHead className="text-primary font-medium">Program Name</TableHead>
-                  <TableHead className="text-primary font-medium">Code</TableHead>
-                  <TableHead className="text-primary font-medium">School</TableHead>
-                  <TableHead className="text-primary font-medium">Duration</TableHead>
-                  <TableHead className="text-primary font-medium">Students</TableHead>
-                  <TableHead className="text-primary font-medium">Courses</TableHead>
-                  <TableHead className="text-primary font-medium">Status</TableHead>
-                  <TableHead className="text-primary font-medium">Actions</TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Program Name
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Code
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    School
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Duration
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Students
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Courses
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -304,19 +325,29 @@ export function ProgramsManagement() {
                     </TableCell>
                     <TableCell>
                       <div className="text-center">
-                        <div className="font-medium">{program.totalStudents}</div>
-                        <div className="text-xs text-muted-foreground">enrolled</div>
+                        <div className="font-medium">
+                          {program.totalStudents}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          enrolled
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-center">
-                        <div className="font-medium">{program.totalCourses}</div>
-                        <div className="text-xs text-muted-foreground">courses</div>
+                        <div className="font-medium">
+                          {program.totalCourses}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          courses
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={program.status === "Active" ? "secondary" : "outline"}
+                        variant={
+                          program.status === "Active" ? "secondary" : "outline"
+                        }
                         className={
                           program.status === "Active"
                             ? "bg-green-50 text-green-700 border-green-200"
@@ -396,13 +427,17 @@ export function ProgramsManagement() {
                 <IconSchool className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <div className="text-2xl font-semibold text-primary">{programs.filter(p => p.status === "Active").length}</div>
-                <div className="text-sm text-muted-foreground">Active Programs</div>
+                <div className="text-2xl font-semibold text-primary">
+                  {programs.filter((p) => p.status === "Active").length}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Active Programs
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="border-stone-200/50 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -410,13 +445,19 @@ export function ProgramsManagement() {
                 <IconSchool className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <div className="text-2xl font-semibold text-primary">{programs.reduce((sum, p) => sum + p.totalStudents, 0).toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">Total Students</div>
+                <div className="text-2xl font-semibold text-primary">
+                  {programs
+                    .reduce((sum, p) => sum + p.totalStudents, 0)
+                    .toLocaleString()}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Total Students
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="border-stone-200/50 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -424,8 +465,12 @@ export function ProgramsManagement() {
                 <IconCalendar className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <div className="text-2xl font-semibold text-primary">{programs.reduce((sum, p) => sum + p.totalCourses, 0)}</div>
-                <div className="text-sm text-muted-foreground">Total Courses</div>
+                <div className="text-2xl font-semibold text-primary">
+                  {programs.reduce((sum, p) => sum + p.totalCourses, 0)}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Total Courses
+                </div>
               </div>
             </div>
           </CardContent>
@@ -437,9 +482,7 @@ export function ProgramsManagement() {
         <DrawerContent className="px-6 pb-6 max-h-[90vh]">
           <DrawerHeader className="px-0">
             <DrawerTitle>Add New Program</DrawerTitle>
-            <DrawerDescription>
-              Create a new academic program
-            </DrawerDescription>
+            <DrawerDescription>Create a new academic program</DrawerDescription>
           </DrawerHeader>
           <div className="space-y-4 overflow-y-auto">
             <div className="space-y-2">
@@ -447,7 +490,9 @@ export function ProgramsManagement() {
               <Input
                 id="program-name"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="Enter program name"
               />
             </div>
@@ -457,13 +502,20 @@ export function ProgramsManagement() {
                 <Input
                   id="program-code"
                   value={formData.code}
-                  onChange={(e) => setFormData({...formData, code: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, code: e.target.value })
+                  }
                   placeholder="e.g., BSCS"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="school">School</Label>
-                <Select value={formData.school} onValueChange={(value) => setFormData({...formData, school: value})}>
+                <Select
+                  value={formData.school}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, school: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select school" />
                   </SelectTrigger>
@@ -480,7 +532,12 @@ export function ProgramsManagement() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="duration">Duration</Label>
-                <Select value={formData.duration} onValueChange={(value) => setFormData({...formData, duration: value})}>
+                <Select
+                  value={formData.duration}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, duration: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -494,7 +551,12 @@ export function ProgramsManagement() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: "Active" | "Inactive") => setFormData({...formData, status: value})}>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: "Active" | "Inactive") =>
+                    setFormData({ ...formData, status: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -510,7 +572,9 @@ export function ProgramsManagement() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Enter program description"
                 rows={3}
               />
@@ -519,7 +583,9 @@ export function ProgramsManagement() {
           <DrawerFooter className="px-0 pt-4">
             <div className="flex gap-3 max-w-md mx-auto w-full md:max-w-2xl">
               <DrawerClose asChild>
-                <Button variant="outline" className="flex-1">Cancel</Button>
+                <Button variant="outline" className="flex-1">
+                  Cancel
+                </Button>
               </DrawerClose>
               <Button className="flex-1">Add Program</Button>
             </div>
@@ -533,7 +599,7 @@ export function ProgramsManagement() {
           <DrawerHeader>
             <DrawerTitle>Program Details</DrawerTitle>
           </DrawerHeader>
-          
+
           {selectedProgram && (
             <div className="px-4 pb-4 space-y-6 overflow-y-auto">
               {/* Header Info */}
@@ -542,7 +608,9 @@ export function ProgramsManagement() {
                   <IconSchool className="h-8 w-8 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold">{selectedProgram.name}</h3>
+                  <h3 className="text-xl font-semibold">
+                    {selectedProgram.name}
+                  </h3>
                   <div className="flex items-center gap-2 text-muted-foreground mt-1">
                     <Badge variant="outline" className="font-mono">
                       {selectedProgram.code}
@@ -551,7 +619,11 @@ export function ProgramsManagement() {
                     <span>{selectedProgram.school}</span>
                   </div>
                   <Badge
-                    variant={selectedProgram.status === "Active" ? "secondary" : "outline"}
+                    variant={
+                      selectedProgram.status === "Active"
+                        ? "secondary"
+                        : "outline"
+                    }
                     className={
                       selectedProgram.status === "Active"
                         ? "bg-green-50 text-green-700 border-green-200 mt-2"
@@ -578,18 +650,30 @@ export function ProgramsManagement() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Card className="p-4 text-center">
                     <IconClock className="h-6 w-6 text-primary mx-auto mb-2" />
-                    <div className="text-2xl font-semibold text-primary">{selectedProgram.duration}</div>
-                    <div className="text-sm text-muted-foreground">Duration</div>
+                    <div className="text-2xl font-semibold text-primary">
+                      {selectedProgram.duration}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Duration
+                    </div>
                   </Card>
                   <Card className="p-4 text-center">
                     <IconSchool className="h-6 w-6 text-primary mx-auto mb-2" />
-                    <div className="text-2xl font-semibold text-primary">{selectedProgram.totalCourses}</div>
-                    <div className="text-sm text-muted-foreground">Total Courses</div>
+                    <div className="text-2xl font-semibold text-primary">
+                      {selectedProgram.totalCourses}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Total Courses
+                    </div>
                   </Card>
                   <Card className="p-4 text-center">
                     <IconSchool className="h-6 w-6 text-primary mx-auto mb-2" />
-                    <div className="text-2xl font-semibold text-primary">{selectedProgram.totalStudents}</div>
-                    <div className="text-sm text-muted-foreground">Enrolled Students</div>
+                    <div className="text-2xl font-semibold text-primary">
+                      {selectedProgram.totalStudents}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Enrolled Students
+                    </div>
                   </Card>
                 </div>
               </div>
@@ -620,7 +704,9 @@ export function ProgramsManagement() {
               <Input
                 id="edit-program-name"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="Enter program name"
               />
             </div>
@@ -630,13 +716,20 @@ export function ProgramsManagement() {
                 <Input
                   id="edit-program-code"
                   value={formData.code}
-                  onChange={(e) => setFormData({...formData, code: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, code: e.target.value })
+                  }
                   placeholder="e.g., BSCS"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-school">School</Label>
-                <Select value={formData.school} onValueChange={(value) => setFormData({...formData, school: value})}>
+                <Select
+                  value={formData.school}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, school: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select school" />
                   </SelectTrigger>
@@ -653,7 +746,12 @@ export function ProgramsManagement() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-duration">Duration</Label>
-                <Select value={formData.duration} onValueChange={(value) => setFormData({...formData, duration: value})}>
+                <Select
+                  value={formData.duration}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, duration: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -667,7 +765,12 @@ export function ProgramsManagement() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: "Active" | "Inactive") => setFormData({...formData, status: value})}>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: "Active" | "Inactive") =>
+                    setFormData({ ...formData, status: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -683,7 +786,9 @@ export function ProgramsManagement() {
               <Textarea
                 id="edit-description"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Enter program description"
                 rows={3}
               />
@@ -692,7 +797,9 @@ export function ProgramsManagement() {
           <DrawerFooter className="px-0 pt-4">
             <div className="flex gap-3 max-w-md mx-auto w-full md:max-w-2xl">
               <DrawerClose asChild>
-                <Button variant="outline" className="flex-1">Cancel</Button>
+                <Button variant="outline" className="flex-1">
+                  Cancel
+                </Button>
               </DrawerClose>
               <Button className="flex-1">Save Changes</Button>
             </div>
@@ -706,10 +813,11 @@ export function ProgramsManagement() {
           <DialogHeader>
             <DialogTitle>Delete Program</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this program? This action cannot be undone.
+              Are you sure you want to delete this program? This action cannot
+              be undone.
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedProgram && (
             <div className="py-4">
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -718,8 +826,12 @@ export function ProgramsManagement() {
                     <IconSchool className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <div className="font-semibold text-red-900">{selectedProgram.name}</div>
-                    <div className="text-sm text-red-700">{selectedProgram.code} • {selectedProgram.school}</div>
+                    <div className="font-semibold text-red-900">
+                      {selectedProgram.name}
+                    </div>
+                    <div className="text-sm text-red-700">
+                      {selectedProgram.code} • {selectedProgram.school}
+                    </div>
                   </div>
                 </div>
               </div>

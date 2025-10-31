@@ -66,7 +66,8 @@ export function SchoolsManagement() {
       id: "SCH001",
       name: "Quezon City University",
       location: "Quezon City, Philippines",
-      description: "Leading public university in Quezon City with comprehensive academic programs",
+      description:
+        "Leading public university in Quezon City with comprehensive academic programs",
       address: "673 Quirino Highway, San Bartolome, Novaliches, Quezon City",
       contact: "+63 2 8806 3000",
       email: "info@qcu.edu.ph",
@@ -80,7 +81,8 @@ export function SchoolsManagement() {
       id: "SCH002",
       name: "Lagro High School",
       location: "Lagro, Quezon City",
-      description: "Excellence in secondary education with modern facilities and quality teaching",
+      description:
+        "Excellence in secondary education with modern facilities and quality teaching",
       address: "Commonwealth Ave, Lagro, Quezon City",
       contact: "+63 2 8952 4567",
       email: "admin@lagrohighschool.edu.ph",
@@ -114,9 +116,11 @@ export function SchoolsManagement() {
   });
 
   // Filter schools
-  const filteredSchools = schools.filter(school => {
-    const matchesStatus = statusFilter === "all" || school.status.toLowerCase() === statusFilter;
-    const matchesLocation = locationFilter === "all" || school.location.includes(locationFilter);
+  const filteredSchools = schools.filter((school) => {
+    const matchesStatus =
+      statusFilter === "all" || school.status.toLowerCase() === statusFilter;
+    const matchesLocation =
+      locationFilter === "all" || school.location.includes(locationFilter);
     return matchesStatus && matchesLocation;
   });
 
@@ -193,7 +197,10 @@ export function SchoolsManagement() {
               </DrawerHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="status-filter" className="text-sm font-medium">
+                  <Label
+                    htmlFor="status-filter"
+                    className="text-sm font-medium"
+                  >
                     Status
                   </Label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -208,10 +215,16 @@ export function SchoolsManagement() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="location-filter" className="text-sm font-medium">
+                  <Label
+                    htmlFor="location-filter"
+                    className="text-sm font-medium"
+                  >
                     Location
                   </Label>
-                  <Select value={locationFilter} onValueChange={setLocationFilter}>
+                  <Select
+                    value={locationFilter}
+                    onValueChange={setLocationFilter}
+                  >
                     <SelectTrigger id="location-filter" className="w-full">
                       <SelectValue placeholder="Select location" />
                     </SelectTrigger>
@@ -264,7 +277,9 @@ export function SchoolsManagement() {
                     <Input
                       id="name"
                       value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
                       placeholder="Enter school name"
                     />
                   </div>
@@ -273,7 +288,9 @@ export function SchoolsManagement() {
                     <Input
                       id="location"
                       value={formData.location}
-                      onChange={(e) => setFormData({...formData, location: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, location: e.target.value })
+                      }
                       placeholder="Enter location"
                     />
                   </div>
@@ -283,7 +300,9 @@ export function SchoolsManagement() {
                   <Textarea
                     id="description"
                     value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
                     placeholder="Enter school description"
                     rows={3}
                   />
@@ -293,7 +312,9 @@ export function SchoolsManagement() {
                   <Textarea
                     id="address"
                     value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, address: e.target.value })
+                    }
                     placeholder="Enter full address"
                     rows={2}
                   />
@@ -304,7 +325,9 @@ export function SchoolsManagement() {
                     <Input
                       id="contact"
                       value={formData.contact}
-                      onChange={(e) => setFormData({...formData, contact: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, contact: e.target.value })
+                      }
                       placeholder="Enter contact number"
                     />
                   </div>
@@ -314,14 +337,21 @@ export function SchoolsManagement() {
                       id="email"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
                       placeholder="Enter email address"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
-                  <Select value={formData.status} onValueChange={(value: "Active" | "Inactive") => setFormData({...formData, status: value})}>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value: "Active" | "Inactive") =>
+                      setFormData({ ...formData, status: value })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -395,30 +425,46 @@ export function SchoolsManagement() {
                 <div className="bg-stone-50 rounded-lg p-3 text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <IconSchool className="h-4 w-4 text-blue-600" />
-                    <span className="text-xs text-muted-foreground">Programs</span>
+                    <span className="text-xs text-muted-foreground">
+                      Programs
+                    </span>
                   </div>
-                  <div className="text-lg font-semibold">{school.totalPrograms}</div>
+                  <div className="text-lg font-semibold">
+                    {school.totalPrograms}
+                  </div>
                 </div>
                 <div className="bg-stone-50 rounded-lg p-3 text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <IconBooks className="h-4 w-4 text-green-600" />
-                    <span className="text-xs text-muted-foreground">Courses</span>
+                    <span className="text-xs text-muted-foreground">
+                      Courses
+                    </span>
                   </div>
-                  <div className="text-lg font-semibold">{school.totalCourses}</div>
+                  <div className="text-lg font-semibold">
+                    {school.totalCourses}
+                  </div>
                 </div>
                 <div className="bg-stone-50 rounded-lg p-3 text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <IconUsers className="h-4 w-4 text-purple-600" />
-                    <span className="text-xs text-muted-foreground">Students</span>
+                    <span className="text-xs text-muted-foreground">
+                      Students
+                    </span>
                   </div>
-                  <div className="text-lg font-semibold">{school.totalStudents.toLocaleString()}</div>
+                  <div className="text-lg font-semibold">
+                    {school.totalStudents.toLocaleString()}
+                  </div>
                 </div>
                 <div className="bg-stone-50 rounded-lg p-3 text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <IconChalkboard className="h-4 w-4 text-orange-600" />
-                    <span className="text-xs text-muted-foreground">Faculty</span>
+                    <span className="text-xs text-muted-foreground">
+                      Faculty
+                    </span>
                   </div>
-                  <div className="text-lg font-semibold">{school.totalFaculty}</div>
+                  <div className="text-lg font-semibold">
+                    {school.totalFaculty}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -455,7 +501,7 @@ export function SchoolsManagement() {
           <DrawerHeader>
             <DrawerTitle>School Details</DrawerTitle>
           </DrawerHeader>
-          
+
           {selectedSchool && (
             <div className="px-4 pb-4 space-y-6 overflow-y-auto">
               {/* Header Info */}
@@ -464,13 +510,19 @@ export function SchoolsManagement() {
                   <IconSchool className="h-8 w-8 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold">{selectedSchool.name}</h3>
+                  <h3 className="text-xl font-semibold">
+                    {selectedSchool.name}
+                  </h3>
                   <div className="flex items-center gap-2 text-muted-foreground mt-1">
                     <IconMapPin className="h-4 w-4" />
                     <span>{selectedSchool.location}</span>
                   </div>
                   <Badge
-                    variant={selectedSchool.status === "Active" ? "secondary" : "outline"}
+                    variant={
+                      selectedSchool.status === "Active"
+                        ? "secondary"
+                        : "outline"
+                    }
                     className={
                       selectedSchool.status === "Active"
                         ? "bg-green-50 text-green-700 border-green-200 mt-2"
@@ -518,22 +570,34 @@ export function SchoolsManagement() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <Card className="p-4 text-center">
                     <IconSchool className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold">{selectedSchool.totalPrograms}</div>
-                    <div className="text-sm text-muted-foreground">Programs</div>
+                    <div className="text-2xl font-bold">
+                      {selectedSchool.totalPrograms}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Programs
+                    </div>
                   </Card>
                   <Card className="p-4 text-center">
                     <IconBooks className="h-6 w-6 text-green-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold">{selectedSchool.totalCourses}</div>
+                    <div className="text-2xl font-bold">
+                      {selectedSchool.totalCourses}
+                    </div>
                     <div className="text-sm text-muted-foreground">Courses</div>
                   </Card>
                   <Card className="p-4 text-center">
                     <IconUsers className="h-6 w-6 text-purple-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold">{selectedSchool.totalStudents.toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground">Students</div>
+                    <div className="text-2xl font-bold">
+                      {selectedSchool.totalStudents.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Students
+                    </div>
                   </Card>
                   <Card className="p-4 text-center">
                     <IconChalkboard className="h-6 w-6 text-orange-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold">{selectedSchool.totalFaculty}</div>
+                    <div className="text-2xl font-bold">
+                      {selectedSchool.totalFaculty}
+                    </div>
                     <div className="text-sm text-muted-foreground">Faculty</div>
                   </Card>
                 </div>
@@ -566,7 +630,9 @@ export function SchoolsManagement() {
                 <Input
                   id="edit-name"
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="Enter school name"
                 />
               </div>
@@ -575,7 +641,9 @@ export function SchoolsManagement() {
                 <Input
                   id="edit-location"
                   value={formData.location}
-                  onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, location: e.target.value })
+                  }
                   placeholder="Enter location"
                 />
               </div>
@@ -585,7 +653,9 @@ export function SchoolsManagement() {
               <Textarea
                 id="edit-description"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Enter school description"
                 rows={3}
               />
@@ -595,7 +665,9 @@ export function SchoolsManagement() {
               <Textarea
                 id="edit-address"
                 value={formData.address}
-                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
                 placeholder="Enter full address"
                 rows={2}
               />
@@ -606,7 +678,9 @@ export function SchoolsManagement() {
                 <Input
                   id="edit-contact"
                   value={formData.contact}
-                  onChange={(e) => setFormData({...formData, contact: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, contact: e.target.value })
+                  }
                   placeholder="Enter contact number"
                 />
               </div>
@@ -616,14 +690,21 @@ export function SchoolsManagement() {
                   id="edit-email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   placeholder="Enter email address"
                 />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-status">Status</Label>
-              <Select value={formData.status} onValueChange={(value: "Active" | "Inactive") => setFormData({...formData, status: value})}>
+              <Select
+                value={formData.status}
+                onValueChange={(value: "Active" | "Inactive") =>
+                  setFormData({ ...formData, status: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

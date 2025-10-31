@@ -16,12 +16,7 @@ import {
   IconDots,
   IconEye,
 } from "@tabler/icons-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -200,19 +195,20 @@ export function CoursesManagement() {
   });
 
   // Get unique programs for filter
-  const programs = Array.from(new Set(courses.map(c => c.program)));
+  const programs = Array.from(new Set(courses.map((c) => c.program)));
 
   // Filter courses
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.code.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || course.status.toLowerCase() === statusFilter;
-    const matchesProgram = programFilter === "all" || course.program === programFilter;
-    
+  const filteredCourses = courses.filter((course) => {
+    const matchesSearch =
+      course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.code.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || course.status.toLowerCase() === statusFilter;
+    const matchesProgram =
+      programFilter === "all" || course.program === programFilter;
+
     return matchesSearch && matchesStatus && matchesProgram;
   });
-
-
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -269,14 +265,16 @@ export function CoursesManagement() {
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="outline" size="sm" onClick={() => setAddCourseOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAddCourseOpen(true)}
+          >
             <IconPlus className="h-4 w-4" />
             <span className="hidden lg:inline">Add Course</span>
           </Button>
         </div>
       </div>
-
-
 
       {/* Courses Table */}
       <Card className="border-stone-200/50 bg-white/80 backdrop-blur-sm">
@@ -291,14 +289,30 @@ export function CoursesManagement() {
             <Table>
               <TableHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20 sticky top-0 z-10">
                 <TableRow className="border-b-primary/20">
-                  <TableHead className="text-primary font-medium">Course Code</TableHead>
-                  <TableHead className="text-primary font-medium">Course Title</TableHead>
-                  <TableHead className="text-primary font-medium">Program</TableHead>
-                  <TableHead className="text-primary font-medium">Units/Hours</TableHead>
-                  <TableHead className="text-primary font-medium">Semester</TableHead>
-                  <TableHead className="text-primary font-medium">Year Level</TableHead>
-                  <TableHead className="text-primary font-medium">Status</TableHead>
-                  <TableHead className="text-primary font-medium">Actions</TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Course Code
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Course Title
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Program
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Units/Hours
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Semester
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Year Level
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-primary font-medium">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -308,7 +322,10 @@ export function CoursesManagement() {
                     className="hover:bg-stone-50/50 transition-colors border-stone-200/50"
                   >
                     <TableCell>
-                      <Badge variant="outline" className="font-mono font-semibold">
+                      <Badge
+                        variant="outline"
+                        className="font-mono font-semibold"
+                      >
                         {course.code}
                       </Badge>
                     </TableCell>
@@ -320,18 +337,25 @@ export function CoursesManagement() {
                             {course.description}
                           </div>
                         )}
-                        {course.prerequisites && course.prerequisites.length > 0 && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <span className="text-xs text-muted-foreground">Prerequisites:</span>
-                            <div className="flex gap-1">
-                              {course.prerequisites.map((prereq) => (
-                                <Badge key={prereq} variant="outline" className="text-xs">
-                                  {prereq}
-                                </Badge>
-                              ))}
+                        {course.prerequisites &&
+                          course.prerequisites.length > 0 && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className="text-xs text-muted-foreground">
+                                Prerequisites:
+                              </span>
+                              <div className="flex gap-1">
+                                {course.prerequisites.map((prereq) => (
+                                  <Badge
+                                    key={prereq}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    {prereq}
+                                  </Badge>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -361,13 +385,18 @@ export function CoursesManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-50 text-blue-700 border-blue-200"
+                      >
                         {course.yearLevel}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={course.status === "Active" ? "secondary" : "outline"}
+                        variant={
+                          course.status === "Active" ? "secondary" : "outline"
+                        }
                         className={
                           course.status === "Active"
                             ? "bg-green-50 text-green-700 border-green-200"
@@ -451,13 +480,17 @@ export function CoursesManagement() {
                 <IconBooks className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <div className="text-2xl font-semibold text-primary">{courses.filter(c => c.status === "Active").length}</div>
-                <div className="text-sm text-muted-foreground">Active Courses</div>
+                <div className="text-2xl font-semibold text-primary">
+                  {courses.filter((c) => c.status === "Active").length}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Active Courses
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="border-stone-200/50 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -465,13 +498,15 @@ export function CoursesManagement() {
                 <IconSchool className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <div className="text-2xl font-semibold text-primary">{programs.length}</div>
+                <div className="text-2xl font-semibold text-primary">
+                  {programs.length}
+                </div>
                 <div className="text-sm text-muted-foreground">Programs</div>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="border-stone-200/50 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -479,13 +514,15 @@ export function CoursesManagement() {
                 <IconHash className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <div className="text-2xl font-semibold text-primary">{courses.reduce((sum, c) => sum + c.units, 0)}</div>
+                <div className="text-2xl font-semibold text-primary">
+                  {courses.reduce((sum, c) => sum + c.units, 0)}
+                </div>
                 <div className="text-sm text-muted-foreground">Total Units</div>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="border-stone-200/50 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -493,7 +530,9 @@ export function CoursesManagement() {
                 <IconClock className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <div className="text-2xl font-semibold text-primary">{courses.reduce((sum, c) => sum + c.hours, 0)}</div>
+                <div className="text-2xl font-semibold text-primary">
+                  {courses.reduce((sum, c) => sum + c.hours, 0)}
+                </div>
                 <div className="text-sm text-muted-foreground">Total Hours</div>
               </div>
             </div>
@@ -517,13 +556,20 @@ export function CoursesManagement() {
                 <Input
                   id="course-code"
                   value={formData.code}
-                  onChange={(e) => setFormData({...formData, code: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, code: e.target.value })
+                  }
                   placeholder="e.g., CS101"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="program">Program</Label>
-                <Select value={formData.program} onValueChange={(value) => setFormData({...formData, program: value})}>
+                <Select
+                  value={formData.program}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, program: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select program" />
                   </SelectTrigger>
@@ -542,7 +588,9 @@ export function CoursesManagement() {
               <Input
                 id="course-title"
                 value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
                 placeholder="Enter course title"
               />
             </div>
@@ -551,7 +599,9 @@ export function CoursesManagement() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Enter course description"
                 rows={3}
               />
@@ -563,7 +613,12 @@ export function CoursesManagement() {
                   id="units"
                   type="number"
                   value={formData.units}
-                  onChange={(e) => setFormData({...formData, units: parseInt(e.target.value) || 0})}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      units: parseInt(e.target.value) || 0,
+                    })
+                  }
                   min="1"
                   max="6"
                 />
@@ -574,7 +629,12 @@ export function CoursesManagement() {
                   id="hours"
                   type="number"
                   value={formData.hours}
-                  onChange={(e) => setFormData({...formData, hours: parseInt(e.target.value) || 0})}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      hours: parseInt(e.target.value) || 0,
+                    })
+                  }
                   min="1"
                 />
               </div>
@@ -582,7 +642,12 @@ export function CoursesManagement() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="semester">Semester</Label>
-                <Select value={formData.semester} onValueChange={(value) => setFormData({...formData, semester: value})}>
+                <Select
+                  value={formData.semester}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, semester: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -595,7 +660,12 @@ export function CoursesManagement() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="year-level">Year Level</Label>
-                <Select value={formData.yearLevel} onValueChange={(value) => setFormData({...formData, yearLevel: value})}>
+                <Select
+                  value={formData.yearLevel}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, yearLevel: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -612,7 +682,12 @@ export function CoursesManagement() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value: "Active" | "Inactive") => setFormData({...formData, status: value})}>
+              <Select
+                value={formData.status}
+                onValueChange={(value: "Active" | "Inactive") =>
+                  setFormData({ ...formData, status: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -626,7 +701,9 @@ export function CoursesManagement() {
           <DrawerFooter className="px-0 pt-4">
             <div className="flex gap-3 max-w-md mx-auto w-full md:max-w-2xl">
               <DrawerClose asChild>
-                <Button variant="outline" className="flex-1">Cancel</Button>
+                <Button variant="outline" className="flex-1">
+                  Cancel
+                </Button>
               </DrawerClose>
               <Button className="flex-1">Add Course</Button>
             </div>
@@ -650,13 +727,20 @@ export function CoursesManagement() {
                 <Input
                   id="edit-course-code"
                   value={formData.code}
-                  onChange={(e) => setFormData({...formData, code: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, code: e.target.value })
+                  }
                   placeholder="e.g., CS101"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-program">Program</Label>
-                <Select value={formData.program} onValueChange={(value) => setFormData({...formData, program: value})}>
+                <Select
+                  value={formData.program}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, program: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select program" />
                   </SelectTrigger>
@@ -675,7 +759,9 @@ export function CoursesManagement() {
               <Input
                 id="edit-course-title"
                 value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
                 placeholder="Enter course title"
               />
             </div>
@@ -684,7 +770,9 @@ export function CoursesManagement() {
               <Textarea
                 id="edit-description"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Enter course description"
                 rows={3}
               />
@@ -696,7 +784,12 @@ export function CoursesManagement() {
                   id="edit-units"
                   type="number"
                   value={formData.units}
-                  onChange={(e) => setFormData({...formData, units: parseInt(e.target.value) || 0})}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      units: parseInt(e.target.value) || 0,
+                    })
+                  }
                   min="1"
                   max="6"
                 />
@@ -707,7 +800,12 @@ export function CoursesManagement() {
                   id="edit-hours"
                   type="number"
                   value={formData.hours}
-                  onChange={(e) => setFormData({...formData, hours: parseInt(e.target.value) || 0})}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      hours: parseInt(e.target.value) || 0,
+                    })
+                  }
                   min="1"
                 />
               </div>
@@ -715,7 +813,12 @@ export function CoursesManagement() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-semester">Semester</Label>
-                <Select value={formData.semester} onValueChange={(value) => setFormData({...formData, semester: value})}>
+                <Select
+                  value={formData.semester}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, semester: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -728,7 +831,12 @@ export function CoursesManagement() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-year-level">Year Level</Label>
-                <Select value={formData.yearLevel} onValueChange={(value) => setFormData({...formData, yearLevel: value})}>
+                <Select
+                  value={formData.yearLevel}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, yearLevel: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -745,7 +853,12 @@ export function CoursesManagement() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-status">Status</Label>
-              <Select value={formData.status} onValueChange={(value: "Active" | "Inactive") => setFormData({...formData, status: value})}>
+              <Select
+                value={formData.status}
+                onValueChange={(value: "Active" | "Inactive") =>
+                  setFormData({ ...formData, status: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -759,7 +872,9 @@ export function CoursesManagement() {
           <DrawerFooter className="px-0 pt-4">
             <div className="flex gap-3 max-w-md mx-auto w-full md:max-w-2xl">
               <DrawerClose asChild>
-                <Button variant="outline" className="flex-1">Cancel</Button>
+                <Button variant="outline" className="flex-1">
+                  Cancel
+                </Button>
               </DrawerClose>
               <Button className="flex-1">Save Changes</Button>
             </div>
@@ -785,11 +900,34 @@ export function CoursesManagement() {
                   <IconBooks className="h-8 w-8 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold">{selectedCourse.title}</h3>
+                  <h3 className="text-xl font-semibold">
+                    {selectedCourse.title}
+                  </h3>
                   <div className="text-sm text-muted-foreground space-y-1">
-                    <div>Course Code: <span className="font-medium text-foreground">{selectedCourse.code}</span></div>
-                    <div>Program: <span className="font-medium text-foreground">{selectedCourse.program}</span></div>
-                    <div>Status: <Badge variant={selectedCourse.status === "Active" ? "default" : "secondary"}>{selectedCourse.status}</Badge></div>
+                    <div>
+                      Course Code:{" "}
+                      <span className="font-medium text-foreground">
+                        {selectedCourse.code}
+                      </span>
+                    </div>
+                    <div>
+                      Program:{" "}
+                      <span className="font-medium text-foreground">
+                        {selectedCourse.program}
+                      </span>
+                    </div>
+                    <div>
+                      Status:{" "}
+                      <Badge
+                        variant={
+                          selectedCourse.status === "Active"
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
+                        {selectedCourse.status}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -798,23 +936,33 @@ export function CoursesManagement() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card className="p-4 text-center">
                   <IconHash className="h-6 w-6 text-primary mx-auto mb-2" />
-                  <div className="text-2xl font-semibold text-primary">{selectedCourse.units}</div>
+                  <div className="text-2xl font-semibold text-primary">
+                    {selectedCourse.units}
+                  </div>
                   <div className="text-sm text-muted-foreground">Units</div>
                 </Card>
                 <Card className="p-4 text-center">
                   <IconClock className="h-6 w-6 text-primary mx-auto mb-2" />
-                  <div className="text-2xl font-semibold text-primary">{selectedCourse.hours}</div>
+                  <div className="text-2xl font-semibold text-primary">
+                    {selectedCourse.hours}
+                  </div>
                   <div className="text-sm text-muted-foreground">Hours</div>
                 </Card>
                 <Card className="p-4 text-center">
                   <IconCalendar className="h-6 w-6 text-primary mx-auto mb-2" />
-                  <div className="text-lg font-semibold text-primary">{selectedCourse.semester}</div>
+                  <div className="text-lg font-semibold text-primary">
+                    {selectedCourse.semester}
+                  </div>
                   <div className="text-sm text-muted-foreground">Semester</div>
                 </Card>
                 <Card className="p-4 text-center">
                   <IconSchool className="h-6 w-6 text-primary mx-auto mb-2" />
-                  <div className="text-lg font-semibold text-primary">{selectedCourse.yearLevel}</div>
-                  <div className="text-sm text-muted-foreground">Year Level</div>
+                  <div className="text-lg font-semibold text-primary">
+                    {selectedCourse.yearLevel}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Year Level
+                  </div>
                 </Card>
               </div>
 
@@ -829,27 +977,30 @@ export function CoursesManagement() {
               )}
 
               {/* Prerequisites */}
-              {selectedCourse.prerequisites && selectedCourse.prerequisites.length > 0 && (
-                <div>
-                  <h4 className="font-semibold mb-2">Prerequisites</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedCourse.prerequisites.map((prereq, index) => (
-                      <Badge key={index} variant="outline">
-                        {prereq}
-                      </Badge>
-                    ))}
+              {selectedCourse.prerequisites &&
+                selectedCourse.prerequisites.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Prerequisites</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCourse.prerequisites.map((prereq, index) => (
+                        <Badge key={index} variant="outline">
+                          {prereq}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           )}
 
           <DrawerFooter>
             <div className="flex gap-3 max-w-md mx-auto w-full">
               <DrawerClose asChild>
-                <Button variant="outline" className="flex-1">Close</Button>
+                <Button variant="outline" className="flex-1">
+                  Close
+                </Button>
               </DrawerClose>
-              <Button 
+              <Button
                 className="flex-1"
                 onClick={() => {
                   if (selectedCourse) {
@@ -883,10 +1034,11 @@ export function CoursesManagement() {
           <DialogHeader>
             <DialogTitle>Delete Course</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this course? This action cannot be undone.
+              Are you sure you want to delete this course? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedCourse && (
             <div className="py-4">
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -895,8 +1047,12 @@ export function CoursesManagement() {
                     <IconBooks className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <div className="font-semibold text-red-900">{selectedCourse.code} - {selectedCourse.title}</div>
-                    <div className="text-sm text-red-700">{selectedCourse.program} • {selectedCourse.yearLevel}</div>
+                    <div className="font-semibold text-red-900">
+                      {selectedCourse.code} - {selectedCourse.title}
+                    </div>
+                    <div className="text-sm text-red-700">
+                      {selectedCourse.program} • {selectedCourse.yearLevel}
+                    </div>
                   </div>
                 </div>
               </div>
