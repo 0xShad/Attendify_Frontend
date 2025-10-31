@@ -62,12 +62,12 @@ export async function POST(req: NextRequest) {
     const colorSpectrum = analyzeColorSpectrum(imageData, width, height);
     const depth = estimateFaceDepth(imageData, width, height);
 
-  // Looser thresholds for higher chance of success
-  const blurThreshold = 1; // Lowered: allow more blur
-  const textureThreshold = 0.1; // Lowered: allow less texture
-  const reflectionThreshold = 0.9; // Raised: allow more reflection
-  const colorSpectrumThreshold = 0.1; // Lowered: allow wider color range
-  const depthThreshold = 0.1; // Lowered: allow flatter images
+    // Looser thresholds for higher chance of success
+    const blurThreshold = 1; // Lowered: allow more blur
+    const textureThreshold = 0.1; // Lowered: allow less texture
+    const reflectionThreshold = 0.9; // Raised: allow more reflection
+    const colorSpectrumThreshold = 0.1; // Lowered: allow wider color range
+    const depthThreshold = 0.1; // Lowered: allow flatter images
 
     // Debug: log computed values
     console.log('[LivenessAPI] Computed values:', {
