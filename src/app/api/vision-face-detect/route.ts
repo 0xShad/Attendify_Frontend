@@ -33,8 +33,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: faces.length === 0 ? "No face detected" : "Multiple faces detected" }, { status: 400 });
     }
     const face = faces[0] as FaceAnnotationWithLikelihood;
-    // Log the full face annotation for debugging
-    console.log('Google Vision face annotation:', JSON.stringify(face, null, 2));
+    
+    // Log summarized face annotation for debugging
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📸 Google Vision Face Detection Summary');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`✓ Detection Confidence: ${((face.detectionConfidence || 0) * 100).toFixed(1)}%`);
+    console.log(`✓ Landmarking Confidence: ${((face.landmarkingConfidence || 0) * 100).toFixed(1)}%`);
+    console.log(`✓ Face Pose:`);
+    console.log(`  - Roll Angle: ${(face.rollAngle || 0).toFixed(1)}°`);
+    console.log(`  - Pan Angle: ${(face.panAngle || 0).toFixed(1)}°`);
+    console.log(`  - Tilt Angle: ${(face.tiltAngle || 0).toFixed(1)}°`);
+    console.log(`✓ Facial Features Detected: ${(face.landmarks || []).length} landmarks`);
+    console.log(`✓ Quality Checks:`);
+    console.log(`  - Blurred: ${face.blurredLikelihood || 'UNKNOWN'}`);
+    console.log(`  - Under Exposed: ${face.underExposedLikelihood || 'UNKNOWN'}`);
+    console.log(`  - Headwear: ${face.headwearLikelihood || 'UNKNOWN'}`);
+    console.log(`✓ Expressions:`);
+    console.log(`  - Joy: ${face.joyLikelihood || 'UNKNOWN'}`);
+    console.log(`  - Sorrow: ${face.sorrowLikelihood || 'UNKNOWN'}`);
+    console.log(`  - Anger: ${face.angerLikelihood || 'UNKNOWN'}`);
+    console.log(`  - Surprise: ${face.surpriseLikelihood || 'UNKNOWN'}`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
     // 2. High detection confidence (e.g., > 0.8)
     if (face.detectionConfidence === undefined || face.detectionConfidence < 0.9) {
       return NextResponse.json({ error: "Face detection confidence too low", confidence: face.detectionConfidence }, { status: 400 });
