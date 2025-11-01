@@ -126,6 +126,11 @@ export default function FaceCamera({
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ image: dataUrl, width, height }),
                   });
+                  
+                  if (!response.ok) {
+                    throw new Error(`API error: ${response.status} ${response.statusText}`);
+                  }
+                  
                   validationResult = await response.json();
                 }
                 
@@ -199,11 +204,20 @@ export default function FaceCamera({
               } catch (err) {
                 console.error('[FaceCamera] Validation error:', err);
                 setCheckingLiveness(false);
-                setLivenessResult({ success: false, message: "Validation error. Please try again." });
-                setPendingDetection({ success: false, message: "Face detection failed. Please try again." });
-                // Clear pending image on error
-                setPendingImage(null);
-                setPendingBoxed(null);
+                
+                // More specific error messages
+                let errorMessage = "Validation error. Please try again.";
+                if (err instanceof TypeError && err.message === 'Failed to fetch') {
+                  errorMessage = "Network error. Please check your connection and try again.";
+                } else if (err instanceof Error) {
+                  errorMessage = err.message || errorMessage;
+                }
+                
+                setLivenessResult({ success: false, message: errorMessage });
+                setLivenessPassed(false);
+                // Don't clear pending image - keep it so user can see what was captured
+                // setPendingImage(null);
+                // setPendingBoxed(null);
               }
               setDetecting(false);
             }, 300);
@@ -246,6 +260,10 @@ export default function FaceCamera({
     setLivenessPassed(false);
     setLivenessResult(null);
     setCountdown(null);
+    setLivenessLocked(false); // Reset liveness lock
+    setDetecting(false); // Reset detecting state
+    setCheckingLiveness(false); // Reset checking liveness state
+    resetBlink(); // Reset blink detection
   };
 
   return (
