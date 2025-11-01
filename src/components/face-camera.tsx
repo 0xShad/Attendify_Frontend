@@ -7,12 +7,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@
 interface FaceCameraProps {
   onCapture: (dataUrl: string) => void;
   onRetake?: () => void;
+  onValidate?: (dataUrl: string, width: number, height: number) => Promise<{ 
+    passed: boolean; 
+    message?: string;
+    processedImage?: string; // Optional: return a processed/boxed image
+    metadata?: any; // Optional: return additional data (face coordinates, confidence, etc.)
+  }>;
+  skipLivenessCheck?: boolean;
   width?: number;
   height?: number;
   className?: string;
 }
 
-export default function FaceCamera({ onCapture, onRetake, width = 320, height = 240, className = "" }: FaceCameraProps) {
+export default function FaceCamera({ 
+  onCapture, 
+  onRetake, 
+  onValidate,
+  skipLivenessCheck = false,
+  width = 320, 
+  height = 240, 
+  className = "" 
+}: FaceCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [streaming, setStreaming] = useState(false);
@@ -94,32 +109,47 @@ export default function FaceCamera({ onCapture, onRetake, width = 320, height = 
             setTimeout(async () => {
               try {
                 setCheckingLiveness(true);
-                console.log('[FaceCamera] Sending image to /api/vision-face-liveness-test');
-                const response = await fetch("/api/vision-face-liveness-test", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ image: dataUrl, width, height }),
-                });
-                const livenessResult = await response.json();
-                console.log('[FaceCamera] Liveness API response:', livenessResult);
+                console.log('[FaceCamera] Sending image to validation');
+                
+                let validationResult;
+                
+                if (skipLivenessCheck) {
+                  // Skip liveness check entirely
+                  validationResult = { passed: true, message: "Validation skipped" };
+                } else if (onValidate) {
+                  // Use custom validation function
+                  validationResult = await onValidate(dataUrl, width, height);
+                } else {
+                  // Default: use liveness API
+                  const response = await fetch("/api/vision-face-liveness-test", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ image: dataUrl, width, height }),
+                  });
+                  validationResult = await response.json();
+                }
+                
+                console.log('[FaceCamera] Validation response:', validationResult);
                 setCheckingLiveness(false);
-                setLivenessResult({ success: livenessResult.passed, message: livenessResult.passed ? "Liveness check passed." : (livenessResult.message || "Liveness check failed.") });
-                setLivenessPassed(!!livenessResult.passed);
-                if (livenessResult.passed) {
-                  console.log('[FaceCamera] Liveness passed, closing modal and calling onCapture');
+                setLivenessResult({ success: validationResult.passed, message: validationResult.passed ? "Validation passed." : (validationResult.message || "Validation failed.") });
+                setLivenessPassed(!!validationResult.passed);
+                if (validationResult.passed) {
+                  console.log('[FaceCamera] Validation passed, closing modal and calling onCapture');
                   setOpen(false);
-                  onCapture(dataUrl);
+                  // Pass the processed image if returned, otherwise pass original
+                  const imageToReturn = validationResult.processedImage || dataUrl;
+                  onCapture(imageToReturn);
                   // Camera already stopped, livenessLocked remains true
                 } else {
-                  // Liveness failed - keep the pending image so user can see what failed
-                  console.log('[FaceCamera] Liveness failed, keeping pending image for user review');
+                  // Validation failed - keep the pending image so user can see what failed
+                  console.log('[FaceCamera] Validation failed, keeping pending image for user review');
                   // Don't clear pendingImage - we want to show it
                   // setPendingImage(null);
                   // setPendingBoxed(null);
                   // setPendingDetection(null);
                 }
-                // Optionally, you can also send to face detection API if liveness passed
-                if (livenessResult.passed) {
+                // Optionally, you can also send to face detection API if validation passed
+                if (validationResult.passed) {
                   const base64 = dataUrl.replace(/^data:image\/(png|jpeg);base64,/, "");
                   console.log('[FaceCamera] Sending image to /api/vision-face-detect');
                   const response2 = await fetch("/api/vision-face-detect", {
@@ -167,9 +197,9 @@ export default function FaceCamera({ onCapture, onRetake, width = 320, height = 
                   }
                 }
               } catch (err) {
-                console.error('[FaceCamera] Liveness API error:', err);
+                console.error('[FaceCamera] Validation error:', err);
                 setCheckingLiveness(false);
-                setLivenessResult({ success: false, message: "Liveness API error. Please try again." });
+                setLivenessResult({ success: false, message: "Validation error. Please try again." });
                 setPendingDetection({ success: false, message: "Face detection failed. Please try again." });
                 // Clear pending image on error
                 setPendingImage(null);
