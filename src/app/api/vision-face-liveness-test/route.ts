@@ -51,10 +51,62 @@ async function calculateBlur(imageBuffer: Buffer): Promise<number> {
   return variance;
 }
 
-// Utility: Simple texture analysis (placeholder)
-function analyzeTexture(imageData: Uint8ClampedArray, width: number, height: number): number {
-  // Placeholder: In production, use GLCM, LBP, or similar
-  return Math.random(); // Replace with real texture analysis
+// Utility: Texture analysis using edge density and standard deviation
+async function analyzeTexture(imageBuffer: Buffer): Promise<number> {
+  // Convert to grayscale and get raw pixel data
+  const { data, info } = await sharp(imageBuffer)
+    .greyscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  
+  const width = info.width;
+  const height = info.height;
+  
+  // Calculate standard deviation (texture variation)
+  let sum = 0;
+  let count = 0;
+  for (let i = 0; i < data.length; i++) {
+    sum += data[i];
+    count++;
+  }
+  const mean = sum / count;
+  
+  let variance = 0;
+  for (let i = 0; i < data.length; i++) {
+    variance += Math.pow(data[i] - mean, 2);
+  }
+  variance /= count;
+  const stdDev = Math.sqrt(variance);
+  
+  // Calculate edge density using simple gradient (Sobel-like)
+  let edgeCount = 0;
+  const threshold = 30; // Edge detection threshold
+  
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const idx = y * width + x;
+      // Horizontal gradient
+      const gx = -data[idx - 1] + data[idx + 1];
+      // Vertical gradient
+      const gy = -data[idx - width] + data[idx + width];
+      // Gradient magnitude
+      const gradient = Math.sqrt(gx * gx + gy * gy);
+      
+      if (gradient > threshold) {
+        edgeCount++;
+      }
+    }
+  }
+  
+  const edgeDensity = edgeCount / ((width - 2) * (height - 2));
+  
+  // Combine metrics: normalized standard deviation + edge density
+  // Real faces have texture variation (higher stdDev) and natural edges
+  // Printed photos tend to have uniform texture and fewer natural edges
+  const normalizedStdDev = stdDev / 255; // Normalize to 0-1
+  const textureScore = (normalizedStdDev * 0.6) + (edgeDensity * 0.4);
+  
+  return textureScore;
 }
 
 // Utility: Reflection/lighting analysis (placeholder)
@@ -73,6 +125,14 @@ function analyzeColorSpectrum(imageData: Uint8ClampedArray, width: number, heigh
 function estimateFaceDepth(imageData: Uint8ClampedArray, width: number, height: number): number {
   // Placeholder: Needs stereo/ToF data, not available in standard webcam
   return Math.random(); // Replace with real depth estimation
+}
+
+// Utility: Eye detection - check if both eyes are open (placeholder)
+function detectEyesOpen(imageData: Uint8ClampedArray, width: number, height: number): boolean {
+  // Placeholder: In production, use eye aspect ratio (EAR) or ML-based eye state detection
+  // Should detect eye landmarks and calculate if eyes are open based on vertical/horizontal ratios
+  // For now, return true to simulate both eyes being open
+  return Math.random() > 0.3; // Replace with real eye detection logic
 }
 
 export async function POST(req: NextRequest) {
@@ -97,12 +157,13 @@ export async function POST(req: NextRequest) {
 
     // Run anti-spoofing checks (blur is real, others are placeholders)
     const blur = await calculateBlur(buffer);
+    const texture = await analyzeTexture(buffer);
     // For now, keep other checks as placeholders
     const imageData = new Uint8ClampedArray(buffer);
-    const texture = analyzeTexture(imageData, width, height);
     const reflection = analyzeReflection(imageData, width, height);
     const colorSpectrum = analyzeColorSpectrum(imageData, width, height);
     const depth = estimateFaceDepth(imageData, width, height);
+    const eyesOpen = detectEyesOpen(imageData, width, height);
 
     // Looser thresholds for higher chance of success
     const blurThreshold = 1; // Lowered: allow more blur
@@ -117,16 +178,18 @@ export async function POST(req: NextRequest) {
       texture,
       reflection,
       colorSpectrum,
-      depth
+      depth,
+      eyesOpen
     });
 
-    const passed = blur > blurThreshold && texture > textureThreshold && reflection < reflectionThreshold && colorSpectrum > colorSpectrumThreshold && depth > depthThreshold;
+    const passed = blur > blurThreshold && texture > textureThreshold && reflection < reflectionThreshold && colorSpectrum > colorSpectrumThreshold && depth > depthThreshold && eyesOpen;
     const results = {
       blur,
       texture,
       reflection,
       colorSpectrum,
       depth,
+      eyesOpen,
       passed,
     };
     console.log('[LivenessAPI] Decision:', { passed, thresholds: { blurThreshold, textureThreshold, reflectionThreshold, colorSpectrumThreshold, depthThreshold } });
