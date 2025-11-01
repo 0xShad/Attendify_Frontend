@@ -106,6 +106,12 @@ export default function FaceCamera({ onCapture, width = 320, height = 240, class
                   setOpen(false);
                   onCapture(dataUrl);
                   // Camera already stopped, livenessLocked remains true
+                } else {
+                  // Liveness failed - clear the pending image so it can't be used
+                  console.log('[FaceCamera] Liveness failed, clearing pending image');
+                  setPendingImage(null);
+                  setPendingBoxed(null);
+                  setPendingDetection(null);
                 }
                 // Optionally, you can also send to face detection API if liveness passed
                 if (livenessResult.passed) {
@@ -159,6 +165,8 @@ export default function FaceCamera({ onCapture, width = 320, height = 240, class
                 console.error('[FaceCamera] Liveness API error:', err);
                 setLivenessResult({ success: false, message: "Liveness API error. Please try again." });
                 setPendingDetection({ success: false, message: "Face detection failed. Please try again." });
+                // Clear pending image on error
+                setPendingImage(null);
                 setPendingBoxed(null);
               }
               setDetecting(false);
