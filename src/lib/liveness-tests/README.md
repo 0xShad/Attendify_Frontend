@@ -11,7 +11,7 @@ This module provides comprehensive anti-spoofing tests for face liveness detecti
 | **Reflection Analysis** | Lighting patterns | `0.28` | Screen glare, artificial highlights | Natural lighting score > 0.28 |
 | **Color Spectrum** | Skin tones | `0.40` | Unnatural colors, screen artifacts | Skin tone presence > 0.40 |
 | **Depth Estimation** | 3D structure | `0.50` | Flat 2D images vs 3D faces | Depth cues score > 0.50 |
-| **Eye Detection** | Eyes open & frontal | Min: `600`<br>Balance: `0.35` | Closed/squinted eyes, wrong pose | Both eyes variance > 600<br>Eyes balanced > 0.35<br>Frontal geometry ✓ |
+| **Eye Detection** | Eyes open & frontal | Min: `650`<br>Balance: `0.40` | Closed/squinted eyes, wrong pose | Both eyes variance > 650<br>Eyes balanced > 0.40<br>Frontal geometry ✓ |
 
 **Performance Summary**:
 - **First call**: ~3 seconds (model loading)
@@ -198,9 +198,9 @@ hasGoodProportions = 0.3 < proportionRatio < 2.0
 // Open eyes: High variance (pupil/iris/sclera contrast)
 // Closed/squinted eyes: Low variance (smooth eyelid)
 
-MIN_VARIANCE = 600
-rightEyeOpen = rightEyeVariance > 600
-leftEyeOpen = leftEyeVariance > 600
+MIN_VARIANCE = 650
+rightEyeOpen = rightEyeVariance > 650
+leftEyeOpen = leftEyeVariance > 650
 ```
 
 #### Layer 3: Eye Balance Check
@@ -208,8 +208,8 @@ leftEyeOpen = leftEyeVariance > 600
 // Prevent one eye open, one eye closed/squinted
 varianceRatio = min(variance) / max(variance)
 
-// Eyes must be within 35% similarity
-areBalanced = varianceRatio > 0.35
+// Eyes must be within 40% similarity
+areBalanced = varianceRatio > 0.40
 ```
 
 **Pass Condition**:
@@ -220,8 +220,8 @@ PASS = rightEyeOpen && leftEyeOpen && areBalanced &&
 
 **Example Variance Values**:
 - Closed eye: 150-400 ❌
-- Squinted eye: 400-600 ❌
-- Partially open: 600-800 ⚠️
+- Squinted eye: 400-650 ❌
+- Partially open: 650-800 ⚠️
 - Wide open: 800-1500 ✅
 
 **Model Caching**: BlazeFace model loads once (~2-3s) and caches for subsequent requests (~100-200ms)

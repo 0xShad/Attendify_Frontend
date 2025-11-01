@@ -76,9 +76,9 @@ function analyzeEyeRegion(
 
   // Open eyes have higher variance due to pupil/iris contrast
   // Closed eyes or squinting have lower variance (smooth eyelid skin)
-  // Threshold: variance > 700 indicates clearly open eye
+  // Threshold: variance > 650 indicates clearly open eye
   // This rejects squinting and requires wide-open eyes
-  const isOpen = variance > 700;
+  const isOpen = variance > 650;
 
   return { isOpen, variance };
 }
@@ -149,7 +149,7 @@ function estimateEyesOpen(
   console.log(`[EyeDetection] Left eye - variance=${leftEyeAnalysis.variance.toFixed(1)}, open=${leftEyeAnalysis.isOpen}`);
 
   // Individual thresholds for each eye
-  const MIN_VARIANCE = 600; // Minimum variance for each eye
+  const MIN_VARIANCE = 650; // Minimum variance for each eye
   const rightEyeOpen = rightEyeAnalysis.variance > MIN_VARIANCE;
   const leftEyeOpen = leftEyeAnalysis.variance > MIN_VARIANCE;
 
@@ -158,9 +158,9 @@ function estimateEyesOpen(
   const minVariance = Math.min(rightEyeAnalysis.variance, leftEyeAnalysis.variance);
   const varianceRatio = minVariance / maxVariance;
 
-  // Eyes should have somewhat similar variance (within 35% of each other)
+  // Eyes should have somewhat similar variance (within 40% of each other)
   // This catches cases like one eye squinted while other is open
-  const areBalanced = varianceRatio > 0.35;
+  const areBalanced = varianceRatio > 0.40;
 
   console.log(`[EyeDetection] Eye balance - ratio=${varianceRatio.toFixed(3)} (min/max variance), balanced=${areBalanced}`);
 

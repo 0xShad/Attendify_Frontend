@@ -6,12 +6,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@
 
 interface FaceCameraProps {
   onCapture: (dataUrl: string) => void;
+  onRetake?: () => void;
   width?: number;
   height?: number;
   className?: string;
 }
 
-export default function FaceCamera({ onCapture, width = 320, height = 240, className = "" }: FaceCameraProps) {
+export default function FaceCamera({ onCapture, onRetake, width = 320, height = 240, className = "" }: FaceCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [streaming, setStreaming] = useState(false);
@@ -29,6 +30,7 @@ export default function FaceCamera({ onCapture, width = 320, height = 240, class
   const [livenessResult, setLivenessResult] = useState<null | { success: boolean; message: string }>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [livenessLocked, setLivenessLocked] = useState(false);
+  const [checkingLiveness, setCheckingLiveness] = useState(false);
   const { blinkDetected, livenessLoading, reset: resetBlink } = useBlinkLiveness(videoRef, streaming && !livenessLocked);
 
   const startCamera = async () => {
@@ -91,6 +93,7 @@ export default function FaceCamera({ onCapture, width = 320, height = 240, class
             stopCamera();
             setTimeout(async () => {
               try {
+                setCheckingLiveness(true);
                 console.log('[FaceCamera] Sending image to /api/vision-face-liveness-test');
                 const response = await fetch("/api/vision-face-liveness-test", {
                   method: "POST",
@@ -99,6 +102,7 @@ export default function FaceCamera({ onCapture, width = 320, height = 240, class
                 });
                 const livenessResult = await response.json();
                 console.log('[FaceCamera] Liveness API response:', livenessResult);
+                setCheckingLiveness(false);
                 setLivenessResult({ success: livenessResult.passed, message: livenessResult.passed ? "Liveness check passed." : (livenessResult.message || "Liveness check failed.") });
                 setLivenessPassed(!!livenessResult.passed);
                 if (livenessResult.passed) {
@@ -107,11 +111,12 @@ export default function FaceCamera({ onCapture, width = 320, height = 240, class
                   onCapture(dataUrl);
                   // Camera already stopped, livenessLocked remains true
                 } else {
-                  // Liveness failed - clear the pending image so it can't be used
-                  console.log('[FaceCamera] Liveness failed, clearing pending image');
-                  setPendingImage(null);
-                  setPendingBoxed(null);
-                  setPendingDetection(null);
+                  // Liveness failed - keep the pending image so user can see what failed
+                  console.log('[FaceCamera] Liveness failed, keeping pending image for user review');
+                  // Don't clear pendingImage - we want to show it
+                  // setPendingImage(null);
+                  // setPendingBoxed(null);
+                  // setPendingDetection(null);
                 }
                 // Optionally, you can also send to face detection API if liveness passed
                 if (livenessResult.passed) {
@@ -163,6 +168,7 @@ export default function FaceCamera({ onCapture, width = 320, height = 240, class
                 }
               } catch (err) {
                 console.error('[FaceCamera] Liveness API error:', err);
+                setCheckingLiveness(false);
                 setLivenessResult({ success: false, message: "Liveness API error. Please try again." });
                 setPendingDetection({ success: false, message: "Face detection failed. Please try again." });
                 // Clear pending image on error
@@ -272,6 +278,12 @@ export default function FaceCamera({ onCapture, width = 320, height = 240, class
             setBoxedImage(null);
             setLivenessLocked(false);
             resetBlink();
+            
+            // Notify parent that retake is happening
+            if ((captured || pendingImage) && onRetake) {
+              onRetake();
+            }
+            
             setOpen(true);
             setTimeout(() => {
               startCamera();
@@ -315,12 +327,30 @@ export default function FaceCamera({ onCapture, width = 320, height = 240, class
                 {countdown}
               </div>
             )}
-            <video ref={videoRef} width={width} height={height} className="rounded-lg border shadow" autoPlay muted playsInline />
+            <div className="relative">
+              {(checkingLiveness || (livenessResult && !livenessResult.success)) && pendingImage ? (
+                <img src={pendingImage} width={width} height={height} className="rounded-lg border shadow" alt="Captured face" />
+              ) : (
+                <video ref={videoRef} width={width} height={height} className="rounded-lg border shadow" autoPlay muted playsInline />
+              )}
+              {checkingLiveness && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-lg">
+                  <svg className="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                  </svg>
+                  <div className="text-white font-semibold text-center mt-3">
+                    Verifying liveness...<br/>
+                    <span className="text-sm font-normal text-gray-200">Running anti-spoofing checks</span>
+                  </div>
+                </div>
+              )}
+            </div>
             <canvas ref={canvasRef} width={width} height={height} style={{ display: "none" }} />
-            {!blinkDetected && !livenessPassed && (
+            {!blinkDetected && !livenessPassed && !checkingLiveness && (
               <div className="text-blue-700 font-semibold text-center mt-2">Please blink your eyes naturally.<br/>We are verifying liveness...</div>
             )}
-            {livenessLoading && (
+            {livenessLoading && !checkingLiveness && (
               <div className="text-xs text-gray-500 mt-1">Detecting blink...</div>
             )}
             {livenessResult && (
@@ -328,7 +358,7 @@ export default function FaceCamera({ onCapture, width = 320, height = 240, class
                 {livenessResult.message}
               </div>
             )}
-            {livenessPassed && countdown !== null && (
+            {livenessPassed && countdown !== null && !checkingLiveness && (
               <div className="text-blue-700 font-bold text-lg mt-2">Capturing photo in {countdown}...</div>
             )}
             <DialogClose asChild>
