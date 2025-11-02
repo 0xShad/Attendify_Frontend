@@ -66,7 +66,9 @@ export async function listSchools(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch schools: ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || response.statusText;
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -84,7 +86,9 @@ export async function getSchool(id: number): Promise<School> {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch school: ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || response.statusText;
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -92,6 +96,7 @@ export async function getSchool(id: number): Promise<School> {
 
 /**
  * Create a new school
+ * Backend returns: (school_data, None) on success or (None, "error message") on failure
  */
 export async function createSchool(data: SchoolCreate): Promise<School> {
   const response = await fetch(SCHOOLS_ENDPOINTS.CREATE, {
@@ -103,7 +108,9 @@ export async function createSchool(data: SchoolCreate): Promise<School> {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to create school: ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || errorData.message || response.statusText;
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -111,6 +118,7 @@ export async function createSchool(data: SchoolCreate): Promise<School> {
 
 /**
  * Update an existing school
+ * Backend returns: (school_data, None) on success or (None, "error message") on failure
  */
 export async function updateSchool(
   id: number,
@@ -125,7 +133,9 @@ export async function updateSchool(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to update school: ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || errorData.message || response.statusText;
+    throw new Error(errorMessage);
   }
 
   return response.json();
