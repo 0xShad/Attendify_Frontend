@@ -14,33 +14,41 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+
+export interface FilterValues {
+  min_programs?: number;
+  max_programs?: number;
+  min_courses?: number;
+  max_courses?: number;
+  min_students?: number;
+  max_students?: number;
+  min_faculty?: number;
+  max_faculty?: number;
+}
 
 interface SchoolFiltersProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  statusFilter: string;
-  locationFilter: string;
-  onStatusFilterChange: (value: string) => void;
-  onLocationFilterChange: (value: string) => void;
+  filters: FilterValues;
+  onFiltersChange: (filters: FilterValues) => void;
   onClearFilters: () => void;
+  onApplyFilters: () => void;
 }
 
 export function SchoolFilters({
   open,
   onOpenChange,
-  statusFilter,
-  locationFilter,
-  onStatusFilterChange,
-  onLocationFilterChange,
+  filters,
+  onFiltersChange,
   onClearFilters,
+  onApplyFilters,
 }: SchoolFiltersProps) {
+  const handleNumberChange = (field: keyof FilterValues, value: string) => {
+    const numValue = value === "" ? undefined : parseInt(value, 10);
+    onFiltersChange({ ...filters, [field]: numValue });
+  };
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
@@ -53,39 +61,140 @@ export function SchoolFilters({
         <DrawerHeader className="px-0">
           <DrawerTitle>Filter Schools</DrawerTitle>
           <DrawerDescription>
-            Configure filters to refine the schools display
+            Filter schools by programs, courses, students, and faculty counts
           </DrawerDescription>
         </DrawerHeader>
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+          {/* Programs Filter */}
           <div className="space-y-2">
-            <Label htmlFor="status-filter" className="text-sm font-medium">
-              Status
-            </Label>
-            <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-              <SelectTrigger id="status-filter" className="w-full">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label className="text-sm font-medium">Programs Count</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="min-programs" className="text-xs text-muted-foreground">
+                  Min
+                </Label>
+                <Input
+                  id="min-programs"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={filters.min_programs ?? ""}
+                  onChange={(e) => handleNumberChange("min_programs", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="max-programs" className="text-xs text-muted-foreground">
+                  Max
+                </Label>
+                <Input
+                  id="max-programs"
+                  type="number"
+                  min="0"
+                  placeholder="∞"
+                  value={filters.max_programs ?? ""}
+                  onChange={(e) => handleNumberChange("max_programs", e.target.value)}
+                />
+              </div>
+            </div>
           </div>
+
+          {/* Courses Filter */}
           <div className="space-y-2">
-            <Label htmlFor="location-filter" className="text-sm font-medium">
-              Location
-            </Label>
-            <Select value={locationFilter} onValueChange={onLocationFilterChange}>
-              <SelectTrigger id="location-filter" className="w-full">
-                <SelectValue placeholder="Select location" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
-                <SelectItem value="Quezon City">Quezon City</SelectItem>
-                <SelectItem value="Lagro">Lagro</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label className="text-sm font-medium">Courses Count</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="min-courses" className="text-xs text-muted-foreground">
+                  Min
+                </Label>
+                <Input
+                  id="min-courses"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={filters.min_courses ?? ""}
+                  onChange={(e) => handleNumberChange("min_courses", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="max-courses" className="text-xs text-muted-foreground">
+                  Max
+                </Label>
+                <Input
+                  id="max-courses"
+                  type="number"
+                  min="0"
+                  placeholder="∞"
+                  value={filters.max_courses ?? ""}
+                  onChange={(e) => handleNumberChange("max_courses", e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Students Filter */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Students Count</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="min-students" className="text-xs text-muted-foreground">
+                  Min
+                </Label>
+                <Input
+                  id="min-students"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={filters.min_students ?? ""}
+                  onChange={(e) => handleNumberChange("min_students", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="max-students" className="text-xs text-muted-foreground">
+                  Max
+                </Label>
+                <Input
+                  id="max-students"
+                  type="number"
+                  min="0"
+                  placeholder="∞"
+                  value={filters.max_students ?? ""}
+                  onChange={(e) => handleNumberChange("max_students", e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Faculty Filter */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Faculty Count</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="min-faculty" className="text-xs text-muted-foreground">
+                  Min
+                </Label>
+                <Input
+                  id="min-faculty"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={filters.min_faculty ?? ""}
+                  onChange={(e) => handleNumberChange("min_faculty", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="max-faculty" className="text-xs text-muted-foreground">
+                  Max
+                </Label>
+                <Input
+                  id="max-faculty"
+                  type="number"
+                  min="0"
+                  placeholder="∞"
+                  value={filters.max_faculty ?? ""}
+                  onChange={(e) => handleNumberChange("max_faculty", e.target.value)}
+                />
+              </div>
+            </div>
           </div>
         </div>
         <DrawerFooter className="px-0 pt-4">
@@ -94,7 +203,9 @@ export function SchoolFilters({
               Clear Filters
             </Button>
             <DrawerClose asChild>
-              <Button className="flex-1">Apply Filters</Button>
+              <Button className="flex-1" onClick={onApplyFilters}>
+                Apply Filters
+              </Button>
             </DrawerClose>
           </div>
         </DrawerFooter>

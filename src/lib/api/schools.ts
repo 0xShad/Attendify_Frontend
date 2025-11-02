@@ -42,21 +42,58 @@ export interface SchoolUpdate {
 export interface ListSchoolsParams {
   skip?: number;
   limit?: number;
+  name?: string;
+  min_programs?: number;
+  max_programs?: number;
+  min_courses?: number;
+  max_courses?: number;
+  min_students?: number;
+  max_students?: number;
+  min_faculty?: number;
+  max_faculty?: number;
 }
 
 // ==================== API Functions ====================
 
 /**
  * Get a list of all schools with pagination
+ * Optionally filter by name and counts
  */
 export async function listSchools(
   params: ListSchoolsParams = {}
 ): Promise<School[]> {
-  const { skip = 0, limit = 100 } = params;
+  const { 
+    skip = 0, 
+    limit = 100, 
+    name,
+    min_programs,
+    max_programs,
+    min_courses,
+    max_courses,
+    min_students,
+    max_students,
+    min_faculty,
+    max_faculty
+  } = params;
   
   const url = new URL(SCHOOLS_ENDPOINTS.LIST);
   url.searchParams.append('skip', skip.toString());
   url.searchParams.append('limit', limit.toString());
+  
+  // Add name parameter if provided and not empty
+  if (name && name.trim()) {
+    url.searchParams.append('name', name.trim());
+  }
+
+  // Add count filters if provided
+  if (min_programs !== undefined) url.searchParams.append('min_programs', min_programs.toString());
+  if (max_programs !== undefined) url.searchParams.append('max_programs', max_programs.toString());
+  if (min_courses !== undefined) url.searchParams.append('min_courses', min_courses.toString());
+  if (max_courses !== undefined) url.searchParams.append('max_courses', max_courses.toString());
+  if (min_students !== undefined) url.searchParams.append('min_students', min_students.toString());
+  if (max_students !== undefined) url.searchParams.append('max_students', max_students.toString());
+  if (min_faculty !== undefined) url.searchParams.append('min_faculty', min_faculty.toString());
+  if (max_faculty !== undefined) url.searchParams.append('max_faculty', max_faculty.toString());
 
   const response = await fetch(url.toString(), {
     method: 'GET',
@@ -71,7 +108,9 @@ export async function listSchools(
     throw new Error(errorMessage);
   }
 
-  return response.json();
+  const data = await response.json();
+  
+  return data;
 }
 
 /**

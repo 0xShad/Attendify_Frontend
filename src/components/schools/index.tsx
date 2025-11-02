@@ -6,7 +6,8 @@ import type { School as APISchool } from "@/lib/api/schools";
 import { useToast } from "@/hooks/use-toast";
 import type { School, SchoolFormData } from "./types";
 import { SchoolCard } from "./SchoolCard";
-import { SchoolFilters } from "./SchoolFilters";
+import { SchoolFilters, type FilterValues } from "./SchoolFilters";
+import { SearchBar } from "./SearchBar";
 import { AddSchoolDrawer } from "./AddSchoolDrawer";
 import { ViewSchoolDrawer } from "./ViewSchoolDrawer";
 import { EditSchoolDrawer } from "./EditSchoolDrawer";
@@ -36,8 +37,12 @@ export function SchoolsManagement() {
   const itemsPerPage = 12; // 12 items per page (4x3 grid on large screens)
 
   // Filter states
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [filters, setFilters] = useState<FilterValues>({});
+  const [appliedFilters, setAppliedFilters] = useState<FilterValues>({});
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isSearching, setIsSearching] = useState(false);
 
   // Form states
   const [formData, setFormData] = useState<SchoolFormData>({
@@ -58,7 +63,8 @@ export function SchoolsManagement() {
         
         const apiSchools = await schoolsAPI.listSchools({ 
           skip, 
-          limit: itemsPerPage 
+          limit: itemsPerPage,
+          ...appliedFilters
         });
 
         // Transform API schools to component School format
@@ -95,17 +101,74 @@ export function SchoolsManagement() {
       }
     };
 
-    fetchSchools();
-  }, [currentPage]);
+    // Only fetch if not searching
+    if (!isSearching) {
+      fetchSchools();
+    }
+  }, [currentPage, isSearching, appliedFilters]);
 
-  // Filter schools
-  const filteredSchools = schools.filter((school) => {
-    const matchesStatus =
-      statusFilter === "all" || school.status.toLowerCase() === statusFilter;
-    const matchesLocation =
-      locationFilter === "all" || school.location.includes(locationFilter);
-    return matchesStatus && matchesLocation;
-  });
+  // No client-side filtering needed - backend handles it all
+  const filteredSchools = schools;
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      // If search is empty, exit search mode and reset
+      setIsSearching(false);
+      setCurrentPage(1);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Use listSchools with name parameter
+      const results = await schoolsAPI.listSchools({
+        skip: 0,
+        limit: itemsPerPage,
+        name: searchQuery.trim(),
+        ...appliedFilters
+      });
+      
+      // Transform results to component format
+      const transformedSchools: School[] = results.map((apiSchool) => ({
+        id: apiSchool.id.toString(),
+        name: apiSchool.name,
+        location: apiSchool.address || "No address provided",
+        description: apiSchool.description || "No description available",
+        address: apiSchool.address || "No address provided",
+        contact: "N/A",
+        email: "N/A",
+        totalPrograms: apiSchool.programs_count,
+        totalCourses: apiSchool.courses_count,
+        totalStudents: apiSchool.students_count,
+        totalFaculty: apiSchool.faculty_count,
+        status: "Active" as const,
+      }));
+      
+      setSchools(transformedSchools);
+      setTotalSchools(transformedSchools.length);
+      setCurrentPage(1);
+      setIsSearching(true); // Set this AFTER updating schools state
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Search failed"
+      );
+      setSchools([]);
+      setTotalSchools(0);
+      setIsSearching(true); // Still set searching even on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setIsSearching(false);
+    setCurrentPage(1);
+    // Clear schools to force a fresh fetch
+    setSchools([]);
+  };
 
   const handleViewSchool = async (school: School) => {
     try {
@@ -380,8 +443,13 @@ export function SchoolsManagement() {
   };
 
   const handleClearFilters = () => {
-    setStatusFilter("all");
-    setLocationFilter("all");
+    setFilters({});
+    setAppliedFilters({});
+  };
+
+  const handleApplyFilters = () => {
+    setAppliedFilters(filters);
+    setCurrentPage(1); // Reset to first page when applying filters
   };
 
   return (
@@ -394,24 +462,35 @@ export function SchoolsManagement() {
             Manage universities and institutions using Attendify
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
+      </div>
+
+      {/* Search Bar and Actions */}
+      <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center sm:justify-between">
+        <div className="flex gap-2">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            onSearch={handleSearch}
+            onClear={handleClearSearch}
+            isSearching={isSearching}
+            disabled={loading}
+          />
           <SchoolFilters
             open={filterOpen}
             onOpenChange={setFilterOpen}
-            statusFilter={statusFilter}
-            locationFilter={locationFilter}
-            onStatusFilterChange={setStatusFilter}
-            onLocationFilterChange={setLocationFilter}
+            filters={filters}
+            onFiltersChange={setFilters}
             onClearFilters={handleClearFilters}
-          />
-          <AddSchoolDrawer
-            open={addSchoolOpen}
-            onOpenChange={setAddSchoolOpen}
-            formData={formData}
-            onFormDataChange={setFormData}
-            onSubmit={handleAddSchool}
+            onApplyFilters={handleApplyFilters}
           />
         </div>
+        <AddSchoolDrawer
+          open={addSchoolOpen}
+          onOpenChange={setAddSchoolOpen}
+          formData={formData}
+          onFormDataChange={setFormData}
+          onSubmit={handleAddSchool}
+        />
       </div>
 
       {/* Loading State */}
@@ -450,8 +529,8 @@ export function SchoolsManagement() {
             )}
           </div>
 
-          {/* Pagination Controls */}
-          {filteredSchools.length > 0 && (
+          {/* Pagination Controls - Hide when searching */}
+          {!isSearching && filteredSchools.length > 0 && (
             <PaginationControls
               currentPage={currentPage}
               totalItems={totalSchools}
