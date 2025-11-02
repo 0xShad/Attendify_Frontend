@@ -23,7 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ProgramFormData } from "./types";
+import type { SchoolOption } from "@/lib/api/programs";
+
+interface ProgramFormData {
+  code: string;
+  name: string;
+  description: string;
+  school_id: number | null;
+}
 
 interface AddProgramDrawerProps {
   open: boolean;
@@ -31,7 +38,7 @@ interface AddProgramDrawerProps {
   formData: ProgramFormData;
   onFormDataChange: (data: ProgramFormData) => void;
   onSubmit: () => void;
-  schools: string[];
+  schools: SchoolOption[];
 }
 
 export function AddProgramDrawer({
@@ -57,7 +64,46 @@ export function AddProgramDrawer({
         </DrawerHeader>
         <div className="space-y-4 overflow-y-auto">
           <div className="space-y-2">
-            <Label htmlFor="program-name">Program Name</Label>
+            <Label htmlFor="school">
+              School <span className="text-red-500">*</span>
+            </Label>
+            <Select
+              value={formData.school_id?.toString() || ""}
+              onValueChange={(value) =>
+                onFormDataChange({ ...formData, school_id: value ? parseInt(value) : null })
+              }
+              required
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select school" />
+              </SelectTrigger>
+              <SelectContent>
+                {schools.map((school) => (
+                  <SelectItem key={school.id} value={school.id.toString()}>
+                    {school.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="program-code">
+              Program Code <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="program-code"
+              value={formData.code}
+              onChange={(e) =>
+                onFormDataChange({ ...formData, code: e.target.value })
+              }
+              placeholder="e.g., BSCS"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="program-name">
+              Program Name <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="program-name"
               value={formData.name}
@@ -65,78 +111,8 @@ export function AddProgramDrawer({
                 onFormDataChange({ ...formData, name: e.target.value })
               }
               placeholder="Enter program name"
+              required
             />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="program-code">Program Code</Label>
-              <Input
-                id="program-code"
-                value={formData.code}
-                onChange={(e) =>
-                  onFormDataChange({ ...formData, code: e.target.value })
-                }
-                placeholder="e.g., BSCS"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="school">School</Label>
-              <Select
-                value={formData.school}
-                onValueChange={(value) =>
-                  onFormDataChange({ ...formData, school: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select school" />
-                </SelectTrigger>
-                <SelectContent>
-                  {schools.map((school) => (
-                    <SelectItem key={school} value={school}>
-                      {school}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="duration">Duration</Label>
-              <Select
-                value={formData.duration}
-                onValueChange={(value) =>
-                  onFormDataChange({ ...formData, duration: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2 Years">2 Years</SelectItem>
-                  <SelectItem value="4 Years">4 Years</SelectItem>
-                  <SelectItem value="5 Years">5 Years</SelectItem>
-                  <SelectItem value="6 Years">6 Years</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: "Active" | "Inactive") =>
-                  onFormDataChange({ ...formData, status: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
@@ -146,8 +122,8 @@ export function AddProgramDrawer({
               onChange={(e) =>
                 onFormDataChange({ ...formData, description: e.target.value })
               }
-              placeholder="Enter program description"
-              rows={3}
+              placeholder="Enter program description (optional)"
+              rows={4}
             />
           </div>
         </div>

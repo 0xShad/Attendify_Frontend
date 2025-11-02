@@ -8,10 +8,14 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhos
 
 const PROGRAMS_ENDPOINTS = {
   LIST: `${API_BASE_URL}/programs/`,
+  SEARCH: `${API_BASE_URL}/programs/search`,
   DETAIL: (id: number) => `${API_BASE_URL}/programs/${id}`,
   CREATE: `${API_BASE_URL}/programs/`,
   UPDATE: (id: number) => `${API_BASE_URL}/programs/${id}`,
   DELETE: (id: number) => `${API_BASE_URL}/programs/${id}`,
+  OPTIONS_SCHOOLS: `${API_BASE_URL}/programs/options/schools`,
+  OPTIONS_CODES: `${API_BASE_URL}/programs/options/codes`,
+  OPTIONS_CODES_BY_SCHOOL: (schoolId: number) => `${API_BASE_URL}/programs/options/codes/school/${schoolId}`,
 } as const;
 
 // ==================== Types ====================
@@ -44,7 +48,7 @@ export interface ProgramUpdate {
 export interface ListProgramsParams {
   skip?: number;
   limit?: number;
-  search?: string;
+  code?: string;
   school_id?: number;
   min_courses?: number;
   max_courses?: number;
@@ -52,11 +56,53 @@ export interface ListProgramsParams {
   max_students?: number;
 }
 
+export interface SearchProgramsParams {
+  skip?: number;
+  limit?: number;
+  query?: string;
+}
+
+export interface SchoolOption {
+  id: number;
+  name: string;
+}
+
 // ==================== API Functions ====================
 
 /**
- * Get a list of all programs with pagination
- * Optionally filter by search term, school, and counts
+ * Search programs by name or code (OR logic)
+ */
+export async function searchPrograms(
+  params: SearchProgramsParams = {}
+): Promise<Program[]> {
+  const { skip = 0, limit = 100, query } = params;
+  
+  const url = new URL(PROGRAMS_ENDPOINTS.SEARCH);
+  url.searchParams.append('skip', skip.toString());
+  url.searchParams.append('limit', limit.toString());
+  
+  if (query && query.trim()) {
+    url.searchParams.append('query', query.trim());
+  }
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || response.statusText;
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * List programs with filters (AND logic)
  */
 export async function listPrograms(
   params: ListProgramsParams = {}
@@ -64,7 +110,7 @@ export async function listPrograms(
   const { 
     skip = 0, 
     limit = 100, 
-    search,
+    code,
     school_id,
     min_courses,
     max_courses,
@@ -76,12 +122,10 @@ export async function listPrograms(
   url.searchParams.append('skip', skip.toString());
   url.searchParams.append('limit', limit.toString());
   
-  // Add search parameter if provided and not empty
-  if (search && search.trim()) {
-    url.searchParams.append('search', search.trim());
+  if (code && code.trim()) {
+    url.searchParams.append('code', code.trim());
   }
 
-  // Add filters if provided
   if (school_id !== undefined) url.searchParams.append('school_id', school_id.toString());
   if (min_courses !== undefined) url.searchParams.append('min_courses', min_courses.toString());
   if (max_courses !== undefined) url.searchParams.append('max_courses', max_courses.toString());
@@ -139,9 +183,18 @@ export async function createProgram(data: ProgramCreate): Promise<Program> {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage = errorData.detail || errorData.message || response.statusText;
-    throw new Error(errorMessage);
+    try {
+      const errorData = await response.json();
+      const errorMessage = errorData.detail || errorData.message || `Failed to create program (${response.status})`;
+      throw new Error(errorMessage);
+    } catch (parseError) {
+      // If parseError is already our thrown Error with message, re-throw it
+      if (parseError instanceof Error && parseError.message && !parseError.message.includes('JSON')) {
+        throw parseError;
+      }
+      // If JSON parsing fails, throw a generic error
+      throw new Error(`Failed to create program (${response.status}: ${response.statusText})`);
+    }
   }
 
   return response.json();
@@ -199,11 +252,75 @@ export async function deleteProgram(id: number): Promise<void> {
   }
 }
 
+/**
+ * Get all schools for filtering
+ */
+export async function getSchoolOptions(): Promise<SchoolOption[]> {
+  const response = await fetch(PROGRAMS_ENDPOINTS.OPTIONS_SCHOOLS, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || response.statusText;
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get all unique program codes for filtering
+ */
+export async function getProgramCodes(): Promise<string[]> {
+  const response = await fetch(PROGRAMS_ENDPOINTS.OPTIONS_CODES, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || response.statusText;
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get program codes for a specific school
+ */
+export async function getProgramCodesBySchool(schoolId: number): Promise<string[]> {
+  const response = await fetch(PROGRAMS_ENDPOINTS.OPTIONS_CODES_BY_SCHOOL(schoolId), {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || response.statusText;
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
 // Export as programsAPI object for consistency
 export const programsAPI = {
+  searchPrograms,
   listPrograms,
   getProgram,
   createProgram,
   updateProgram,
   deleteProgram,
+  getSchoolOptions,
+  getProgramCodes,
+  getProgramCodesBySchool,
 };

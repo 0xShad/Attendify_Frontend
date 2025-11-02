@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { programsAPI } from "@/lib/api/programs";
+import { programsAPI, type SchoolOption } from "@/lib/api/programs";
 import type { Program as APIProgram } from "@/lib/api/programs";
 import { useToast } from "@/hooks/use-toast";
-import type { Program, ProgramFormData } from "./types";
+import type { Program } from "./types";
 import { SearchBar } from "./SearchBar";
 import { ColumnCustomizer } from "./ColumnCustomizer";
 import { ProgramsTable } from "./ProgramsTable";
@@ -15,6 +15,13 @@ import { EditProgramDrawer } from "./EditProgramDrawer";
 import { DeleteProgramDialog } from "./DeleteProgramDialog";
 import { ProgramFilters, type FilterValues } from "./ProgramFilters";
 import { PaginationControls } from "./PaginationControls";
+
+interface ProgramFormData {
+  code: string;
+  name: string;
+  description: string;
+  school_id: number | null;
+}
 
 export function ProgramsManagement() {
   const { toast } = useToast();
@@ -40,18 +47,28 @@ export function ProgramsManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
+  // Schools for dropdowns
+  const [schools, setSchools] = useState<SchoolOption[]>([]);
+
   // Form data state
   const [formData, setFormData] = useState<ProgramFormData>({
-    name: "",
     code: "",
-    school: "",
-    duration: "4 Years",
-    status: "Active",
+    name: "",
     description: "",
+    school_id: null,
   });
 
-  // Get unique schools for dropdown
-  const schools = Array.from(new Set(programs.map((p) => p.school)));
+  // Check if any filters are applied
+  const hasFilters = () => {
+    return !!(
+      appliedFilters.code ||
+      appliedFilters.school_id ||
+      appliedFilters.min_courses !== undefined ||
+      appliedFilters.max_courses !== undefined ||
+      appliedFilters.min_students !== undefined ||
+      appliedFilters.max_students !== undefined
+    );
+  };
 
   // Transform API program to local Program type
   const transformProgram = (apiProgram: APIProgram): Program => ({
@@ -74,15 +91,36 @@ export function ProgramsManagement() {
 
       const skip = (currentPage - 1) * itemsPerPage;
       
-      const apiPrograms = await programsAPI.listPrograms({
-        skip,
-        limit: itemsPerPage,
-        search: searchQuery || undefined,
-        min_courses: appliedFilters.min_courses,
-        max_courses: appliedFilters.max_courses,
-        min_students: appliedFilters.min_students,
-        max_students: appliedFilters.max_students,
-      });
+      let apiPrograms;
+
+      // If search query exists and no filters applied, use search endpoint
+      if (searchQuery && !hasFilters()) {
+        apiPrograms = await programsAPI.searchPrograms({
+          skip,
+          limit: itemsPerPage,
+          query: searchQuery,
+        });
+      } 
+      // If filters applied (with or without search), use list endpoint
+      else if (hasFilters()) {
+        apiPrograms = await programsAPI.listPrograms({
+          skip,
+          limit: itemsPerPage,
+          code: appliedFilters.code,
+          school_id: appliedFilters.school_id,
+          min_courses: appliedFilters.min_courses,
+          max_courses: appliedFilters.max_courses,
+          min_students: appliedFilters.min_students,
+          max_students: appliedFilters.max_students,
+        });
+      }
+      // Default: list all programs
+      else {
+        apiPrograms = await programsAPI.listPrograms({
+          skip,
+          limit: itemsPerPage,
+        });
+      }
 
       const transformedPrograms = apiPrograms.map(transformProgram);
       setPrograms(transformedPrograms);
@@ -107,6 +145,19 @@ export function ProgramsManagement() {
       setIsSearching(false);
     }
   };
+
+  // Fetch schools for dropdowns
+  useEffect(() => {
+    const loadSchools = async () => {
+      try {
+        const schoolOptions = await programsAPI.getSchoolOptions();
+        setSchools(schoolOptions);
+      } catch (err) {
+        console.error("Failed to load schools:", err);
+      }
+    };
+    loadSchools();
+  }, []);
 
   // Fetch programs on mount and when dependencies change
   useEffect(() => {
@@ -141,13 +192,15 @@ export function ProgramsManagement() {
 
   const handleEditProgram = (program: Program) => {
     setSelectedProgram(program);
+    
+    // Find school_id by matching school name
+    const matchedSchool = schools.find(school => school.name === program.school);
+    
     setFormData({
-      name: program.name,
       code: program.code,
-      school: program.school,
-      duration: program.duration,
-      status: program.status,
+      name: program.name,
       description: program.description || "",
+      school_id: matchedSchool?.id || null,
     });
     setEditProgramOpen(true);
   };
@@ -155,6 +208,136 @@ export function ProgramsManagement() {
   const handleDeleteProgram = (program: Program) => {
     setSelectedProgram(program);
     setDeleteDialogOpen(true);
+  };
+
+  const handleAddProgram = async () => {
+    // Validate required fields
+    if (!formData.code.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Program code is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Program name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.school_id) {
+      toast({
+        title: "Validation Error",
+        description: "School is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await programsAPI.createProgram({
+        code: formData.code.trim(),
+        name: formData.name.trim(),
+        description: formData.description.trim() || undefined,
+        school_id: formData.school_id,
+      });
+
+      toast({
+        title: "Success",
+        description: `Program "${formData.name}" has been created successfully`,
+      });
+
+      setAddProgramOpen(false);
+      resetForm();
+      
+      // Refresh the list
+      fetchPrograms();
+    } catch (err) {
+      let errorMessage = "Failed to create program";
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateProgram = async () => {
+    if (!selectedProgram) return;
+
+    // Validate required fields
+    if (!formData.code.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Program code is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Program name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.school_id) {
+      toast({
+        title: "Validation Error",
+        description: "School is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await programsAPI.updateProgram(parseInt(selectedProgram.id), {
+        code: formData.code.trim(),
+        name: formData.name.trim(),
+        description: formData.description.trim() || undefined,
+        school_id: formData.school_id,
+      });
+
+      toast({
+        title: "Success",
+        description: `Program "${formData.name}" has been updated successfully`,
+      });
+
+      setEditProgramOpen(false);
+      resetForm();
+      
+      // Refresh the list
+      fetchPrograms();
+    } catch (err) {
+      let errorMessage = "Failed to update program";
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -185,12 +368,10 @@ export function ProgramsManagement() {
 
   const resetForm = () => {
     setFormData({
-      name: "",
       code: "",
-      school: "",
-      duration: "4 Years",
-      status: "Active",
+      name: "",
       description: "",
+      school_id: null,
     });
     setSelectedProgram(null);
   };
@@ -233,7 +414,7 @@ export function ProgramsManagement() {
             onOpenChange={setAddProgramOpen}
             formData={formData}
             onFormDataChange={setFormData}
-            onSubmit={() => console.log("Add program")}
+            onSubmit={handleAddProgram}
             schools={schools}
           />
         </div>
@@ -288,7 +469,7 @@ export function ProgramsManagement() {
         onOpenChange={setEditProgramOpen}
         formData={formData}
         onFormDataChange={setFormData}
-        onSubmit={() => console.log("Edit program")}
+        onSubmit={handleUpdateProgram}
         schools={schools}
       />
 
