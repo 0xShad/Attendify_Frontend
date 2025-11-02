@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { schoolsAPI } from "@/lib/api";
+import type { School as APISchool } from "@/lib/api/schools";
 import { useToast } from "@/hooks/use-toast";
 import type { School, SchoolFormData } from "./types";
 import { SchoolCard } from "./SchoolCard";
@@ -10,6 +11,7 @@ import { AddSchoolDrawer } from "./AddSchoolDrawer";
 import { ViewSchoolDrawer } from "./ViewSchoolDrawer";
 import { EditSchoolDrawer } from "./EditSchoolDrawer";
 import { DeleteSchoolDialog } from "./DeleteSchoolDialog";
+import { PaginationControls } from "./PaginationControls";
 import { EmptyState } from "./EmptyState";
 import { LoadingState } from "./LoadingState";
 import { ErrorState } from "./ErrorState";
@@ -28,6 +30,11 @@ export function SchoolsManagement() {
   const [schoolToDelete, setSchoolToDelete] = useState<School | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalSchools, setTotalSchools] = useState(0);
+  const itemsPerPage = 12; // 12 items per page (4x3 grid on large screens)
+
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [locationFilter, setLocationFilter] = useState<string>("all");
@@ -39,13 +46,20 @@ export function SchoolsManagement() {
     description: "",
   });
 
-  // Fetch schools on component mount
+  // Fetch schools on component mount and when page changes
   useEffect(() => {
     const fetchSchools = async () => {
       try {
         setLoading(true);
         setError(null);
-        const apiSchools = await schoolsAPI.listSchools();
+        
+        // Calculate skip based on current page
+        const skip = (currentPage - 1) * itemsPerPage;
+        
+        const apiSchools = await schoolsAPI.listSchools({ 
+          skip, 
+          limit: itemsPerPage 
+        });
 
         // Transform API schools to component School format
         const transformedSchools: School[] = apiSchools.map((apiSchool) => ({
@@ -64,6 +78,14 @@ export function SchoolsManagement() {
         }));
 
         setSchools(transformedSchools);
+        
+        // If we got a full page, there might be more
+        // This is a simple estimate - ideally backend should return total count
+        if (apiSchools.length === itemsPerPage) {
+          setTotalSchools(currentPage * itemsPerPage + 1);
+        } else {
+          setTotalSchools((currentPage - 1) * itemsPerPage + apiSchools.length);
+        }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to fetch schools"
@@ -74,7 +96,7 @@ export function SchoolsManagement() {
     };
 
     fetchSchools();
-  }, []);
+  }, [currentPage]);
 
   // Filter schools
   const filteredSchools = schools.filter((school) => {
@@ -172,6 +194,9 @@ export function SchoolsManagement() {
       setSchools([...schools, transformedSchool]);
       setAddSchoolOpen(false);
       resetForm();
+      
+      // Reset to first page to see the new school
+      setCurrentPage(1);
       
       toast({
         title: "Success",
@@ -305,6 +330,11 @@ export function SchoolsManagement() {
       setDeleteDialogOpen(false);
       setSchoolToDelete(null);
       
+      // If current page becomes empty and it's not page 1, go to previous page
+      if (schools.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
+      
       toast({
         title: "Success",
         description: `School "${schoolName}" has been deleted successfully`,
@@ -392,21 +422,44 @@ export function SchoolsManagement() {
 
       {/* Schools Grid */}
       {!loading && !error && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSchools.length === 0 ? (
-            <EmptyState onAddSchool={() => setAddSchoolOpen(true)} />
-          ) : (
-            filteredSchools.map((school) => (
-              <SchoolCard
-                key={school.id}
-                school={school}
-                onView={handleViewSchool}
-                onEdit={handleEditSchool}
-                onDelete={handleDeleteClick}
-              />
-            ))
+        <>
+          {/* Results Summary */}
+          {filteredSchools.length > 0 && (
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <p>
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to{" "}
+                {Math.min(currentPage * itemsPerPage, totalSchools)} of{" "}
+                {totalSchools} schools
+              </p>
+            </div>
           )}
-        </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredSchools.length === 0 ? (
+              <EmptyState onAddSchool={() => setAddSchoolOpen(true)} />
+            ) : (
+              filteredSchools.map((school) => (
+                <SchoolCard
+                  key={school.id}
+                  school={school}
+                  onView={handleViewSchool}
+                  onEdit={handleEditSchool}
+                  onDelete={handleDeleteClick}
+                />
+              ))
+            )}
+          </div>
+
+          {/* Pagination Controls */}
+          {filteredSchools.length > 0 && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalItems={totalSchools}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+            />
+          )}
+        </>
       )}
 
       {/* Drawers and Dialogs */}
