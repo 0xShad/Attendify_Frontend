@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   IconSchool,
   IconMapPin,
@@ -11,6 +11,7 @@ import {
   IconEdit,
   IconFilter,
   IconPlus,
+  IconTrash,
 } from "@tabler/icons-react";
 import {
   Card,
@@ -31,6 +32,14 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -43,6 +52,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { schoolsAPI } from "@/lib/api";
+import type { School as APISchool } from "@/lib/api/schools";
 
 interface School {
   id: string;
@@ -61,44 +72,17 @@ interface School {
 }
 
 export function SchoolsManagement() {
-  const [schools, setSchools] = useState<School[]>([
-    {
-      id: "SCH001",
-      name: "Quezon City University",
-      location: "Quezon City, Philippines",
-      description:
-        "Leading public university in Quezon City with comprehensive academic programs",
-      address: "673 Quirino Highway, San Bartolome, Novaliches, Quezon City",
-      contact: "+63 2 8806 3000",
-      email: "info@qcu.edu.ph",
-      totalPrograms: 12,
-      totalCourses: 156,
-      totalStudents: 8420,
-      totalFaculty: 245,
-      status: "Active",
-    },
-    {
-      id: "SCH002",
-      name: "Lagro High School",
-      location: "Lagro, Quezon City",
-      description:
-        "Excellence in secondary education with modern facilities and quality teaching",
-      address: "Commonwealth Ave, Lagro, Quezon City",
-      contact: "+63 2 8952 4567",
-      email: "admin@lagrohighschool.edu.ph",
-      totalPrograms: 3,
-      totalCourses: 24,
-      totalStudents: 1200,
-      totalFaculty: 45,
-      status: "Active",
-    },
-  ]);
-
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [addSchoolOpen, setAddSchoolOpen] = useState(false);
   const [viewSchoolOpen, setViewSchoolOpen] = useState(false);
   const [editSchoolOpen, setEditSchoolOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [schoolToDelete, setSchoolToDelete] = useState<School | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -107,13 +91,45 @@ export function SchoolsManagement() {
   // Form states
   const [formData, setFormData] = useState({
     name: "",
-    location: "",
-    description: "",
     address: "",
-    contact: "",
-    email: "",
-    status: "Active" as "Active" | "Inactive",
+    description: "",
   });
+
+  // Fetch schools on component mount
+  useEffect(() => {
+    const fetchSchools = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const apiSchools = await schoolsAPI.listSchools();
+        
+        // Transform API schools to component School format
+        const transformedSchools: School[] = apiSchools.map((apiSchool) => ({
+          id: apiSchool.id.toString(),
+          name: apiSchool.name,
+          location: apiSchool.address || "No address provided",
+          description: apiSchool.description || "No description available",
+          address: apiSchool.address || "No address provided",
+          contact: "N/A", // Not provided by API
+          email: "N/A", // Not provided by API
+          totalPrograms: apiSchool.programs_count,
+          totalCourses: apiSchool.courses_count,
+          totalStudents: apiSchool.students_count,
+          totalFaculty: apiSchool.faculty_count,
+          status: "Active" as const,
+        }));
+        
+        setSchools(transformedSchools);
+      } catch (err) {
+        console.error("Failed to fetch schools:", err);
+        setError(err instanceof Error ? err.message : "Failed to fetch schools");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSchools();
+  }, []);
 
   // Filter schools
   const filteredSchools = schools.filter((school) => {
@@ -124,48 +140,203 @@ export function SchoolsManagement() {
     return matchesStatus && matchesLocation;
   });
 
-  const handleViewSchool = (school: School) => {
-    setSelectedSchool(school);
-    setViewSchoolOpen(true);
+  const handleViewSchool = async (school: School) => {
+    try {
+      // Fetch full school details from API
+      const fullSchoolDetails = await schoolsAPI.getSchool(parseInt(school.id));
+      
+      // Transform API response to component School format
+      const transformedSchool: School = {
+        id: fullSchoolDetails.id.toString(),
+        name: fullSchoolDetails.name,
+        location: fullSchoolDetails.address || "No address provided",
+        description: fullSchoolDetails.description || "No description available",
+        address: fullSchoolDetails.address || "No address provided",
+        contact: school.contact || "N/A",
+        email: school.email || "N/A",
+        totalPrograms: fullSchoolDetails.programs_count,
+        totalCourses: fullSchoolDetails.courses_count,
+        totalStudents: fullSchoolDetails.students_count,
+        totalFaculty: fullSchoolDetails.faculty_count,
+        status: school.status,
+      };
+      
+      setSelectedSchool(transformedSchool);
+      setViewSchoolOpen(true);
+    } catch (err) {
+      console.error("Failed to fetch school details:", err);
+      // Fallback to using the school data we already have
+      setSelectedSchool(school);
+      setViewSchoolOpen(true);
+    }
   };
 
   const handleEditSchool = (school: School) => {
     setSelectedSchool(school);
     setFormData({
       name: school.name,
-      location: school.location,
-      description: school.description,
       address: school.address,
-      contact: school.contact,
-      email: school.email,
-      status: school.status,
+      description: school.description,
     });
     setEditSchoolOpen(true);
   };
 
-  const handleAddSchool = () => {
-    // Add school logic here
-    console.log("Add school:", formData);
-    setAddSchoolOpen(false);
-    resetForm();
+  const handleAddSchool = async () => {
+    try {
+      // Validate required fields
+      if (!formData.name.trim()) {
+        alert("School name is required");
+        return;
+      }
+
+      // Create school via API
+      const payload: { name: string; address?: string; description?: string } = {
+        name: formData.name.trim(),
+      };
+      
+      // Only include optional fields if they have values
+      if (formData.address && formData.address.trim()) {
+        payload.address = formData.address.trim();
+      }
+      
+      if (formData.description && formData.description.trim()) {
+        payload.description = formData.description.trim();
+      }
+
+      const newSchool = await schoolsAPI.createSchool(payload);
+
+      // Transform and add to local state
+      const transformedSchool: School = {
+        id: newSchool.id.toString(),
+        name: newSchool.name,
+        location: newSchool.address || "No address provided",
+        description: newSchool.description || "No description available",
+        address: newSchool.address || "No address provided",
+        contact: "N/A",
+        email: "N/A",
+        totalPrograms: newSchool.programs_count,
+        totalCourses: newSchool.courses_count,
+        totalStudents: newSchool.students_count,
+        totalFaculty: newSchool.faculty_count,
+        status: "Active" as const,
+      };
+
+      setSchools([...schools, transformedSchool]);
+      setAddSchoolOpen(false);
+      resetForm();
+    } catch (err) {
+      console.error("Failed to create school:", err);
+      alert(err instanceof Error ? err.message : "Failed to create school");
+    }
   };
 
-  const handleSaveEdit = () => {
-    // Save edit logic here
-    console.log("Save edit:", formData);
-    setEditSchoolOpen(false);
-    resetForm();
+  const handleSaveEdit = async () => {
+    if (!selectedSchool) return;
+
+    try {
+      // Validate required fields
+      if (!formData.name.trim()) {
+        alert("School name is required");
+        return;
+      }
+
+      // Update school via API - only send fields that have values
+      const payload: { name?: string; address?: string; description?: string } = {};
+      
+      if (formData.name && formData.name.trim()) {
+        payload.name = formData.name.trim();
+      }
+      
+      if (formData.address !== undefined && formData.address.trim()) {
+        payload.address = formData.address.trim();
+      }
+      
+      if (formData.description !== undefined && formData.description.trim()) {
+        payload.description = formData.description.trim();
+      }
+
+      const updatedSchool = await schoolsAPI.updateSchool(
+        parseInt(selectedSchool.id),
+        payload
+      );
+
+      // Transform and update local state
+      const transformedSchool: School = {
+        id: updatedSchool.id.toString(),
+        name: updatedSchool.name,
+        location: updatedSchool.address || "No address provided",
+        description: updatedSchool.description || "No description available",
+        address: updatedSchool.address || "No address provided",
+        contact: selectedSchool.contact,
+        email: selectedSchool.email,
+        totalPrograms: updatedSchool.programs_count,
+        totalCourses: updatedSchool.courses_count,
+        totalStudents: updatedSchool.students_count,
+        totalFaculty: updatedSchool.faculty_count,
+        status: selectedSchool.status,
+      };
+
+      setSchools(
+        schools.map((s) => (s.id === selectedSchool.id ? transformedSchool : s))
+      );
+      setEditSchoolOpen(false);
+      resetForm();
+    } catch (err) {
+      console.error("Failed to update school:", err);
+      alert(err instanceof Error ? err.message : "Failed to update school");
+    }
+  };
+
+  const handleDeleteClick = (school: School) => {
+    setSchoolToDelete(school);
+    setDeleteError(null);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!schoolToDelete) return;
+
+    try {
+      setDeleteError(null);
+      await schoolsAPI.deleteSchool(parseInt(schoolToDelete.id));
+      
+      // Remove from local state
+      setSchools(schools.filter((s) => s.id !== schoolToDelete.id));
+      setDeleteDialogOpen(false);
+      setSchoolToDelete(null);
+    } catch (err) {
+      console.error("Failed to delete school:", err);
+      
+      // Extract error message from API response
+      let errorMessage = "Failed to delete school";
+      
+      if (err instanceof Error) {
+        try {
+          // Try to parse the error message as JSON (if it's a fetch error with detail)
+          const errorText = err.message;
+          if (errorText.includes("program(s)")) {
+            errorMessage = errorText;
+          } else if (errorText.includes("profile(s)")) {
+            errorMessage = errorText;
+          } else if (errorText.includes("not found")) {
+            errorMessage = "School not found";
+          } else {
+            errorMessage = errorText;
+          }
+        } catch {
+          errorMessage = err.message;
+        }
+      }
+      
+      setDeleteError(errorMessage);
+    }
   };
 
   const resetForm = () => {
     setFormData({
       name: "",
-      location: "",
-      description: "",
       address: "",
-      contact: "",
-      email: "",
-      status: "Active",
+      description: "",
     });
     setSelectedSchool(null);
   };
@@ -271,40 +442,18 @@ export function SchoolsManagement() {
                 </DrawerDescription>
               </DrawerHeader>
               <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">School Name</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      placeholder="Enter school name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="location">Location</Label>
-                    <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) =>
-                        setFormData({ ...formData, location: e.target.value })
-                      }
-                      placeholder="Enter location"
-                    />
-                  </div>
-                </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
+                  <Label htmlFor="name">
+                    School Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
                     onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
+                      setFormData({ ...formData, name: e.target.value })
                     }
-                    placeholder="Enter school description"
-                    rows={3}
+                    placeholder="Enter school name"
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -319,47 +468,17 @@ export function SchoolsManagement() {
                     rows={2}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="contact">Contact Number</Label>
-                    <Input
-                      id="contact"
-                      value={formData.contact}
-                      onChange={(e) =>
-                        setFormData({ ...formData, contact: e.target.value })
-                      }
-                      placeholder="Enter contact number"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      placeholder="Enter email address"
-                    />
-                  </div>
-                </div>
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value: "Active" | "Inactive") =>
-                      setFormData({ ...formData, status: value })
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
                     }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="Enter school description"
+                    rows={3}
+                  />
                 </div>
               </div>
               <DrawerFooter className="px-0 pt-4">
@@ -379,14 +498,59 @@ export function SchoolsManagement() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-muted-foreground">Loading schools...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 text-red-800">
+              <IconSchool className="h-5 w-5" />
+              <div>
+                <h3 className="font-semibold">Failed to load schools</h3>
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Schools Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredSchools.map((school) => (
-          <Card
-            key={school.id}
-            className="group hover:shadow-md transition-all duration-200 border-stone-200/50 bg-white/80 backdrop-blur-sm"
-          >
-            <CardHeader className="pb-3">
+      {!loading && !error && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredSchools.length === 0 ? (
+            <div className="col-span-full">
+              <Card className="border-dashed">
+                <CardContent className="pt-6">
+                  <div className="text-center py-12">
+                    <IconSchool className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No schools found</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Get started by adding your first school
+                    </p>
+                    <Button onClick={() => setAddSchoolOpen(true)}>
+                      <IconPlus className="h-4 w-4 mr-2" />
+                      Add School
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            filteredSchools.map((school) => (
+              <Card
+                key={school.id}
+                className="group hover:shadow-md transition-all duration-200 border-stone-200/50 bg-white/80 backdrop-blur-sm"
+              >
+                <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -402,16 +566,26 @@ export function SchoolsManagement() {
                     </div>
                   </div>
                 </div>
-                <Badge
-                  variant={school.status === "Active" ? "secondary" : "outline"}
-                  className={
-                    school.status === "Active"
-                      ? "bg-green-50 text-green-700 border-green-200"
-                      : ""
-                  }
-                >
-                  {school.status}
-                </Badge>
+                <div className="flex flex-col items-end gap-2">
+                  <Badge
+                    variant={school.status === "Active" ? "secondary" : "outline"}
+                    className={
+                      school.status === "Active"
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : ""
+                    }
+                  >
+                    {school.status}
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteClick(school)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <IconTrash className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
 
@@ -430,7 +604,7 @@ export function SchoolsManagement() {
                     </span>
                   </div>
                   <div className="text-lg font-semibold">
-                    {school.totalPrograms}
+                    {school.totalPrograms || 0}
                   </div>
                 </div>
                 <div className="bg-stone-50 rounded-lg p-3 text-center">
@@ -441,7 +615,7 @@ export function SchoolsManagement() {
                     </span>
                   </div>
                   <div className="text-lg font-semibold">
-                    {school.totalCourses}
+                    {school.totalCourses || 0}
                   </div>
                 </div>
                 <div className="bg-stone-50 rounded-lg p-3 text-center">
@@ -452,7 +626,7 @@ export function SchoolsManagement() {
                     </span>
                   </div>
                   <div className="text-lg font-semibold">
-                    {school.totalStudents.toLocaleString()}
+                    {(school.totalStudents || 0).toLocaleString()}
                   </div>
                 </div>
                 <div className="bg-stone-50 rounded-lg p-3 text-center">
@@ -463,7 +637,7 @@ export function SchoolsManagement() {
                     </span>
                   </div>
                   <div className="text-lg font-semibold">
-                    {school.totalFaculty}
+                    {school.totalFaculty || 0}
                   </div>
                 </div>
               </div>
@@ -492,8 +666,10 @@ export function SchoolsManagement() {
               </div>
             </CardFooter>
           </Card>
-        ))}
-      </div>
+        ))
+          )}
+        </div>
+      )}
 
       {/* View School Details Drawer */}
       <Drawer open={viewSchoolOpen} onOpenChange={setViewSchoolOpen}>
@@ -536,24 +712,6 @@ export function SchoolsManagement() {
 
               <Separator />
 
-              {/* Contact Information */}
-              <div>
-                <h4 className="font-semibold mb-3">Contact Information</h4>
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <strong>Address:</strong> {selectedSchool.address}
-                  </div>
-                  <div>
-                    <strong>Phone:</strong> {selectedSchool.contact}
-                  </div>
-                  <div>
-                    <strong>Email:</strong> {selectedSchool.email}
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
               {/* Description */}
               <div>
                 <h4 className="font-semibold mb-3">About</h4>
@@ -571,7 +729,7 @@ export function SchoolsManagement() {
                   <Card className="p-4 text-center">
                     <IconSchool className="h-6 w-6 text-blue-600 mx-auto mb-2" />
                     <div className="text-2xl font-bold">
-                      {selectedSchool.totalPrograms}
+                      {selectedSchool.totalPrograms || 0}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       Programs
@@ -580,14 +738,14 @@ export function SchoolsManagement() {
                   <Card className="p-4 text-center">
                     <IconBooks className="h-6 w-6 text-green-600 mx-auto mb-2" />
                     <div className="text-2xl font-bold">
-                      {selectedSchool.totalCourses}
+                      {selectedSchool.totalCourses || 0}
                     </div>
                     <div className="text-sm text-muted-foreground">Courses</div>
                   </Card>
                   <Card className="p-4 text-center">
                     <IconUsers className="h-6 w-6 text-purple-600 mx-auto mb-2" />
                     <div className="text-2xl font-bold">
-                      {selectedSchool.totalStudents.toLocaleString()}
+                      {(selectedSchool.totalStudents || 0).toLocaleString()}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       Students
@@ -596,7 +754,7 @@ export function SchoolsManagement() {
                   <Card className="p-4 text-center">
                     <IconChalkboard className="h-6 w-6 text-orange-600 mx-auto mb-2" />
                     <div className="text-2xl font-bold">
-                      {selectedSchool.totalFaculty}
+                      {selectedSchool.totalFaculty || 0}
                     </div>
                     <div className="text-sm text-muted-foreground">Faculty</div>
                   </Card>
@@ -624,40 +782,18 @@ export function SchoolsManagement() {
             </DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-4 space-y-4 overflow-y-auto">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-name">School Name</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="Enter school name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-location">Location</Label>
-                <Input
-                  id="edit-location"
-                  value={formData.location}
-                  onChange={(e) =>
-                    setFormData({ ...formData, location: e.target.value })
-                  }
-                  placeholder="Enter location"
-                />
-              </div>
-            </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={formData.description}
+              <Label htmlFor="edit-name">
+                School Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
                 onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
+                  setFormData({ ...formData, name: e.target.value })
                 }
-                placeholder="Enter school description"
-                rows={3}
+                placeholder="Enter school name"
+                required
               />
             </div>
             <div className="space-y-2">
@@ -672,47 +808,17 @@ export function SchoolsManagement() {
                 rows={2}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-contact">Contact Number</Label>
-                <Input
-                  id="edit-contact"
-                  value={formData.contact}
-                  onChange={(e) =>
-                    setFormData({ ...formData, contact: e.target.value })
-                  }
-                  placeholder="Enter contact number"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-email">Email</Label>
-                <Input
-                  id="edit-email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  placeholder="Enter email address"
-                />
-              </div>
-            </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: "Active" | "Inactive") =>
-                  setFormData({ ...formData, status: value })
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Enter school description"
+                rows={3}
+              />
             </div>
           </div>
           <DrawerFooter>
@@ -729,6 +835,87 @@ export function SchoolsManagement() {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete School</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this school? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {schoolToDelete && (
+            <div className="py-4">
+              <div className="bg-stone-50 rounded-lg p-4 space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <IconSchool className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">{schoolToDelete.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {schoolToDelete.location}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Programs:</span>{" "}
+                    <span className="font-medium">{schoolToDelete.totalPrograms || 0}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Courses:</span>{" "}
+                    <span className="font-medium">{schoolToDelete.totalCourses || 0}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Students:</span>{" "}
+                    <span className="font-medium">{schoolToDelete.totalStudents || 0}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Faculty:</span>{" "}
+                    <span className="font-medium">{schoolToDelete.totalFaculty || 0}</span>
+                  </div>
+                </div>
+              </div>
+
+              {deleteError && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <IconTrash className="h-5 w-5 text-red-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-red-900">Cannot Delete School</h4>
+                      <p className="text-sm text-red-700 mt-1">{deleteError}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setSchoolToDelete(null);
+                setDeleteError(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={!!deleteError}
+            >
+              <IconTrash className="h-4 w-4 mr-2" />
+              Delete School
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -204,10 +204,23 @@ function SidebarUserMenu({
 export function AdminPortal() {
   const { toast } = useToast();
 
-  // Navigation
+  // Navigation - Always start with dashboard to avoid hydration mismatch
   const [activeTab, setActiveTab] = useState<
     "dashboard" | "schools" | "programs" | "courses" | "users" | "reports" | "logs"
   >("dashboard");
+
+  // Restore from localStorage after mount (client-side only)
+  React.useEffect(() => {
+    const saved = localStorage.getItem("admin-active-tab");
+    if (saved && ["dashboard", "schools", "programs", "courses", "users", "reports", "logs"].includes(saved)) {
+      setActiveTab(saved as "dashboard" | "schools" | "programs" | "courses" | "users" | "reports" | "logs");
+    }
+  }, []);
+
+  // Persist active tab to localStorage whenever it changes
+  React.useEffect(() => {
+    localStorage.setItem("admin-active-tab", activeTab);
+  }, [activeTab]);
 
   // Sheet and Dialog states
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -513,6 +526,9 @@ export function AdminPortal() {
                           setActiveTab(
                             item.id as
                               | "dashboard"
+                              | "schools"
+                              | "programs"
+                              | "courses"
                               | "users"
                               | "reports"
                               | "logs"
