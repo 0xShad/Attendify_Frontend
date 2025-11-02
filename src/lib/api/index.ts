@@ -7,3 +7,5 @@ export * from "./auth";
 export { authAPI } from "./auth";
 export * from "./schools";
 export { schoolsAPI } from "./schools";
+export * from "./programs";
+export { programsAPI } from "./programs";
