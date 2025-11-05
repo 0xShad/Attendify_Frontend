@@ -20,17 +20,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  IconChevronDown,
-  IconChevronLeft,
-  IconChevronRight,
-  IconChevronsLeft,
-  IconChevronsRight,
-  IconDots,
-  IconGripVertical,
-  IconLayoutColumns,
-  IconPlus,
-} from "@tabler/icons-react";
+import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight, IconDots, IconGripVertical } from "@tabler/icons-react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -46,8 +36,7 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import { User, Eye, Edit, Trash2 } from "lucide-react";
-import { z } from "zod";
+import { User, userSchema } from "./types";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -61,15 +50,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -78,25 +60,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Eye, Edit, Trash2, User as UserIcon } from "lucide-react";
 
-export const userSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  email: z.string().optional(),
-  role: z.string(),
-  status: z.string(),
-  lastActive: z.string().optional(),
-  avatar: z.string().optional(),
-});
+export interface UsersTableProps {
+  data: User[];
+  globalFilter: string;
+  onGlobalFilterChange: (value: string) => void;
+  columnFilters?: ColumnFiltersState;
+  onColumnFiltersChange?: (updater: ColumnFiltersState) => void;
+  onAddUser?: () => void;
+  onViewUser?: (user: User) => void;
+  onEditUser?: (user: User) => void;
+  onDeleteUser?: (user: User) => void;
+  renderToolbar?: (ctx: { table: ReturnType<typeof useReactTable<User>> }) => React.ReactNode;
+  renderFooter?: (ctx: { table: ReturnType<typeof useReactTable<User>> }) => React.ReactNode;
+}
 
-type UserType = z.infer<typeof userSchema>;
-
-// Create a separate component for the drag handle
 function DragHandle({ id }: { id: string }) {
-  const { attributes, listeners } = useSortable({
-    id,
-  });
-
+  const { attributes, listeners } = useSortable({ id });
   return (
     <Button
       {...attributes}
@@ -111,7 +92,7 @@ function DragHandle({ id }: { id: string }) {
   );
 }
 
-const columns: ColumnDef<UserType>[] = [
+const columns: ColumnDef<User>[] = [
   {
     id: "drag",
     header: () => null,
@@ -155,7 +136,7 @@ const columns: ColumnDef<UserType>[] = [
         <div className="flex items-center gap-3">
           <Avatar className="w-10 h-10">
             <AvatarFallback className="bg-slate-500 text-white">
-              <User className="w-5 h-5" />
+              <UserIcon className="w-5 h-5" />
             </AvatarFallback>
           </Avatar>
           <div>
@@ -194,16 +175,12 @@ const columns: ColumnDef<UserType>[] = [
       <div className="flex items-center gap-2">
         <div
           className={`w-2 h-2 rounded-full ${
-            row.original.status === "Active"
-              ? "bg-green-500"
-              : "bg-muted-foreground"
+            row.original.status === "Active" ? "bg-green-500" : "bg-muted-foreground"
           }`}
         />
         <span
           className={`text-sm font-medium ${
-            row.original.status === "Active"
-              ? "text-green-700"
-              : "text-muted-foreground"
+            row.original.status === "Active" ? "text-green-700" : "text-muted-foreground"
           }`}
         >
           {row.original.status}
@@ -223,7 +200,7 @@ const columns: ColumnDef<UserType>[] = [
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
+    cell: ({ row, table }) => (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -236,16 +213,16 @@ const columns: ColumnDef<UserType>[] = [
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => (table.options.meta as any)?.onViewUser?.(row.original)}>
             <Eye className="w-4 h-4 mr-2" />
             View Details
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => (table.options.meta as any)?.onEditUser?.(row.original)}>
             <Edit className="w-4 h-4 mr-2" />
             Edit User
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive">
+          <DropdownMenuItem onClick={() => (table.options.meta as any)?.onDeleteUser?.(row.original)}>
             <Trash2 className="w-4 h-4 mr-2" />
             Delete
           </DropdownMenuItem>
@@ -255,56 +232,53 @@ const columns: ColumnDef<UserType>[] = [
   },
 ];
 
-function DraggableRow({ row }: { row: Row<UserType> }) {
-  const { transform, transition, setNodeRef, isDragging } = useSortable({
-    id: row.original.id,
-  });
-
+function DraggableRow({ row }: { row: Row<User> }) {
+  const { transform, transition, setNodeRef, isDragging } = useSortable({ id: row.original.id });
   return (
     <TableRow
       data-state={row.getIsSelected() && "selected"}
       data-dragging={isDragging}
       ref={setNodeRef}
       className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition: transition,
-      }}
+      style={{ transform: CSS.Transform.toString(transform), transition: transition }}
     >
       {row.getVisibleCells().map((cell) => (
-        <TableCell key={cell.id}>
-          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-        </TableCell>
+        <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
       ))}
     </TableRow>
   );
 }
 
-export function UsersDataTable({ data: initialData }: { data: UserType[] }) {
-  const [data, setData] = React.useState(() => initialData);
+export function UsersTable({
+  data: initialData,
+  globalFilter,
+  onGlobalFilterChange,
+  columnFilters,
+  onColumnFiltersChange,
+  onAddUser,
+  onViewUser,
+  onEditUser,
+  onDeleteUser,
+  renderToolbar,
+  renderFooter,
+}: UsersTableProps) {
+  const [data, setData] = React.useState<User[]>(() => initialData);
+  // Keep local data in sync when parent passes new `data` prop.
+  // The table maintains local state for ordering etc., but when the
+  // parent fetches new rows we must update our local copy so the
+  // table reflects API results.
+  React.useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
   const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [internalColumnFilters, setInternalColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [pagination, setPagination] = React.useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
-  const [globalFilter, setGlobalFilter] = React.useState("");
+  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
   const sortableId = React.useId();
-  const sensors = useSensors(
-    useSensor(MouseSensor, {}),
-    useSensor(TouchSensor, {}),
-    useSensor(KeyboardSensor, {})
-  );
+  const sensors = useSensors(useSensor(MouseSensor, {}), useSensor(TouchSensor, {}), useSensor(KeyboardSensor, {}));
 
-  const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => data?.map(({ id }) => id) || [],
-    [data]
-  );
+  const dataIds = React.useMemo<UniqueIdentifier[]>(() => data?.map(({ id }) => id) || [], [data]);
 
   const table = useReactTable({
     data,
@@ -313,18 +287,19 @@ export function UsersDataTable({ data: initialData }: { data: UserType[] }) {
       sorting,
       columnVisibility,
       rowSelection,
-      columnFilters,
+      columnFilters: columnFilters ?? internalColumnFilters,
       pagination,
       globalFilter,
     },
+    meta: { onViewUser, onEditUser, onDeleteUser },
     getRowId: (row) => row.id,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: onColumnFiltersChange ?? setInternalColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
-    onGlobalFilterChange: setGlobalFilter,
+    onGlobalFilterChange: onGlobalFilterChange,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -336,66 +311,23 @@ export function UsersDataTable({ data: initialData }: { data: UserType[] }) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (active && over && active.id !== over.id) {
-      setData((data) => {
+      setData((old) => {
         const oldIndex = dataIds.indexOf(active.id);
         const newIndex = dataIds.indexOf(over.id);
-        return arrayMove(data, oldIndex, newIndex);
+        return arrayMove(old, oldIndex, newIndex);
       });
     }
   }
 
   return (
     <div className="w-full flex-col justify-start gap-6">
-      <div className="flex items-center justify-between gap-4 px-4 lg:px-0">
-        <div className="flex items-center gap-2 flex-1">
-          <Input
-            placeholder="Search users..."
-            value={globalFilter}
-            onChange={(event) => setGlobalFilter(event.target.value)}
-            className="max-w-sm"
-          />
+      {renderToolbar ? (
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center sm:justify-between">
+          {renderToolbar({ table })}
         </div>
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <IconLayoutColumns />
-                <span className="hidden lg:inline">Customize Columns</span>
-                <span className="lg:hidden">Columns</span>
-                <IconChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {table
-                .getAllColumns()
-                .filter(
-                  (column) =>
-                    typeof column.accessorFn !== "undefined" &&
-                    column.getCanHide()
-                )
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="outline" size="sm">
-            <IconPlus />
-            <span className="hidden lg:inline">Add User</span>
-          </Button>
-        </div>
-      </div>
-      <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-0">
+      ) : null}
+
+      <div className="relative flex flex-col gap-4 overflow-auto lg:px-0 mt-6">
         <div className="overflow-hidden rounded-lg border">
           <DndContext
             collisionDetection={closestCenter}
@@ -413,10 +345,7 @@ export function UsersDataTable({ data: initialData }: { data: UserType[] }) {
                         <TableHead key={header.id} colSpan={header.colSpan}>
                           {header.isPlaceholder
                             ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
+                            : flexRender(header.column.columnDef.header, header.getContext())}
                         </TableHead>
                       );
                     })}
@@ -425,20 +354,14 @@ export function UsersDataTable({ data: initialData }: { data: UserType[] }) {
               </TableHeader>
               <TableBody className="**:data-[slot=table-cell]:first:w-8">
                 {table.getRowModel().rows?.length ? (
-                  <SortableContext
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
-                  >
+                  <SortableContext items={dataIds} strategy={verticalListSortingStrategy}>
                     {table.getRowModel().rows.map((row) => (
                       <DraggableRow key={row.id} row={row} />
                     ))}
                   </SortableContext>
                 ) : (
                   <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
                       No results.
                     </TableCell>
                   </TableRow>
@@ -447,10 +370,15 @@ export function UsersDataTable({ data: initialData }: { data: UserType[] }) {
             </Table>
           </DndContext>
         </div>
-        <div className="flex items-center justify-between px-0">
+
+        {renderFooter ? (
+          <div className="flex items-center justify-between px-0">
+            {renderFooter({ table })}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between px-0">
           <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
+            {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s) selected.
           </div>
           <div className="flex w-full items-center gap-8 lg:w-fit">
             <div className="hidden items-center gap-2 lg:flex">
@@ -464,9 +392,7 @@ export function UsersDataTable({ data: initialData }: { data: UserType[] }) {
                 }}
               >
                 <SelectTrigger size="sm" className="w-20" id="rows-per-page">
-                  <SelectValue
-                    placeholder={table.getState().pagination.pageSize}
-                  />
+                  <SelectValue placeholder={table.getState().pagination.pageSize} />
                 </SelectTrigger>
                 <SelectContent side="top">
                   {[10, 20, 30, 40, 50].map((pageSize) => (
@@ -478,8 +404,7 @@ export function UsersDataTable({ data: initialData }: { data: UserType[] }) {
               </Select>
             </div>
             <div className="flex w-fit items-center justify-center text-sm font-medium">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
+              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
             </div>
             <div className="ml-auto flex items-center gap-2 lg:ml-0">
               <Button
@@ -523,8 +448,11 @@ export function UsersDataTable({ data: initialData }: { data: UserType[] }) {
               </Button>
             </div>
           </div>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+

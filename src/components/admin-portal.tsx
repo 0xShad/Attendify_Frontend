@@ -55,7 +55,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { DataTable } from "@/components/data-table";
+import { UsersManagement } from "@/components/users";
 import { ReportsDataTable } from "@/components/reports-data-table";
 import { LogsDataTable } from "@/components/logs-data-table";
 import { SchoolsManagement } from "@/components/schools-management";
@@ -846,15 +846,15 @@ export function AdminPortal() {
             {/* Users Management */}
             {activeTab === "users" && (
               <div className="space-y-4 md:space-y-6">
-                <DataTable
-                  data={users.map((user, index) => ({
-                    id: user.id,
+                <UsersManagement
+                  data={users.map((user) => ({
+                    id: String(user.id),
                     name: user.name,
                     email: user.email || "",
                     role: user.role,
                     status: user.status,
                     lastActive: user.lastActive || "Never",
-                    department: undefined, // This can be added to the User interface later
+                    avatar: undefined,
                   }))}
                 />
               </div>
