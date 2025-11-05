@@ -12,10 +12,20 @@ export interface School {
   totalStudents: number;
   totalFaculty: number;
   status: "Active" | "Inactive";
+  // Academic data
+  accreditation?: string;
+  establishedYear?: number;
+  principalName?: string;
+  academicLevel?: string;
 }
 
 export interface SchoolFormData {
   name: string;
   address: string;
   description: string;
+  // Academic data fields
+  accreditation?: string;
+  establishedYear?: number;
+  principalName?: string;
+  academicLevel?: string;
 }

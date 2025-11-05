@@ -49,6 +49,10 @@ export function SchoolsManagement() {
     name: "",
     address: "",
     description: "",
+    accreditation: "",
+    establishedYear: undefined,
+    principalName: "",
+    academicLevel: "",
   });
 
   // Fetch schools on component mount and when page changes
@@ -81,6 +85,10 @@ export function SchoolsManagement() {
           totalStudents: apiSchool.students_count,
           totalFaculty: apiSchool.faculty_count,
           status: "Active" as const,
+          accreditation: apiSchool.academic_data?.accreditation,
+          establishedYear: apiSchool.academic_data?.established_year,
+          principalName: apiSchool.academic_data?.principal_name,
+          academicLevel: apiSchool.academic_data?.academic_level,
         }));
 
         setSchools(transformedSchools);
@@ -122,16 +130,22 @@ export function SchoolsManagement() {
       setLoading(true);
       setError(null);
       
-      // Use listSchools with name parameter
+      // Fetch all schools and filter client-side for search
       const results = await schoolsAPI.listSchools({
         skip: 0,
-        limit: itemsPerPage,
-        name: searchQuery.trim(),
+        limit: 100, // Get more results for client-side filtering
+        type: "Academic",
         ...appliedFilters
       });
       
+      // Filter results client-side by name
+      const searchLower = searchQuery.trim().toLowerCase();
+      const filteredResults = results.filter(school => 
+        school.name.toLowerCase().includes(searchLower)
+      );
+      
       // Transform results to component format
-      const transformedSchools: School[] = results.map((apiSchool) => ({
+      const transformedSchools: School[] = filteredResults.map((apiSchool) => ({
         id: apiSchool.id.toString(),
         name: apiSchool.name,
         location: apiSchool.address || "No address provided",
@@ -144,6 +158,10 @@ export function SchoolsManagement() {
         totalStudents: apiSchool.students_count,
         totalFaculty: apiSchool.faculty_count,
         status: "Active" as const,
+        accreditation: apiSchool.academic_data?.accreditation,
+        establishedYear: apiSchool.academic_data?.established_year,
+        principalName: apiSchool.academic_data?.principal_name,
+        academicLevel: apiSchool.academic_data?.academic_level,
       }));
       
       setSchools(transformedSchools);
@@ -206,6 +224,10 @@ export function SchoolsManagement() {
       name: school.name,
       address: school.address,
       description: school.description,
+      accreditation: school.accreditation || "",
+      establishedYear: school.establishedYear,
+      principalName: school.principalName || "",
+      academicLevel: school.academicLevel || "",
     });
     setEditSchoolOpen(true);
   };
@@ -222,9 +244,37 @@ export function SchoolsManagement() {
         return;
       }
 
+      // Build academic_data object
+      const academicData: {
+        accreditation?: string;
+        established_year?: number;
+        principal_name?: string;
+        academic_level?: string;
+      } = {};
+
+      if (formData.accreditation && formData.accreditation.trim()) {
+        academicData.accreditation = formData.accreditation.trim();
+      }
+      if (formData.establishedYear) {
+        academicData.established_year = formData.establishedYear;
+      }
+      if (formData.principalName && formData.principalName.trim()) {
+        academicData.principal_name = formData.principalName.trim();
+      }
+      if (formData.academicLevel && formData.academicLevel.trim()) {
+        academicData.academic_level = formData.academicLevel.trim();
+      }
+
       // Create school via API
-      const payload: { name: string; address?: string; description?: string } = {
+      const payload: { 
+        name: string; 
+        type: "Academic";
+        address?: string; 
+        description?: string;
+        academic_data?: typeof academicData;
+      } = {
         name: formData.name.trim(),
+        type: "Academic", // Always Academic for schools
       };
 
       // Only include optional fields if they have values
@@ -234,6 +284,11 @@ export function SchoolsManagement() {
 
       if (formData.description && formData.description.trim()) {
         payload.description = formData.description.trim();
+      }
+
+      // Only include academic_data if at least one field is set
+      if (Object.keys(academicData).length > 0) {
+        payload.academic_data = academicData;
       }
 
       const newSchool = await schoolsAPI.createSchool(payload);
@@ -252,6 +307,10 @@ export function SchoolsManagement() {
         totalStudents: newSchool.students_count,
         totalFaculty: newSchool.faculty_count,
         status: "Active" as const,
+        accreditation: newSchool.academic_data?.accreditation,
+        establishedYear: newSchool.academic_data?.established_year,
+        principalName: newSchool.academic_data?.principal_name,
+        academicLevel: newSchool.academic_data?.academic_level,
       };
 
       setSchools([...schools, transformedSchool]);
@@ -302,9 +361,34 @@ export function SchoolsManagement() {
         return;
       }
 
+      // Build academic_data object
+      const academicData: {
+        accreditation?: string;
+        established_year?: number;
+        principal_name?: string;
+        academic_level?: string;
+      } = {};
+
+      if (formData.accreditation && formData.accreditation.trim()) {
+        academicData.accreditation = formData.accreditation.trim();
+      }
+      if (formData.establishedYear) {
+        academicData.established_year = formData.establishedYear;
+      }
+      if (formData.principalName && formData.principalName.trim()) {
+        academicData.principal_name = formData.principalName.trim();
+      }
+      if (formData.academicLevel && formData.academicLevel.trim()) {
+        academicData.academic_level = formData.academicLevel.trim();
+      }
+
       // Update school via API - only send fields that have values
-      const payload: { name?: string; address?: string; description?: string } =
-        {};
+      const payload: { 
+        name?: string; 
+        address?: string; 
+        description?: string;
+        academic_data?: typeof academicData;
+      } = {};
 
       if (formData.name && formData.name.trim()) {
         payload.name = formData.name.trim();
@@ -316,6 +400,11 @@ export function SchoolsManagement() {
 
       if (formData.description !== undefined && formData.description.trim()) {
         payload.description = formData.description.trim();
+      }
+
+      // Only include academic_data if at least one field is set
+      if (Object.keys(academicData).length > 0) {
+        payload.academic_data = academicData;
       }
 
       const updatedSchool = await schoolsAPI.updateSchool(
@@ -337,6 +426,10 @@ export function SchoolsManagement() {
         totalStudents: updatedSchool.students_count,
         totalFaculty: updatedSchool.faculty_count,
         status: selectedSchool.status,
+        accreditation: updatedSchool.academic_data?.accreditation,
+        establishedYear: updatedSchool.academic_data?.established_year,
+        principalName: updatedSchool.academic_data?.principal_name,
+        academicLevel: updatedSchool.academic_data?.academic_level,
       };
 
       setSchools(
@@ -438,6 +531,10 @@ export function SchoolsManagement() {
       name: "",
       address: "",
       description: "",
+      accreditation: "",
+      establishedYear: undefined,
+      principalName: "",
+      academicLevel: "",
     });
     setSelectedSchool(null);
   };
@@ -515,7 +612,10 @@ export function SchoolsManagement() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredSchools.length === 0 ? (
-              <EmptyState onAddSchool={() => setAddSchoolOpen(true)} />
+              <EmptyState 
+                onAddSchool={() => setAddSchoolOpen(true)} 
+                isFiltered={isSearching || Object.keys(appliedFilters).length > 0}
+              />
             ) : (
               filteredSchools.map((school) => (
                 <SchoolCard

@@ -79,6 +79,43 @@ export function ViewSchoolDrawer({
 
           <Separator />
 
+          {/* Academic Information */}
+          {(school.accreditation || school.establishedYear || school.principalName || school.academicLevel) && (
+            <>
+              <div>
+                <h4 className="font-semibold mb-3">Academic Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {school.accreditation && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Accreditation</p>
+                      <p className="text-sm mt-1">{school.accreditation}</p>
+                    </div>
+                  )}
+                  {school.establishedYear && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Established Year</p>
+                      <p className="text-sm mt-1">{school.establishedYear}</p>
+                    </div>
+                  )}
+                  {school.principalName && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Principal</p>
+                      <p className="text-sm mt-1">{school.principalName}</p>
+                    </div>
+                  )}
+                  {school.academicLevel && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Academic Level</p>
+                      <p className="text-sm mt-1">{school.academicLevel}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+            </>
+          )}
+
           {/* Summary Statistics */}
           <div>
             <h4 className="font-semibold mb-4">Summary</h4>

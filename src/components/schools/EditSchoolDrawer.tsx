@@ -79,6 +79,63 @@ export function EditSchoolDrawer({
               rows={3}
             />
           </div>
+
+          {/* Academic Data Section */}
+          <div className="pt-4 border-t">
+            <h4 className="text-sm font-medium mb-3">Academic Information</h4>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-accreditation">Accreditation</Label>
+                <Input
+                  id="edit-accreditation"
+                  value={formData.accreditation || ""}
+                  onChange={(e) =>
+                    onFormDataChange({ ...formData, accreditation: e.target.value })
+                  }
+                  placeholder="e.g., CHED, DEPED"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-establishedYear">Established Year</Label>
+                <Input
+                  id="edit-establishedYear"
+                  type="number"
+                  min="1800"
+                  max={new Date().getFullYear()}
+                  value={formData.establishedYear || ""}
+                  onChange={(e) =>
+                    onFormDataChange({ 
+                      ...formData, 
+                      establishedYear: e.target.value ? parseInt(e.target.value) : undefined 
+                    })
+                  }
+                  placeholder="e.g., 1995"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-principalName">Principal Name</Label>
+                <Input
+                  id="edit-principalName"
+                  value={formData.principalName || ""}
+                  onChange={(e) =>
+                    onFormDataChange({ ...formData, principalName: e.target.value })
+                  }
+                  placeholder="Enter principal's name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-academicLevel">Academic Level</Label>
+                <Input
+                  id="edit-academicLevel"
+                  value={formData.academicLevel || ""}
+                  onChange={(e) =>
+                    onFormDataChange({ ...formData, academicLevel: e.target.value })
+                  }
+                  placeholder="e.g., College, High School"
+                />
+              </div>
+            </div>
+          </div>
         </div>
         <DrawerFooter>
           <div className="flex gap-3 max-w-md mx-auto w-full">

@@ -1,48 +1,71 @@
 /**
  * Schools API Client
- * Handles all school-related API calls
+ * Handles all school-related API calls using the organizations endpoint
  */
 
 // ==================== API Configuration ====================
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
 
 const SCHOOLS_ENDPOINTS = {
-  LIST: `${API_BASE_URL}/schools/`,
-  DETAIL: (id: number) => `${API_BASE_URL}/schools/${id}`,
-  CREATE: `${API_BASE_URL}/schools/`,
-  UPDATE: (id: number) => `${API_BASE_URL}/schools/${id}`,
-  DELETE: (id: number) => `${API_BASE_URL}/schools/${id}`,
+  LIST: `${API_BASE_URL}/organizations/`,
+  DETAIL: (id: number) => `${API_BASE_URL}/organizations/${id}`,
+  CREATE: `${API_BASE_URL}/organizations/`,
+  UPDATE: (id: number) => `${API_BASE_URL}/organizations/${id}`,
+  DELETE: (id: number) => `${API_BASE_URL}/organizations/${id}`,
 } as const;
 
 // ==================== Types ====================
 
+export interface AcademicData {
+  accreditation?: string | null;
+  established_year?: number | null;
+  principal_name?: string | null;
+  academic_level?: string | null;
+}
+
+export interface BusinessData {
+  industry?: string | null;
+  ceo_name?: string | null;
+  founded_year?: number | null;
+  company_size?: string | null;
+}
+
 export interface School {
   id: number;
   name: string;
+  type: "Academic" | "Business";
   address: string | null;
   description: string | null;
   programs_count: number;
   courses_count: number;
   students_count: number;
   faculty_count: number;
+  academic_data: AcademicData | null;
+  business_data: BusinessData | null;
 }
 
 export interface SchoolCreate {
   name: string;
+  type: "Academic" | "Business";
   address?: string;
   description?: string;
+  academic_data?: AcademicData;
+  business_data?: BusinessData;
 }
 
 export interface SchoolUpdate {
   name?: string;
+  type?: "Academic" | "Business";
   address?: string;
   description?: string;
+  academic_data?: AcademicData;
+  business_data?: BusinessData;
 }
 
 export interface ListSchoolsParams {
   skip?: number;
   limit?: number;
-  name?: string;
+  type?: "Academic" | "Business";
   min_programs?: number;
   max_programs?: number;
   min_courses?: number;
@@ -57,7 +80,7 @@ export interface ListSchoolsParams {
 
 /**
  * Get a list of all schools with pagination
- * Optionally filter by name and counts
+ * Optionally filter by type and counts
  */
 export async function listSchools(
   params: ListSchoolsParams = {}
@@ -65,7 +88,7 @@ export async function listSchools(
   const { 
     skip = 0, 
     limit = 100, 
-    name,
+    type,
     min_programs,
     max_programs,
     min_courses,
@@ -80,9 +103,12 @@ export async function listSchools(
   url.searchParams.append('skip', skip.toString());
   url.searchParams.append('limit', limit.toString());
   
-  // Add name parameter if provided and not empty
-  if (name && name.trim()) {
-    url.searchParams.append('name', name.trim());
+  // Add type filter if provided - default to Academic for schools
+  if (type) {
+    url.searchParams.append('type', type);
+  } else {
+    // Default to Academic type for schools management
+    url.searchParams.append('type', 'Academic');
   }
 
   // Add count filters if provided

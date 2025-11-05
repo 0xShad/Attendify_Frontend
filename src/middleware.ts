@@ -140,6 +140,7 @@ export async function middleware(request: NextRequest) {
   let isAuthenticated = false;
   let userId: number | undefined;
   let userRole: string | undefined;
+  let profileFetchError = false;
 
   if (accessToken) {
     const result = await verifyTokenAndGetUser(accessToken);
@@ -148,17 +149,23 @@ export async function middleware(request: NextRequest) {
     // If authenticated, fetch profile for role
     if (isAuthenticated && userId) {
       try {
-        const profileRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/profiles/${userId}`);
+        const profileRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/profiles/${userId}`, {
+          signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
+        });
         if (profileRes.ok) {
           const profile = await profileRes.json();
           userRole = profile.role;
-        } else {
-          // Profile not found (404 or error)
+        } else if (profileRes.status === 404) {
+          // Profile not found - user needs to create profile
           userRole = undefined;
+        } else {
+          // Other error (500, 503, etc.) - API connection issue
+          console.error("Profile fetch failed with status:", profileRes.status);
+          profileFetchError = true;
         }
       } catch (err) {
         console.error("Profile fetch failed:", err);
-        userRole = undefined;
+        profileFetchError = true;
       }
     }
   }
@@ -208,6 +215,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // If profile fetch failed due to API error, show error page instead of redirecting
+  if (isProtectedRoute(pathname) && isAuthenticated && profileFetchError) {
+    // Create error response with details
+    const errorUrl = new URL("/error/service-unavailable", request.url);
+    errorUrl.searchParams.set("message", "Unable to connect to authentication service. Please try again later.");
+    return NextResponse.redirect(errorUrl);
+  }
+
   // Redirect authenticated users with missing/invalid role to /profile/create on any protected route,
   // but allow them to access /profile/create itself
   if (
@@ -221,6 +236,11 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users from auth routes to their dashboard by role
   if (isAuthRoute(pathname) && isAuthenticated) {
+    // If profile fetch failed, don't redirect - let them stay on auth page with error
+    if (profileFetchError) {
+      return NextResponse.next();
+    }
+    
     let redirectUrl: string;
     switch (userRole) {
       case "Admin":
@@ -233,7 +253,7 @@ export async function middleware(request: NextRequest) {
         redirectUrl = REDIRECT_URLS.STUDENT_DASHBOARD;
         break;
       default:
-        // If role is missing, null, undefined, or error, go to profile create
+        // If role is missing, null, undefined (404), go to profile create
         redirectUrl = "/profile/create";
         break;
     }
