@@ -65,15 +65,64 @@ export function UsersManagement({
     setColumnFilters(next);
   }, [appliedFilters]);
 
-  const transformProfile = (p: Profile): User => ({
-    id: String(p.user_id ?? p.id),
-    name: p.firstname || p.lastname ? [p.firstname, p.middlename, p.lastname].filter(Boolean).join(" ") : (p.username || "User"),
-    email: p.email || undefined,
-    role: p.role || "",
-    status: p.last_active ? "Active" : "Inactive",
-    lastActive: p.last_active || undefined,
-    avatar: p.avatar_url || undefined,
-  });
+  const transformProfile = (p: Profile): User => {
+    const id = String(p.user_id ?? p.id);
+    const name = p.firstname || p.lastname ? [p.firstname, p.middlename, p.lastname].filter(Boolean).join(" ") : (p.username || "User");
+    const email = p.email || undefined;
+    const role = p.role || "";
+    const status = p.last_active ? "Active" : "Inactive";
+    const lastActive = p.last_active || undefined;
+    const avatar = p.avatar_url || undefined;
+
+    // More robust type detection:
+    // 1) If nested data sections are present (non-null and object), prefer that (Admin > Business > Academic)
+    // 2) Fallback to role text (e.g. 'Admin' or 'Faculty' or 'Student')
+    const isObject = (x: any) => x != null && typeof x === "object";
+    let derivedType: string | undefined;
+    // Map backend sections to front-end 'Type' values: System | Academic | Business
+    if (isObject(p.admin_data)) derivedType = "System";
+    else if (isObject(p.business_data)) derivedType = "Business";
+    else if (isObject(p.academic_data)) derivedType = "Academic";
+    else {
+      const roleText = (p.role || "").toLowerCase();
+      if (roleText.includes("admin") || roleText.includes("system")) derivedType = "System";
+      else if (roleText.includes("faculty") || roleText.includes("student")) derivedType = "Academic";
+      else if (roleText.includes("business") || roleText.includes("staff") || roleText.includes("employee")) derivedType = "Business";
+      else derivedType = "Unknown";
+    }
+
+    // Debugging: log incoming nested data and derived type briefly when in dev
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("transformProfile", { user_id: p.user_id ?? p.id, admin_data: p.admin_data, business_data: p.business_data, academic_data: p.academic_data, role: p.role, derivedType });
+    }
+
+    return {
+      id,
+      name,
+      email,
+      role,
+      status,
+      lastActive,
+      avatar,
+      type: derivedType,
+      // If the user is a System user, show the platform name.
+      // Otherwise show the organization name if present, or 'Unknown'.
+      organization_name: derivedType == "System" ? "Attendify" : (p.organization_data?.name ?? "Unknown"),
+      createdAt: p.created_at || undefined,
+      academic_program_id: p.academic_data?.program_id ?? undefined,
+      academic_student_id: p.academic_data?.student_id ?? undefined,
+      academic_year_level: p.academic_data?.year_level ?? undefined,
+      academic_enrollment_date: p.academic_data?.enrollment_date ?? undefined,
+      business_department: p.business_data?.department ?? undefined,
+      business_position: p.business_data?.position ?? undefined,
+      business_employee_id: p.business_data?.employee_id ?? undefined,
+      business_hire_date: p.business_data?.hire_date ?? undefined,
+      admin_level: p.admin_data?.admin_level ?? undefined,
+      admin_permissions: p.admin_data?.permissions ?? undefined,
+      admin_assigned_date: p.admin_data?.assigned_date ?? undefined,
+    };
+  };
 
   React.useEffect(() => {
     const fetchProfiles = async () => {

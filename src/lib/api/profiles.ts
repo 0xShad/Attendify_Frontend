@@ -19,6 +19,11 @@ export interface Profile {
   face_image: string | null;
   role: string | null;
   organization_id: number | null;
+  // Optional organization info returned by newer responses
+  organization_data?: {
+    id?: number | null;
+    name?: string | null;
+  } | null;
   last_active: string | null;
   email: string | null;
   username: string | null;
@@ -28,6 +33,24 @@ export interface Profile {
   created_at: string | null;
   updated_at: string | null;
   is_email_verified: boolean | null;
+  // Optional nested data sections
+  academic_data?: {
+    program_id?: number | null;
+    student_id?: string | null;
+    year_level?: number | null;
+    enrollment_date?: string | null;
+  } | null;
+  business_data?: {
+    department?: string | null;
+    position?: string | null;
+    employee_id?: string | null;
+    hire_date?: string | null;
+  } | null;
+  admin_data?: {
+    admin_level?: string | null;
+    permissions?: string | null;
+    assigned_date?: string | null;
+  } | null;
 }
 
 export interface ListProfilesParams {
@@ -100,11 +123,46 @@ async function fetchWithDedupe(url: string, init?: RequestInit) {
   if (inFlightRequests.has(url)) {
     return inFlightRequests.get(url)!;
   }
-  const p = fetch(url, init).then(async (response) => {
+
+  // Ensure we don't send a Content-Type for GET requests. Some backends
+  // validate request bodies differently when this header is present.
+  const safeInit: RequestInit | undefined = init
+    ? {
+        ...init,
+        headers: {
+          ...(init.headers as Record<string, string> | undefined),
+        },
+      }
+    : undefined;
+
+  try {
+    if (safeInit && (safeInit.method || 'GET').toUpperCase() === 'GET') {
+      // Remove Content-Type for GET
+      if (safeInit.headers && 'Content-Type' in safeInit.headers) {
+        // @ts-ignore - headers is a plain object here
+        delete (safeInit.headers as Record<string, string>)['Content-Type'];
+      }
+    }
+  } catch (e) {
+    // ignore header manipulation errors
+  }
+
+  const p = fetch(url, safeInit).then(async (response) => {
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const message = (errorData as any).detail || response.statusText;
-      throw new Error(message);
+      // Try to parse JSON error body for richer diagnostics
+      const text = await response.text().catch(() => '');
+      let parsed: any = {};
+      try {
+        parsed = text ? JSON.parse(text) : {};
+      } catch (e) {
+        parsed = { detail: text };
+      }
+      const message = parsed?.detail || parsed?.message || response.statusText || `HTTP ${response.status}`;
+      // Attach details for easier debugging in dev
+      const err = new Error(message) as any;
+      err.status = response.status;
+      err.body = parsed;
+      throw err;
     }
     return response.json();
   }).finally(() => {

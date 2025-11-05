@@ -30,17 +30,23 @@ export function UsersColumnCustomizer({ table }: UsersColumnCustomizerProps) {
       <DropdownMenuContent align="end" className="w-56">
         {table
           .getAllColumns()
-          .filter((column) => typeof column.accessorFn !== "undefined" && column.getCanHide())
-          .map((column) => (
-            <DropdownMenuCheckboxItem
-              key={column.id}
-              className="capitalize"
-              checked={column.getIsVisible()}
-              onCheckedChange={(value) => column.toggleVisibility(!!value)}
-            >
-              {column.id}
-            </DropdownMenuCheckboxItem>
-          ))}
+          // Show all columns that can be hidden. accessorFn check excluded so
+          // accessorKey-based columns appear in the customizer as well.
+          .filter((column) => column.getCanHide())
+          .map((column) => {
+            // Prefer the human-readable header if available, otherwise fall back to id
+            const label = typeof column.columnDef.header === 'string' ? column.columnDef.header : column.id;
+            return (
+              <DropdownMenuCheckboxItem
+                key={column.id}
+                className="capitalize"
+                checked={column.getIsVisible()}
+                onCheckedChange={(value) => column.toggleVisibility(!!value)}
+              >
+                {String(label)}
+              </DropdownMenuCheckboxItem>
+            );
+          })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

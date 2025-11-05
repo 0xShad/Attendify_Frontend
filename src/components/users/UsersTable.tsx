@@ -1,26 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type UniqueIdentifier,
-} from "@dnd-kit/core";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight, IconDots, IconGripVertical } from "@tabler/icons-react";
+import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight, IconDots } from "@tabler/icons-react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -76,28 +57,7 @@ export interface UsersTableProps {
   renderFooter?: (ctx: { table: ReturnType<typeof useReactTable<User>> }) => React.ReactNode;
 }
 
-function DragHandle({ id }: { id: string }) {
-  const { attributes, listeners } = useSortable({ id });
-  return (
-    <Button
-      {...attributes}
-      {...listeners}
-      variant="ghost"
-      size="icon"
-      className="text-muted-foreground size-7 hover:bg-transparent"
-    >
-      <IconGripVertical className="text-muted-foreground size-3" />
-      <span className="sr-only">Drag to reorder</span>
-    </Button>
-  );
-}
-
 const columns: ColumnDef<User>[] = [
-  {
-    id: "drag",
-    header: () => null,
-    cell: ({ row }) => <DragHandle id={row.original.id} />,
-  },
   {
     id: "select",
     header: ({ table }) => (
@@ -152,6 +112,13 @@ const columns: ColumnDef<User>[] = [
     enableHiding: false,
   },
   {
+    accessorKey: "type",
+    header: "Type",
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground">{row.original.type ?? "Unknown"}</span>
+    ),
+  },
+  {
     accessorKey: "role",
     header: "Role",
     cell: ({ row }) => (
@@ -169,23 +136,17 @@ const columns: ColumnDef<User>[] = [
     ),
   },
   {
-    accessorKey: "status",
-    header: "Status",
+    accessorKey: "organization_name",
+    header: "Organization",
     cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div
-          className={`w-2 h-2 rounded-full ${
-            row.original.status === "Active" ? "bg-green-500" : "bg-muted-foreground"
-          }`}
-        />
-        <span
-          className={`text-sm font-medium ${
-            row.original.status === "Active" ? "text-green-700" : "text-muted-foreground"
-          }`}
-        >
-          {row.original.status}
-        </span>
-      </div>
+      <span className="text-sm text-muted-foreground">{row.original.organization_name ?? "Unknown"}</span>
+    ),
+  },
+  {
+    accessorKey: "createdAt",
+    header: "Created at",
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground">{row.original.createdAt ? new Date(row.original.createdAt).toLocaleString() : "-"}</span>
     ),
   },
   {
@@ -193,10 +154,28 @@ const columns: ColumnDef<User>[] = [
     header: "Last Active",
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
-        {row.original.lastActive || "Never"}
+        {row.original.lastActive ? new Date(row.original.lastActive).toLocaleString() : "Never"}
       </span>
     ),
   },
+  {
+    id: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const last = row.original.lastActive ? Date.parse(row.original.lastActive) : null;
+      const now = Date.now();
+      const days = last ? Math.floor((now - last) / (1000 * 60 * 60 * 24)) : Infinity;
+      const isActive = days < 30;
+      const label = isActive ? "Active" : "Inactive";
+      return (
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isActive ? "bg-green-500" : "bg-muted-foreground"}`} />
+          <span className={`text-sm font-medium ${isActive ? "text-green-700" : "text-muted-foreground"}`}>{label}</span>
+        </div>
+      );
+    },
+  },
+  // (Flattened fields are available but not shown by default)
   {
     id: "actions",
     header: "Actions",
@@ -233,15 +212,8 @@ const columns: ColumnDef<User>[] = [
 ];
 
 function DraggableRow({ row }: { row: Row<User> }) {
-  const { transform, transition, setNodeRef, isDragging } = useSortable({ id: row.original.id });
   return (
-    <TableRow
-      data-state={row.getIsSelected() && "selected"}
-      data-dragging={isDragging}
-      ref={setNodeRef}
-      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
-      style={{ transform: CSS.Transform.toString(transform), transition: transition }}
-    >
+    <TableRow data-state={row.getIsSelected() && "selected"}>
       {row.getVisibleCells().map((cell) => (
         <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
       ))}
@@ -276,9 +248,6 @@ export function UsersTable({
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
   const sortableId = React.useId();
-  const sensors = useSensors(useSensor(MouseSensor, {}), useSensor(TouchSensor, {}), useSensor(KeyboardSensor, {}));
-
-  const dataIds = React.useMemo<UniqueIdentifier[]>(() => data?.map(({ id }) => id) || [], [data]);
 
   const table = useReactTable({
     data,
@@ -308,16 +277,7 @@ export function UsersTable({
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (active && over && active.id !== over.id) {
-      setData((old) => {
-        const oldIndex = dataIds.indexOf(active.id);
-        const newIndex = dataIds.indexOf(over.id);
-        return arrayMove(old, oldIndex, newIndex);
-      });
-    }
-  }
+  // Dragging removed — rows render statically now
 
   return (
     <div className="w-full flex-col justify-start gap-6">
@@ -329,13 +289,6 @@ export function UsersTable({
 
       <div className="relative flex flex-col gap-4 overflow-auto lg:px-0 mt-6">
         <div className="overflow-hidden rounded-lg border">
-          <DndContext
-            collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-            id={sortableId}
-          >
             <Table>
               <TableHeader className="bg-muted sticky top-0 z-10">
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -354,11 +307,11 @@ export function UsersTable({
               </TableHeader>
               <TableBody className="**:data-[slot=table-cell]:first:w-8">
                 {table.getRowModel().rows?.length ? (
-                  <SortableContext items={dataIds} strategy={verticalListSortingStrategy}>
+                  <>
                     {table.getRowModel().rows.map((row) => (
                       <DraggableRow key={row.id} row={row} />
                     ))}
-                  </SortableContext>
+                  </>
                 ) : (
                   <TableRow>
                     <TableCell colSpan={columns.length} className="h-24 text-center">
@@ -368,7 +321,6 @@ export function UsersTable({
                 )}
               </TableBody>
             </Table>
-          </DndContext>
         </div>
 
         {renderFooter ? (
