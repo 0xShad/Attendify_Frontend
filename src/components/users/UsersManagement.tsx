@@ -61,7 +61,6 @@ export function UsersManagement({
   React.useEffect(() => {
     const next: ColumnFiltersState = [];
     if (appliedFilters.role) next.push({ id: "role", value: appliedFilters.role });
-    if (appliedFilters.status) next.push({ id: "status", value: appliedFilters.status });
     setColumnFilters(next);
   }, [appliedFilters]);
 
@@ -131,27 +130,35 @@ export function UsersManagement({
         setError(null);
         const skip = (currentPage - 1) * itemsPerPage;
         let profiles: Profile[] = [];
-
-        const hasFilters = Boolean(
-          appliedFilters.role ||
-          appliedFilters.status
-        );
+        const hasFilters = Object.values(appliedFilters).some((v) => v !== undefined && v !== null && String(v).trim() !== "");
 
         if (searchQuery && !hasFilters) {
           profiles = await profilesAPI.searchProfiles({ query: searchQuery, skip, limit: itemsPerPage });
         } else {
-          profiles = await profilesAPI.listProfiles({
-            role: appliedFilters.role,
-            // Map status: we don't have a direct backend status filter; leave undefined
-            organization_id: undefined,
-            has_avatar: undefined,
-            has_face_image: undefined,
+          // Build listProfiles params from appliedFilters
+          const params: any = {
             skip,
             limit: itemsPerPage,
-          });
+          };
+          if (appliedFilters.role) params.role = appliedFilters.role;
+          if (appliedFilters.type) params.type = String(appliedFilters.type).toLowerCase();
+          if (appliedFilters.organization) params.organization = appliedFilters.organization;
+          if (appliedFilters.created_from) params.created_from = `${appliedFilters.created_from}T00:00:00Z`;
+          if (appliedFilters.created_to) params.created_to = `${appliedFilters.created_to}T23:59:59Z`;
+          if (appliedFilters.last_active_from) params.last_active_from = `${appliedFilters.last_active_from}T00:00:00Z`;
+          if (appliedFilters.last_active_to) params.last_active_to = `${appliedFilters.last_active_to}T23:59:59Z`;
+
+          profiles = await profilesAPI.listProfiles(params);
         }
 
         const mapped = profiles.map(transformProfile);
+        // Ensure deterministic ordering: display lowest id first by default.
+        mapped.sort((a, b) => {
+          const na = Number(a.id);
+          const nb = Number(b.id);
+          if (Number.isNaN(na) || Number.isNaN(nb)) return String(a.id).localeCompare(String(b.id));
+          return na - nb;
+        });
         setUsers(mapped);
 
         if (profiles.length === itemsPerPage) {

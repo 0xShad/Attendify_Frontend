@@ -8,6 +8,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhos
 const PROFILES_ENDPOINTS = {
   DETAIL: (userId: number) => `${API_BASE_URL}/profiles/${userId}`,
   SEARCH: `${API_BASE_URL}/profiles/search`,
+  ROLES: `${API_BASE_URL}/options/profiles/roles`,
+  ORGANIZATIONS: `${API_BASE_URL}/organizations/options/organizations`,
   LIST: `${API_BASE_URL}/profiles`,
 } as const;
 
@@ -56,6 +58,12 @@ export interface Profile {
 export interface ListProfilesParams {
   role?: string;
   organization_id?: number;
+  organization?: string;
+  type?: string;
+  created_from?: string;
+  created_to?: string;
+  last_active_from?: string;
+  last_active_to?: string;
   has_avatar?: boolean;
   has_face_image?: boolean;
   skip?: number;
@@ -85,6 +93,23 @@ export async function searchProfiles(params: SearchProfilesParams = {}): Promise
   return data as Profile[];
 }
 
+export async function listRoles(): Promise<string[]> {
+  const url = PROFILES_ENDPOINTS.ROLES;
+  const data = await fetchWithDedupe(url.toString(), { method: 'GET' });
+  return data as string[];
+}
+
+export interface OrganizationOption {
+  id: number;
+  name: string;
+}
+
+export async function listOrganizations(): Promise<OrganizationOption[]> {
+  const url = PROFILES_ENDPOINTS.ORGANIZATIONS;
+  const data = await fetchWithDedupe(url.toString(), { method: 'GET' });
+  return data as OrganizationOption[];
+}
+
 export async function listProfiles(params: ListProfilesParams = {}): Promise<Profile[]> {
   const {
     role,
@@ -97,6 +122,12 @@ export async function listProfiles(params: ListProfilesParams = {}): Promise<Pro
 
   const url = new URL(PROFILES_ENDPOINTS.LIST);
   if (role) url.searchParams.append('role', role);
+  if (params.organization) url.searchParams.append('organization', params.organization);
+  if (params.type) url.searchParams.append('type', params.type);
+  if (params.created_from) url.searchParams.append('created_from', params.created_from);
+  if (params.created_to) url.searchParams.append('created_to', params.created_to);
+  if (params.last_active_from) url.searchParams.append('last_active_from', params.last_active_from);
+  if (params.last_active_to) url.searchParams.append('last_active_to', params.last_active_to);
   if (organization_id !== undefined) url.searchParams.append('organization_id', String(organization_id));
   if (has_avatar !== undefined) url.searchParams.append('has_avatar', String(has_avatar));
   if (has_face_image !== undefined) url.searchParams.append('has_face_image', String(has_face_image));
@@ -175,6 +206,8 @@ async function fetchWithDedupe(url: string, init?: RequestInit) {
 export const profilesAPI = {
   getProfile,
   searchProfiles,
+  listRoles,
+  listOrganizations,
   listProfiles,
 };
 
