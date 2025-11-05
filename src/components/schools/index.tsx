@@ -207,6 +207,10 @@ export function SchoolsManagement() {
         totalStudents: fullSchoolDetails.students_count,
         totalFaculty: fullSchoolDetails.faculty_count,
         status: school.status,
+        accreditation: fullSchoolDetails.academic_data?.accreditation,
+        establishedYear: fullSchoolDetails.academic_data?.established_year,
+        principalName: fullSchoolDetails.academic_data?.principal_name,
+        academicLevel: fullSchoolDetails.academic_data?.academic_level,
       };
 
       setSelectedSchool(transformedSchool);

@@ -10,7 +10,7 @@ interface SummaryCardsProps {
 }
 
 export function SummaryCards({ programs }: SummaryCardsProps) {
-  const activePrograms = programs.filter((p) => p.status === "Active").length;
+  const totalPrograms = programs.length;
   const totalStudents = programs.reduce((sum, p) => sum + p.totalStudents, 0);
   const totalCourses = programs.reduce((sum, p) => sum + p.totalCourses, 0);
 
@@ -24,7 +24,7 @@ export function SummaryCards({ programs }: SummaryCardsProps) {
             </div>
             <div>
               <div className="text-2xl font-semibold text-primary">
-                {activePrograms}
+                {totalPrograms}
               </div>
               <div className="text-sm text-muted-foreground">
                 Total Programs

@@ -13,9 +13,9 @@ const PROGRAMS_ENDPOINTS = {
   CREATE: `${API_BASE_URL}/programs/`,
   UPDATE: (id: number) => `${API_BASE_URL}/programs/${id}`,
   DELETE: (id: number) => `${API_BASE_URL}/programs/${id}`,
-  OPTIONS_SCHOOLS: `${API_BASE_URL}/programs/options/schools`,
+  OPTIONS_ORGANIZATIONS: `${API_BASE_URL}/programs/options/organizations`,
   OPTIONS_CODES: `${API_BASE_URL}/programs/options/codes`,
-  OPTIONS_CODES_BY_SCHOOL: (schoolId: number) => `${API_BASE_URL}/programs/options/codes/school/${schoolId}`,
+  OPTIONS_CODES_BY_ORGANIZATION: (organizationId: number) => `${API_BASE_URL}/programs/options/codes/organization/${organizationId}`,
 } as const;
 
 // ==================== Types ====================
@@ -24,8 +24,8 @@ export interface Program {
   id: number;
   name: string;
   code: string;
-  school_id: number;
-  school_name?: string;
+  organization_id: number | null;
+  organization_name?: string | null;
   description: string | null;
   courses_count: number;
   students_count: number;
@@ -34,14 +34,14 @@ export interface Program {
 export interface ProgramCreate {
   name: string;
   code: string;
-  school_id: number;
+  organization_id: number;
   description?: string;
 }
 
 export interface ProgramUpdate {
   name?: string;
   code?: string;
-  school_id?: number;
+  organization_id?: number;
   description?: string;
 }
 
@@ -49,7 +49,7 @@ export interface ListProgramsParams {
   skip?: number;
   limit?: number;
   code?: string;
-  school_id?: number;
+  organization_id?: number;
   min_courses?: number;
   max_courses?: number;
   min_students?: number;
@@ -62,7 +62,7 @@ export interface SearchProgramsParams {
   query?: string;
 }
 
-export interface SchoolOption {
+export interface OrganizationOption {
   id: number;
   name: string;
 }
@@ -111,7 +111,7 @@ export async function listPrograms(
     skip = 0, 
     limit = 100, 
     code,
-    school_id,
+    organization_id,
     min_courses,
     max_courses,
     min_students,
@@ -126,7 +126,7 @@ export async function listPrograms(
     url.searchParams.append('code', code.trim());
   }
 
-  if (school_id !== undefined) url.searchParams.append('school_id', school_id.toString());
+  if (organization_id !== undefined) url.searchParams.append('organization_id', organization_id.toString());
   if (min_courses !== undefined) url.searchParams.append('min_courses', min_courses.toString());
   if (max_courses !== undefined) url.searchParams.append('max_courses', max_courses.toString());
   if (min_students !== undefined) url.searchParams.append('min_students', min_students.toString());
@@ -253,10 +253,14 @@ export async function deleteProgram(id: number): Promise<void> {
 }
 
 /**
- * Get all schools for filtering
+ * Get all organizations for filtering (Academic type only)
  */
-export async function getSchoolOptions(): Promise<SchoolOption[]> {
-  const response = await fetch(PROGRAMS_ENDPOINTS.OPTIONS_SCHOOLS, {
+export async function getOrganizationOptions(): Promise<OrganizationOption[]> {
+  const url = new URL(PROGRAMS_ENDPOINTS.OPTIONS_ORGANIZATIONS);
+  // Filter to Academic organizations only
+  url.searchParams.append('type', 'Academic');
+  
+  const response = await fetch(url.toString(), {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -293,10 +297,10 @@ export async function getProgramCodes(): Promise<string[]> {
 }
 
 /**
- * Get program codes for a specific school
+ * Get program codes for a specific organization
  */
-export async function getProgramCodesBySchool(schoolId: number): Promise<string[]> {
-  const response = await fetch(PROGRAMS_ENDPOINTS.OPTIONS_CODES_BY_SCHOOL(schoolId), {
+export async function getProgramCodesByOrganization(organizationId: number): Promise<string[]> {
+  const response = await fetch(PROGRAMS_ENDPOINTS.OPTIONS_CODES_BY_ORGANIZATION(organizationId), {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -320,7 +324,7 @@ export const programsAPI = {
   createProgram,
   updateProgram,
   deleteProgram,
-  getSchoolOptions,
+  getOrganizationOptions,
   getProgramCodes,
-  getProgramCodesBySchool,
+  getProgramCodesByOrganization,
 };

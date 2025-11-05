@@ -50,7 +50,7 @@ export function DeleteProgramDialog({
                   {program.name}
                 </div>
                 <div className="text-sm text-red-700">
-                  {program.code} • {program.school}
+                  {program.code} • {program.organization}
                 </div>
               </div>
             </div>

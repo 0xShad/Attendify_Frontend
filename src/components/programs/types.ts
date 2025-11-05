@@ -2,9 +2,8 @@ export interface Program {
   id: string;
   name: string;
   code: string;
-  school: string;
-  duration: string;
-  status: "Active" | "Inactive";
+  organization: string; // Display name
+  organizationId: number | null;
   totalStudents: number;
   totalCourses: number;
   description?: string;
@@ -13,8 +12,6 @@ export interface Program {
 export interface ProgramFormData {
   name: string;
   code: string;
-  school: string;
-  duration: string;
-  status: "Active" | "Inactive";
+  organizationId: number | null;
   description: string;
 }

@@ -96,7 +96,7 @@ export function ProgramsTable({
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <IconSchool className="h-4 w-4 text-muted-foreground" />
-                      <span className="line-clamp-1">{program.school}</span>
+                      <span className="line-clamp-1">{program.organization || "No organization"}</span>
                     </div>
                   </TableCell>
                   <TableCell>

@@ -23,13 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { SchoolOption } from "@/lib/api/programs";
+import type { OrganizationOption } from "@/lib/api/programs";
 
 interface ProgramFormData {
   code: string;
   name: string;
   description: string;
-  school_id: number | null;
+  organization_id: number | null;
 }
 
 interface AddProgramDrawerProps {
@@ -38,7 +38,7 @@ interface AddProgramDrawerProps {
   formData: ProgramFormData;
   onFormDataChange: (data: ProgramFormData) => void;
   onSubmit: () => void;
-  schools: SchoolOption[];
+  organizations: OrganizationOption[];
 }
 
 export function AddProgramDrawer({
@@ -47,7 +47,7 @@ export function AddProgramDrawer({
   formData,
   onFormDataChange,
   onSubmit,
-  schools,
+  organizations,
 }: AddProgramDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -64,23 +64,23 @@ export function AddProgramDrawer({
         </DrawerHeader>
         <div className="space-y-4 overflow-y-auto">
           <div className="space-y-2">
-            <Label htmlFor="school">
-              School <span className="text-red-500">*</span>
+            <Label htmlFor="organization">
+              Organization <span className="text-red-500">*</span>
             </Label>
             <Select
-              value={formData.school_id?.toString() || ""}
+              value={formData.organization_id?.toString() || ""}
               onValueChange={(value) =>
-                onFormDataChange({ ...formData, school_id: value ? parseInt(value) : null })
+                onFormDataChange({ ...formData, organization_id: value ? parseInt(value) : null })
               }
               required
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select school" />
+                <SelectValue placeholder="Select organization" />
               </SelectTrigger>
               <SelectContent>
-                {schools.map((school) => (
-                  <SelectItem key={school.id} value={school.id.toString()}>
-                    {school.name}
+                {organizations.map((org) => (
+                  <SelectItem key={org.id} value={org.id.toString()}>
+                    {org.name}
                   </SelectItem>
                 ))}
               </SelectContent>

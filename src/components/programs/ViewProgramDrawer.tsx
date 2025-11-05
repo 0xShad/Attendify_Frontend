@@ -48,7 +48,7 @@ export function ViewProgramDrawer({
                   {program.code}
                 </Badge>
                 <span>•</span>
-                <span>{program.school}</span>
+                <span>{program.organization}</span>
               </div>
             </div>
           </div>

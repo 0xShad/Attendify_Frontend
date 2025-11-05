@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { programsAPI, type SchoolOption } from "@/lib/api/programs";
+import { programsAPI, type OrganizationOption } from "@/lib/api/programs";
 import type { Program as APIProgram } from "@/lib/api/programs";
 import { useToast } from "@/hooks/use-toast";
 import type { Program } from "./types";
@@ -20,7 +20,7 @@ interface ProgramFormData {
   code: string;
   name: string;
   description: string;
-  school_id: number | null;
+  organization_id: number | null;
 }
 
 export function ProgramsManagement() {
@@ -47,22 +47,22 @@ export function ProgramsManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
-  // Schools for dropdowns
-  const [schools, setSchools] = useState<SchoolOption[]>([]);
+  // Organizations for dropdowns
+  const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
 
   // Form data state
   const [formData, setFormData] = useState<ProgramFormData>({
     code: "",
     name: "",
     description: "",
-    school_id: null,
+    organization_id: null,
   });
 
   // Check if any filters are applied
   const hasFilters = () => {
     return !!(
       appliedFilters.code ||
-      appliedFilters.school_id ||
+      appliedFilters.organization_id ||
       appliedFilters.min_courses !== undefined ||
       appliedFilters.max_courses !== undefined ||
       appliedFilters.min_students !== undefined ||
@@ -75,9 +75,8 @@ export function ProgramsManagement() {
     id: apiProgram.id.toString(),
     name: apiProgram.name,
     code: apiProgram.code,
-    school: apiProgram.school_name || "Unknown School",
-    duration: "4 Years", // Default value since backend doesn't have this
-    status: "Active", // Default value since backend doesn't have this
+    organization: apiProgram.organization_name || "No organization",
+    organizationId: apiProgram.organization_id,
     totalStudents: apiProgram.students_count,
     totalCourses: apiProgram.courses_count,
     description: apiProgram.description || "",
@@ -107,7 +106,7 @@ export function ProgramsManagement() {
           skip,
           limit: itemsPerPage,
           code: appliedFilters.code,
-          school_id: appliedFilters.school_id,
+          organization_id: appliedFilters.organization_id,
           min_courses: appliedFilters.min_courses,
           max_courses: appliedFilters.max_courses,
           min_students: appliedFilters.min_students,
@@ -146,17 +145,17 @@ export function ProgramsManagement() {
     }
   };
 
-  // Fetch schools for dropdowns
+  // Fetch organizations for dropdowns
   useEffect(() => {
-    const loadSchools = async () => {
+    const loadOrganizations = async () => {
       try {
-        const schoolOptions = await programsAPI.getSchoolOptions();
-        setSchools(schoolOptions);
+        const organizationOptions = await programsAPI.getOrganizationOptions();
+        setOrganizations(organizationOptions);
       } catch (err) {
-        console.error("Failed to load schools:", err);
+        console.error("Failed to load organizations:", err);
       }
     };
-    loadSchools();
+    loadOrganizations();
   }, []);
 
   // Fetch programs on mount and when dependencies change
@@ -193,14 +192,11 @@ export function ProgramsManagement() {
   const handleEditProgram = (program: Program) => {
     setSelectedProgram(program);
     
-    // Find school_id by matching school name
-    const matchedSchool = schools.find(school => school.name === program.school);
-    
     setFormData({
       code: program.code,
       name: program.name,
       description: program.description || "",
-      school_id: matchedSchool?.id || null,
+      organization_id: program.organizationId,
     });
     setEditProgramOpen(true);
   };
@@ -230,10 +226,10 @@ export function ProgramsManagement() {
       return;
     }
 
-    if (!formData.school_id) {
+    if (!formData.organization_id) {
       toast({
         title: "Validation Error",
-        description: "School is required",
+        description: "Organization is required",
         variant: "destructive",
       });
       return;
@@ -244,7 +240,7 @@ export function ProgramsManagement() {
         code: formData.code.trim(),
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
-        school_id: formData.school_id,
+        organization_id: formData.organization_id,
       });
 
       toast({
@@ -296,10 +292,10 @@ export function ProgramsManagement() {
       return;
     }
 
-    if (!formData.school_id) {
+    if (!formData.organization_id) {
       toast({
         title: "Validation Error",
-        description: "School is required",
+        description: "Organization is required",
         variant: "destructive",
       });
       return;
@@ -310,7 +306,7 @@ export function ProgramsManagement() {
         code: formData.code.trim(),
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
-        school_id: formData.school_id,
+        organization_id: formData.organization_id,
       });
 
       toast({
@@ -371,7 +367,7 @@ export function ProgramsManagement() {
       code: "",
       name: "",
       description: "",
-      school_id: null,
+      organization_id: null,
     });
     setSelectedProgram(null);
   };
@@ -415,7 +411,7 @@ export function ProgramsManagement() {
             formData={formData}
             onFormDataChange={setFormData}
             onSubmit={handleAddProgram}
-            schools={schools}
+            organizations={organizations}
           />
         </div>
       </div>
@@ -470,7 +466,7 @@ export function ProgramsManagement() {
         formData={formData}
         onFormDataChange={setFormData}
         onSubmit={handleUpdateProgram}
-        schools={schools}
+        organizations={organizations}
       />
 
       <DeleteProgramDialog

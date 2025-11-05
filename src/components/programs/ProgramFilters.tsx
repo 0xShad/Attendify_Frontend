@@ -22,12 +22,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { programsAPI, type SchoolOption } from "@/lib/api/programs";
+import { programsAPI, type OrganizationOption } from "@/lib/api/programs";
 
 export interface FilterValues {
   code?: string;
-  school?: string;
-  school_id?: number;
+  organization_id?: number;
   min_students?: number;
   max_students?: number;
   min_courses?: number;
@@ -51,13 +50,13 @@ export function ProgramFilters({
   onClearFilters,
   onApplyFilters,
 }: ProgramFiltersProps) {
-  const [schools, setSchools] = useState<SchoolOption[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
   const [codes, setCodes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Fetch options when drawer opens
   useEffect(() => {
-    if (open && schools.length === 0 && codes.length === 0) {
+    if (open && organizations.length === 0 && codes.length === 0) {
       fetchOptions();
     }
   }, [open]);
@@ -65,11 +64,11 @@ export function ProgramFilters({
   const fetchOptions = async () => {
     try {
       setLoading(true);
-      const [schoolsData, codesData] = await Promise.all([
-        programsAPI.getSchoolOptions(),
+      const [organizationsData, codesData] = await Promise.all([
+        programsAPI.getOrganizationOptions(),
         programsAPI.getProgramCodes(),
       ]);
-      setSchools(schoolsData);
+      setOrganizations(organizationsData);
       setCodes(codesData);
     } catch (error) {
       console.error("Failed to fetch filter options:", error);
@@ -87,10 +86,10 @@ export function ProgramFilters({
     onFiltersChange({ ...filters, [field]: value === "all" ? undefined : value });
   };
 
-  const handleSchoolChange = async (value: string) => {
+  const handleOrganizationChange = async (value: string) => {
     if (value === "all") {
-      // Clear school filter and reset to all codes
-      onFiltersChange({ ...filters, school: undefined, school_id: undefined, code: undefined });
+      // Clear organization filter and reset to all codes
+      onFiltersChange({ ...filters, organization_id: undefined, code: undefined });
       try {
         const allCodes = await programsAPI.getProgramCodes();
         setCodes(allCodes);
@@ -98,17 +97,17 @@ export function ProgramFilters({
         console.error("Failed to fetch all codes:", error);
       }
     } else {
-      // Find selected school
-      const selectedSchool = schools.find(s => s.name === value);
-      if (selectedSchool) {
-        // Update school filter and clear code
-        onFiltersChange({ ...filters, school: value, school_id: selectedSchool.id, code: undefined });
-        // Fetch codes for this school
+      // Find selected organization
+      const selectedOrganization = organizations.find(o => o.id.toString() === value);
+      if (selectedOrganization) {
+        // Update organization filter and clear code
+        onFiltersChange({ ...filters, organization_id: selectedOrganization.id, code: undefined });
+        // Fetch codes for this organization
         try {
-          const schoolCodes = await programsAPI.getProgramCodesBySchool(selectedSchool.id);
-          setCodes(schoolCodes);
+          const organizationCodes = await programsAPI.getProgramCodesByOrganization(selectedOrganization.id);
+          setCodes(organizationCodes);
         } catch (error) {
-          console.error("Failed to fetch school codes:", error);
+          console.error("Failed to fetch organization codes:", error);
         }
       }
     }
@@ -126,26 +125,26 @@ export function ProgramFilters({
         <DrawerHeader className="px-0">
           <DrawerTitle>Filter Programs</DrawerTitle>
           <DrawerDescription>
-            Filter programs by code, school, students, and courses
+            Filter programs by code, organization, students, and courses
           </DrawerDescription>
         </DrawerHeader>
         <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-          {/* School Filter */}
+          {/* Organization Filter */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">School</Label>
+            <Label className="text-sm font-medium">Organization</Label>
             <Select
-              value={filters.school ?? "all"}
-              onValueChange={handleSchoolChange}
+              value={filters.organization_id?.toString() ?? "all"}
+              onValueChange={handleOrganizationChange}
               disabled={loading}
             >
               <SelectTrigger>
-                <SelectValue placeholder={loading ? "Loading..." : "All Schools"} />
+                <SelectValue placeholder={loading ? "Loading..." : "All Organizations"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Schools</SelectItem>
-                {schools.map((school) => (
-                  <SelectItem key={school.id} value={school.name}>
-                    {school.name}
+                <SelectItem value="all">All Organizations</SelectItem>
+                {organizations.map((org) => (
+                  <SelectItem key={org.id} value={org.id.toString()}>
+                    {org.name}
                   </SelectItem>
                 ))}
               </SelectContent>
