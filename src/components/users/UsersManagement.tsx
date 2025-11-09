@@ -38,6 +38,7 @@ export function UsersManagement({
   const [error, setError] = React.useState<string | null>(null);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [totalItems, setTotalItems] = React.useState(0);
+  const [refreshKey, setRefreshKey] = React.useState(0);
   const itemsPerPage = 10;
 
   const handleSearch = () => {
@@ -66,7 +67,9 @@ export function UsersManagement({
   }, [appliedFilters]);
 
   const transformProfile = (p: Profile): User => {
-    const id = String(p.user_id ?? p.id);
+    // Frontend 'id' should represent the profile row id. Keep user_id available on the backend but
+    // use p.id (profile id) first, fallback to user_id when missing.
+    const id = String(p.id ?? p.user_id ?? "");
     const name = p.firstname || p.lastname ? [p.firstname, p.middlename, p.lastname].filter(Boolean).join(" ") : (p.username || "User");
     const email = p.email || undefined;
     const role = p.role || "";
@@ -74,27 +77,74 @@ export function UsersManagement({
     const lastActive = p.last_active || undefined;
     const avatar = p.avatar_url || undefined;
 
-    // More robust type detection:
-    // 1) If nested data sections are present (non-null and object), prefer that (Admin > Business > Academic)
-    // 2) Fallback to role text (e.g. 'Admin' or 'Faculty' or 'Student')
-    const isObject = (x: any) => x != null && typeof x === "object";
+    // Determine derived type using organization_data.type when available.
+    // organization_data may be null. Per request, treat users as System ONLY when organization_data is null.
+    const orgData = p.organization_data ?? null;
+    const orgTypeRaw = orgData?.type ?? null;
     let derivedType: string | undefined;
-    // Map backend sections to front-end 'Type' values: System | Academic | Business
-    if (isObject(p.admin_data)) derivedType = "System";
-    else if (isObject(p.business_data)) derivedType = "Business";
-    else if (isObject(p.academic_data)) derivedType = "Academic";
-    else {
+    if (orgTypeRaw) {
+      const t = String(orgTypeRaw).toLowerCase();
+      if (t.includes("academic")) derivedType = "Academic";
+      else if (t.includes("business")) derivedType = "Business";
+      else if (t.includes("system") || t.includes("admin")) derivedType = "System";
+      else derivedType = String(orgTypeRaw);
+    } else {
+      // organization_data exists but no explicit type: do NOT map to System here.
+      if (!orgData) {
+        // organization_data absent -> System (Attendify/system-level users)
+        derivedType = "System";
+      } else {
+        // Fallback to role text detection but avoid assigning 'System' when orgData exists.
       const roleText = (p.role || "").toLowerCase();
-      if (roleText.includes("admin") || roleText.includes("system")) derivedType = "System";
-      else if (roleText.includes("faculty") || roleText.includes("student")) derivedType = "Academic";
+      if (roleText.includes("faculty") || roleText.includes("student")) derivedType = "Academic";
+      else if (roleText.includes("admin") || roleText.includes("administrator")) derivedType = "Admin";
       else if (roleText.includes("business") || roleText.includes("staff") || roleText.includes("employee")) derivedType = "Business";
       else derivedType = "Unknown";
+      }
     }
 
     // Debugging: log incoming nested data and derived type briefly when in dev
     if (process.env.NODE_ENV !== "production") {
       // eslint-disable-next-line no-console
-      console.debug("transformProfile", { user_id: p.user_id ?? p.id, admin_data: p.admin_data, business_data: p.business_data, academic_data: p.academic_data, role: p.role, derivedType });
+      console.log("transformProfile", { user_id: p.user_id ?? p.id, admin_data: p.admin_data, business_data: p.business_data, academic_data: p.academic_data, role: p.role, derivedType });
+    }
+
+    // Priority for Type column:
+    // 1) If admin_data.admin_level is present, use that.
+    // 2) Else if organization_data.type is present (and organization_id provided), use that.
+    // 3) Else if organization_data is null -> System
+    // 4) Else fall back to derivedType (role-based or Unknown).
+    // Tolerant admin level extraction: backend may return admin level under different keys
+  // use `any` to tolerate backend variations in admin_data shape
+  const adminLevel = (p.admin_data && (((p.admin_data as any).admin_level ?? (p.admin_data as any).level ?? (p.admin_data as any).adminLevel ?? (p.admin_data as any).role))) ?? null;
+
+    // Helper: title-case strings for nicer display (e.g., "application" -> "Application")
+    const toTitle = (s?: string | null) => {
+      if (!s) return s;
+      return String(s).split(/[\s_-]+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    };
+
+    // Final resolution for the Type column (strict priority):
+    // 1) admin_level (if present) -> use that
+    // 2) organization_data.type (if present) -> use that
+    // 3) If organization_data is null -> System
+    // 4) Otherwise -> Unknown
+    let finalType: string | undefined;
+    if (adminLevel) {
+      finalType = toTitle(String(adminLevel));
+    } else if (!orgData) {
+      // No organization attached -> System-level user
+      finalType = "System";
+    } else if (orgData.type) {
+      finalType = toTitle(String(orgData.type));
+    } else {
+      // organization exists but has no explicit type -> fall back to role-derived type
+      finalType = toTitle(derivedType);
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.log('[UsersManagement] resolved type', { user_id: p.user_id ?? p.id, admin_data: p.admin_data, organization_data: p.organization_data, adminLevel, derivedType, finalType });
     }
 
     return {
@@ -105,10 +155,9 @@ export function UsersManagement({
       status,
       lastActive,
       avatar,
-      type: derivedType,
-      // If the user is a System user, show the platform name.
-      // Otherwise show the organization name if present, or 'Unknown'.
-      organization_name: derivedType == "System" ? "Attendify" : (p.organization_data?.name ?? "Unknown"),
+      type: finalType,
+  // If the organization is absent or id===0 show 'Attendify'. Otherwise show the organization name.
+  organization_name: (!orgData || orgData.id === 0) ? "Attendify" : (orgData.name ?? "Unknown"),
       createdAt: p.created_at || undefined,
       academic_program_id: p.academic_data?.program_id ?? undefined,
       academic_student_id: p.academic_data?.student_id ?? undefined,
@@ -177,7 +226,7 @@ export function UsersManagement({
     };
 
     fetchProfiles();
-  }, [searchQuery, appliedFilters, currentPage]);
+  }, [searchQuery, appliedFilters, currentPage, refreshKey]);
 
   return (
     <div className="space-y-5 p-4 md:p-6">
@@ -219,7 +268,10 @@ export function UsersManagement({
               <UsersColumnCustomizer table={table as any} />
               <AddUserDrawer
                 onCreate={async (data) => {
-                  // If parent provided onAddUser handler, call it so it can trigger refresh or open further UI
+                  // Ensure the users list re-fetches: reset to first page and bump refreshKey
+                  try { setCurrentPage(1); } catch (e) { /* ignore */ }
+                  setRefreshKey((k) => k + 1);
+                  // If parent provided onAddUser handler, call it as well
                   if (onAddUser) onAddUser();
                   else console.log("User created (local):", data);
                 }}

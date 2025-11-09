@@ -128,6 +128,8 @@ const columns: ColumnDef<User>[] = [
             ? "default"
             : row.original.role === "Faculty"
             ? "secondary"
+            : row.original.role === "Student"
+            ? "secondary"
             : "outline"
         }
       >

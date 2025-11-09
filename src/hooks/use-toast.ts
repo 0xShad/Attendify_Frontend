@@ -1,8 +1,11 @@
 import { toast as sonnerToast } from "sonner";
 
+import React from "react";
+
 type ToastProps = {
   title?: string;
-  description?: string;
+  // allow React nodes so callers can pass JSX (for newlines / lists)
+  description?: React.ReactNode;
   variant?: "default" | "destructive";
 };
 

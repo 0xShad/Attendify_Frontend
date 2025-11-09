@@ -10,6 +10,7 @@ const PROFILES_ENDPOINTS = {
   SEARCH: `${API_BASE_URL}/profiles/search`,
   ROLES: `${API_BASE_URL}/options/profiles/roles`,
   ORGANIZATIONS: `${API_BASE_URL}/organizations/options/organizations`,
+  ADMIN_CREATE: `${API_BASE_URL}/admin/users`,
   LIST: `${API_BASE_URL}/profiles`,
 } as const;
 
@@ -25,6 +26,7 @@ export interface Profile {
   organization_data?: {
     id?: number | null;
     name?: string | null;
+    type?: string | null;
   } | null;
   last_active: string | null;
   email: string | null;
@@ -93,15 +95,32 @@ export async function searchProfiles(params: SearchProfilesParams = {}): Promise
   return data as Profile[];
 }
 
-export async function listRoles(): Promise<string[]> {
-  const url = PROFILES_ENDPOINTS.ROLES;
+export interface ListRolesParams {
+  organization_id?: number;
+  organization_type?: string;
+}
+
+export async function listRoles(params: ListRolesParams = {}): Promise<string[]> {
+  const url = new URL(PROFILES_ENDPOINTS.ROLES);
+  if (params.organization_id !== undefined) url.searchParams.append('organization_id', String(params.organization_id));
+  if (params.organization_type) url.searchParams.append('organization_type', params.organization_type);
   const data = await fetchWithDedupe(url.toString(), { method: 'GET' });
   return data as string[];
+}
+
+// Fetch program codes for an organization. Backend returns either an array of strings or
+// an array of objects; normalize in callers.
+export async function listProgramCodesByOrganization(organizationId: number) {
+  // Programs endpoints live under the /programs router (e.g. /api/v1/programs/options/codes/organization/{id})
+  const url = `${API_BASE_URL}/programs/options/codes/organization/${organizationId}`;
+  const data = await fetchWithDedupe(url, { method: 'GET' });
+  return data;
 }
 
 export interface OrganizationOption {
   id: number;
   name: string;
+  type?: string | null;
 }
 
 export async function listOrganizations(): Promise<OrganizationOption[]> {
@@ -210,5 +229,61 @@ export const profilesAPI = {
   listOrganizations,
   listProfiles,
 };
+
+// (we will attach createAdminUser and program fetcher after the function declaration below)
+
+// Create an admin user (multipart/form-data). Accepts FormData and optional token.
+export async function createAdminUser(formData: FormData, token?: string) {
+  // If a token is provided, call backend directly with Authorization header.
+  if (token) {
+    const url = PROFILES_ENDPOINTS.ADMIN_CREATE;
+    const headers: Record<string, string> = {};
+    headers['Authorization'] = `Bearer ${token}`;
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      headers: headers,
+      credentials: 'include',
+    });
+
+    let parsed: any = {};
+    try { parsed = await resp.json(); } catch (e) { parsed = { detail: resp.statusText }; }
+    if (!resp.ok) {
+      const message = parsed?.detail || parsed?.message || resp.statusText || `HTTP ${resp.status}`;
+      const err: any = new Error(message);
+      err.status = resp.status;
+      err.body = parsed;
+      throw err;
+    }
+    return parsed;
+  }
+
+  // No token: if running in browser, POST to the local proxy route which will set
+  // Authorization using the HTTP-only cookie (server-side) and forward the request.
+  if (typeof window !== 'undefined') {
+    const proxyUrl = '/api/admin/users';
+    const resp = await fetch(proxyUrl, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+
+    let parsed: any = {};
+    try { parsed = await resp.json(); } catch (e) { parsed = { detail: resp.statusText }; }
+    if (!resp.ok) {
+      const message = parsed?.detail || parsed?.message || resp.statusText || `HTTP ${resp.status}`;
+      const err: any = new Error(message);
+      err.status = resp.status;
+      err.body = parsed;
+      throw err;
+    }
+    return parsed;
+  }
+}
+
+// attach createAdminUser and program fetcher and export the API object
+Object.assign(profilesAPI, { createAdminUser, listProgramCodesByOrganization });
+export default profilesAPI;
 
 
