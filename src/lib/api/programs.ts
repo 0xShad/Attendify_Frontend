@@ -14,6 +14,9 @@ const PROGRAMS_ENDPOINTS = {
   UPDATE: (id: number) => `${API_BASE_URL}/programs/${id}`,
   DELETE: (id: number) => `${API_BASE_URL}/programs/${id}`,
   OPTIONS_ORGANIZATIONS: `${API_BASE_URL}/programs/options/organizations`,
+  // Organization options are served from the organizations router on the backend
+  // (not under /programs). Use the organizations endpoint so we don't get 404s.
+  OPTIONS_ORGANIZATIONS_CORRECTED: `${API_BASE_URL}/organizations/options/organizations`,
   OPTIONS_CODES: `${API_BASE_URL}/programs/options/codes`,
   OPTIONS_CODES_BY_ORGANIZATION: (organizationId: number) => `${API_BASE_URL}/programs/options/codes/organization/${organizationId}`,
 } as const;
@@ -65,6 +68,11 @@ export interface SearchProgramsParams {
 export interface OrganizationOption {
   id: number;
   name: string;
+}
+
+export interface ProgramCodeOption {
+  id: number;
+  code: string;
 }
 
 // ==================== API Functions ====================
@@ -256,7 +264,7 @@ export async function deleteProgram(id: number): Promise<void> {
  * Get all organizations for filtering (Academic type only)
  */
 export async function getOrganizationOptions(): Promise<OrganizationOption[]> {
-  const url = new URL(PROGRAMS_ENDPOINTS.OPTIONS_ORGANIZATIONS);
+  const url = new URL(PROGRAMS_ENDPOINTS.OPTIONS_ORGANIZATIONS_CORRECTED);
   // Filter to Academic organizations only
   url.searchParams.append('type', 'Academic');
   
@@ -299,7 +307,7 @@ export async function getProgramCodes(): Promise<string[]> {
 /**
  * Get program codes for a specific organization
  */
-export async function getProgramCodesByOrganization(organizationId: number): Promise<string[]> {
+export async function getProgramCodesByOrganization(organizationId: number): Promise<ProgramCodeOption[]> {
   const response = await fetch(PROGRAMS_ENDPOINTS.OPTIONS_CODES_BY_ORGANIZATION(organizationId), {
     method: 'GET',
     headers: {
@@ -313,7 +321,11 @@ export async function getProgramCodesByOrganization(organizationId: number): Pro
     throw new Error(errorMessage);
   }
 
-  return response.json();
+  // Backend returns an array of objects: [{ id, code }, ...]
+  const data = await response.json();
+  // Normalize to ProgramCodeOption[] to keep typings accurate
+  if (!Array.isArray(data)) return [];
+  return data.map((d: any) => ({ id: Number(d.id), code: String(d.code) }));
 }
 
 // Export as programsAPI object for consistency

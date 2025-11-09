@@ -69,7 +69,17 @@ export function ProgramFilters({
         programsAPI.getProgramCodes(),
       ]);
       setOrganizations(organizationsData);
-      setCodes(codesData);
+      // Normalize codes to an array of non-empty unique strings. The backend
+      // may return either strings or objects like { id, code }.
+      const normalize = (arr: any[]): string[] => {
+        if (!Array.isArray(arr)) return [];
+        const mapped = arr
+          .map((v) => (typeof v === 'string' ? v : (v && (v.code ?? v.value ?? String(v)))) )
+          .map((s) => (s == null ? '' : String(s).trim()))
+          .filter(Boolean);
+        return Array.from(new Set(mapped));
+      };
+      setCodes(normalize(codesData as any[]));
     } catch (error) {
       console.error("Failed to fetch filter options:", error);
     } finally {
@@ -105,7 +115,11 @@ export function ProgramFilters({
         // Fetch codes for this organization
         try {
           const organizationCodes = await programsAPI.getProgramCodesByOrganization(selectedOrganization.id);
-          setCodes(organizationCodes);
+          // API returns [{id, code}, ...] for organization-specific codes; normalize to string[] and filter empties
+          const mapped = Array.isArray(organizationCodes)
+            ? (organizationCodes as any[]).map((c) => String(c.code)).filter(Boolean)
+            : [];
+          setCodes(mapped);
         } catch (error) {
           console.error("Failed to fetch organization codes:", error);
         }

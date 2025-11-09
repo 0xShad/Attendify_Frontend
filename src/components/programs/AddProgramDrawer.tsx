@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { OrganizationOption } from "@/lib/api/programs";
+import { getProgramCodesByOrganization } from "@/lib/api/programs";
 
 interface ProgramFormData {
   code: string;
@@ -49,6 +50,41 @@ export function AddProgramDrawer({
   onSubmit,
   organizations,
 }: AddProgramDrawerProps) {
+  const [programCodes, setProgramCodes] = React.useState<Array<{ id: number; code: string }>>([]);
+  const [codesLoading, setCodesLoading] = React.useState(false);
+  const [codesError, setCodesError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+    const orgId = formData.organization_id;
+    if (!orgId) {
+      setProgramCodes([]);
+      setCodesError(null);
+      return;
+    }
+
+    setCodesLoading(true);
+    setCodesError(null);
+    getProgramCodesByOrganization(orgId)
+      .then((res: any) => {
+        if (!mounted) return;
+        // Normalize: backend returns [{ id, code }, ...]
+        setProgramCodes(Array.isArray(res) ? res : []);
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        setCodesError(err instanceof Error ? err.message : String(err));
+        setProgramCodes([]);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setCodesLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [formData.organization_id]);
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
@@ -90,15 +126,35 @@ export function AddProgramDrawer({
             <Label htmlFor="program-code">
               Program Code <span className="text-red-500">*</span>
             </Label>
-            <Input
-              id="program-code"
-              value={formData.code}
-              onChange={(e) =>
-                onFormDataChange({ ...formData, code: e.target.value })
-              }
-              placeholder="e.g., BSCS"
+            <Select
+              value={formData.code || ""}
+              onValueChange={(value) => onFormDataChange({ ...formData, code: value })}
+              disabled={!formData.organization_id || codesLoading}
               required
-            />
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={codesLoading ? "Loading codes..." : "Select program code"} />
+              </SelectTrigger>
+              <SelectContent>
+                {programCodes.length > 0 ? (
+                  programCodes.map((c) => (
+                    <SelectItem key={c.id} value={c.code}>
+                      {c.code}
+                    </SelectItem>
+                  ))
+                ) : (
+                  // Radix Select requires non-empty value on SelectItem; use a
+                  // sentinel non-empty value for the disabled placeholder so
+                  // the component doesn't throw. The Select's value remains
+                  // empty when no selection has been made so the placeholder
+                  // will be shown.
+                  <SelectItem value="__no_codes" disabled>
+                    {formData.organization_id ? (codesLoading ? "Loading..." : "No codes found") : "Select organization first"}
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+            {codesError && <div className="text-sm text-destructive mt-1">{codesError}</div>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="program-name">
