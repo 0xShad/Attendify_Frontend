@@ -108,11 +108,7 @@ export function UsersManagement({
       }
     }
 
-    // Debugging: log incoming nested data and derived type briefly when in dev
-    if (process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
-      console.log("transformProfile", { user_id: p.user_id ?? p.id, admin_data: p.admin_data, business_data: p.business_data, academic_data: p.academic_data, role: p.role, derivedType });
-    }
+    // Debugging removed: no console output here in order to keep logs clean.
 
     // Priority for Type column:
     // 1) If admin_data.admin_level is present, use that.
@@ -147,10 +143,7 @@ export function UsersManagement({
       finalType = toTitle(derivedType);
     }
 
-    if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.log('[UsersManagement] resolved type', { user_id: p.user_id ?? p.id, admin_data: p.admin_data, organization_data: p.organization_data, adminLevel, derivedType, finalType });
-    }
+    // Debugging removed: resolved type logging omitted in cleanup.
 
     return {
       id,

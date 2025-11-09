@@ -113,10 +113,7 @@ export async function searchProfiles(params: SearchProfilesParams = {}, token?: 
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line no-console
-    console.debug(`[profilesAPI] searchProfiles -> ${requestUrl} (token? ${Boolean(token)})`);
-  }
+  // No dev logging here to avoid leaking tokens or noisy output in dev.
 
   // When calling the same-origin proxy, include credentials so the cookie is
   // sent to our Next.js route which will forward the Authorization header.
