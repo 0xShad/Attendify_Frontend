@@ -6,6 +6,7 @@ import type { User } from "./types";
 import { SearchBar } from "./SearchBar";
 import { UsersFilters, type UsersFilterValues } from "./UsersFilters";
 import { UsersColumnCustomizer } from "./UsersColumnCustomizer";
+import AddUserDrawer from "./AddUserDrawer";
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { UsersPaginationControls } from "./UsersPaginationControls";
 import { profilesAPI, type Profile } from "@/lib/api/profiles";
@@ -216,6 +217,13 @@ export function UsersManagement({
             </div>
             <div className="flex items-center gap-2">
               <UsersColumnCustomizer table={table as any} />
+              <AddUserDrawer
+                onCreate={async (data) => {
+                  // If parent provided onAddUser handler, call it so it can trigger refresh or open further UI
+                  if (onAddUser) onAddUser();
+                  else console.log("User created (local):", data);
+                }}
+              />
             </div>
           </>
         )}
