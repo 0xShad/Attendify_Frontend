@@ -536,13 +536,7 @@ export function AddUserDrawer({ onCreate }: AddUserDrawerProps) {
           </section>
         </div>
 
-        <DrawerFooter className="px-4">
-          <div className="flex justify-end w-full">
-            <DrawerClose asChild>
-              <Button variant="outline">Close</Button>
-            </DrawerClose>
-          </div>
-        </DrawerFooter>
+        {/* Close button removed per request */}
       </DrawerContent>
     </Drawer>
   );
