@@ -29,6 +29,11 @@ export function UsersManagement({
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isSearching, setIsSearching] = React.useState(false);
+  // Track whether the last fetch used server-side search. When true we
+  // should NOT pass the same string into the table's client-side global
+  // filter because the table's global filter can further narrow results
+  // (and may not check email fields), hiding server-matched email results.
+  const [lastFetchUsedServerSearch, setLastFetchUsedServerSearch] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [filters, setFilters] = React.useState<UsersFilterValues>({});
   const [appliedFilters, setAppliedFilters] = React.useState<UsersFilterValues>({});
@@ -183,8 +188,11 @@ export function UsersManagement({
         const hasFilters = Object.values(appliedFilters).some((v) => v !== undefined && v !== null && String(v).trim() !== "");
 
         if (searchQuery && !hasFilters) {
-          profiles = await profilesAPI.searchProfiles({ query: searchQuery, skip, limit: itemsPerPage });
+          // backend expects `q` as the query parameter
+          setLastFetchUsedServerSearch(true);
+          profiles = await profilesAPI.searchProfiles({ q: searchQuery, skip, limit: itemsPerPage });
         } else {
+          setLastFetchUsedServerSearch(false);
           // Build listProfiles params from appliedFilters
           const params: any = {
             skip,
@@ -237,7 +245,12 @@ export function UsersManagement({
 
       <UsersTable
         data={users}
-        globalFilter={searchQuery}
+        // If the last fetch returned server-side search results, avoid passing
+        // the same string into the table's client-side global filter. Many
+        // client-side global filter implementations only search names and
+        // may therefore hide email-matched results. Keep the search text in
+        // the input (globalFilter) but do not re-filter the rows client-side.
+        globalFilter={lastFetchUsedServerSearch ? "" : searchQuery}
         onGlobalFilterChange={setGlobalFilter}
         columnFilters={columnFilters}
         onColumnFiltersChange={setColumnFilters}
@@ -253,7 +266,7 @@ export function UsersManagement({
                 onChange={setGlobalFilter}
                 onSearch={handleSearch}
                 onClear={handleClearSearch}
-                disabled={false}
+                disabled={isSearching}
               />
               <UsersFilters
                 open={filtersOpen}

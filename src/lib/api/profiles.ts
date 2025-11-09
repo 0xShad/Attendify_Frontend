@@ -73,6 +73,9 @@ export interface ListProfilesParams {
 }
 
 export interface SearchProfilesParams {
+  // `q` is the canonical query param name used by the backend. Keep `query`
+  // for backward compatibility with callers that still use that key.
+  q?: string;
   query?: string;
   skip?: number;
   limit?: number; // default 50, max 200
@@ -84,14 +87,43 @@ export async function getProfile(userId: number): Promise<Profile> {
   return data as Profile;
 }
 
-export async function searchProfiles(params: SearchProfilesParams = {}): Promise<Profile[]> {
-  const { query, skip = 0, limit = 50 } = params;
-  const url = new URL(PROFILES_ENDPOINTS.SEARCH);
-  if (query) url.searchParams.append('query', query);
-  url.searchParams.append('skip', String(skip));
-  url.searchParams.append('limit', String(limit));
+export async function searchProfiles(params: SearchProfilesParams = {}, token?: string): Promise<Profile[]> {
+  const { skip = 0, limit = 50 } = params;
+  // Accept either `q` (preferred) or `query` (legacy callers)
+  const q = (params as any).q ?? (params as any).query;
+  // Build query string
+  const searchParams = new URLSearchParams();
+  if (q) searchParams.append('q', String(q));
+  searchParams.append('skip', String(skip));
+  searchParams.append('limit', String(limit));
 
-  const data = await fetchWithDedupe(url.toString(), { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+  // If we're in the browser and no explicit token was provided, prefer the
+  // same-origin proxy route so the server-side code can read the HTTP-only
+  // cookie and attach an Authorization header when forwarding to the backend.
+  let requestUrl: string;
+  const isBrowser = typeof window !== 'undefined';
+  if (isBrowser && !token) {
+    requestUrl = `/api/profiles/search?${searchParams.toString()}`;
+  } else {
+    const url = new URL(PROFILES_ENDPOINTS.SEARCH);
+    url.search = searchParams.toString();
+    requestUrl = url.toString();
+  }
+
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.debug(`[profilesAPI] searchProfiles -> ${requestUrl} (token? ${Boolean(token)})`);
+  }
+
+  // When calling the same-origin proxy, include credentials so the cookie is
+  // sent to our Next.js route which will forward the Authorization header.
+  const init: RequestInit = { method: 'GET', headers };
+  if (isBrowser && !token) init.credentials = 'include';
+
+  const data = await fetchWithDedupe(requestUrl, init);
   return data as Profile[];
 }
 
