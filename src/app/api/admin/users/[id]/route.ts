@@ -32,8 +32,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
 
   try {
-    // DEV: Log proxy invocation details to help debug upload errors (no token values)
-    console.info(`[proxy admin/users] PUT -> ${backendUrl} | hasAccessToken=${Boolean(accessToken)} | contentType=${contentType}`);
     // Build fetch init. When forwarding a streaming body with undici/node fetch,
     // the RequestInit must include `duplex: 'half'` to allow streaming the body.
     const putInit: any = { method: 'PUT', headers };
@@ -72,8 +70,6 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
 
   try {
-    // DEV: Log proxy invocation details to help debug upload errors (no token values)
-    console.info(`[proxy admin/users] PATCH -> ${backendUrl} | hasAccessToken=${Boolean(accessToken)} | contentType=${contentType}`);
     // Build fetch init. When forwarding a streaming body with undici/node fetch,
     // the RequestInit must include `duplex: 'half'` to allow streaming the body.
     const patchInit: any = { method: 'PATCH', headers };

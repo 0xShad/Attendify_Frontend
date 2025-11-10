@@ -386,7 +386,8 @@ export function AddUserDrawer({ onCreate }: AddUserDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
-        <Button variant="ghost" onClick={() => setOpen(true)}>
+        {/* Use the primary/default button style so the Add user action appears blue in the toolbar */}
+        <Button onClick={() => setOpen(true)}>
           <IconPlus className="mr-2" /> Add user
         </Button>
       </DrawerTrigger>

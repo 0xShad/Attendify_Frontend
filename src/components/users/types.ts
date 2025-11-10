@@ -16,6 +16,8 @@ export const userSchema = z.object({
   type: z.string().optional(), // e.g. Admin | Business | Academic
   createdAt: z.string().optional(),
   organization_name: z.string().optional(),
+  // Program name (preferred display name returned by backend)
+  program: z.string().optional(),
   // Flattened profile fields from the backend (kept for completeness)
   academic_program_id: z.number().int().optional(),
   academic_student_id: z.string().optional(),

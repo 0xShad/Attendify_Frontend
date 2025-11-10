@@ -8,6 +8,7 @@ import { UsersFilters, type UsersFilterValues } from "./UsersFilters";
 import { UsersColumnCustomizer } from "./UsersColumnCustomizer";
 import AddUserDrawer from "./AddUserDrawer";
 import EditUserDrawer from "./EditUserDrawer";
+import ViewUserDrawer from "./ViewUserDrawer";
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { UsersPaginationControls } from "./UsersPaginationControls";
 import { profilesAPI, type Profile } from "@/lib/api/profiles";
@@ -49,6 +50,9 @@ export function UsersManagement({
   const [editingProfileId, setEditingProfileId] = React.useState<string | null>(null);
   const [editingAuthUserId, setEditingAuthUserId] = React.useState<number | null>(null);
   const [editingOpen, setEditingOpen] = React.useState(false);
+  const [viewProfileId, setViewProfileId] = React.useState<string | null>(null);
+  const [viewAuthUserId, setViewAuthUserId] = React.useState<number | null>(null);
+  const [viewOpen, setViewOpen] = React.useState(false);
 
   const handleSearch = () => {
     setSearchQuery(globalFilter);
@@ -162,6 +166,8 @@ export function UsersManagement({
       type: finalType,
   // If the organization is absent or id===0 show 'Attendify'. Otherwise show the organization name.
   organization_name: (!orgData || orgData.id === 0) ? "Attendify" : (orgData.name ?? "Unknown"),
+  // expose program name (prefer backend program_name, then academic_data.program_code or program_code)
+  program: (p as any).program_name ?? (p as any).academic_data?.program_code ?? (p as any).program_code ?? undefined,
       createdAt: p.created_at || undefined,
       academic_program_id: p.academic_data?.program_id ?? undefined,
       academic_student_id: p.academic_data?.student_id ?? undefined,
@@ -254,7 +260,12 @@ export function UsersManagement({
         columnFilters={columnFilters}
         onColumnFiltersChange={setColumnFilters}
         onAddUser={onAddUser}
-        onViewUser={onViewUser}
+        onViewUser={(user) => {
+          try { setViewProfileId(String(user.id)); } catch (e) { setViewProfileId(null); }
+          try { setViewAuthUserId((user as any).auth_user_id ?? null); } catch (e) { setViewAuthUserId(null); }
+          setViewOpen(true);
+          if (onViewUser) onViewUser(user);
+        }}
         onEditUser={(user) => {
           try { setEditingProfileId(String(user.id)); } catch (e) { setEditingProfileId(null); }
           try { setEditingAuthUserId((user as any).auth_user_id ?? null); } catch (e) { setEditingAuthUserId(null); }
@@ -324,6 +335,18 @@ export function UsersManagement({
           setEditingOpen(false);
           setEditingProfileId(null);
           setEditingAuthUserId(null);
+        }}
+      />
+      <ViewUserDrawer
+        profileId={viewProfileId}
+        authUserId={viewAuthUserId}
+        open={viewOpen}
+        onOpenChange={(v) => {
+          setViewOpen(v);
+          if (!v) {
+            setViewProfileId(null);
+            setViewAuthUserId(null);
+          }
         }}
       />
     </div>
