@@ -85,48 +85,51 @@ export interface ListSchoolsParams {
 export async function listSchools(
   params: ListSchoolsParams = {}
 ): Promise<School[]> {
-  const { 
-    skip = 0, 
-    limit = 100, 
-    type,
-    min_programs,
-    max_programs,
-    min_courses,
-    max_courses,
-    min_students,
-    max_students,
-    min_faculty,
-    max_faculty
-  } = params;
-  
-  const url = new URL(SCHOOLS_ENDPOINTS.LIST);
-  url.searchParams.append('skip', skip.toString());
-  url.searchParams.append('limit', limit.toString());
-  
-  // Add type filter if provided - default to Academic for schools
-  if (type) {
-    url.searchParams.append('type', type);
+  // If the caller provided no params, call the endpoint without query parameters
+  // (some backends reject requests with query params on this endpoint).
+  const hasAnyParam = Object.keys(params).some((k) => (params as any)[k] !== undefined);
+  let response: Response;
+  if (!hasAnyParam) {
+    response = await fetch(SCHOOLS_ENDPOINTS.LIST, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
   } else {
-    // Default to Academic type for schools management
-    url.searchParams.append('type', 'Academic');
+    const { 
+      skip = 0, 
+      limit = 100, 
+      type,
+      min_programs,
+      max_programs,
+      min_courses,
+      max_courses,
+      min_students,
+      max_students,
+      min_faculty,
+      max_faculty
+    } = params;
+
+    const url = new URL(SCHOOLS_ENDPOINTS.LIST);
+    url.searchParams.append('skip', skip.toString());
+    url.searchParams.append('limit', limit.toString());
+
+    if (type) url.searchParams.append('type', type);
+    if (min_programs !== undefined) url.searchParams.append('min_programs', min_programs.toString());
+    if (max_programs !== undefined) url.searchParams.append('max_programs', max_programs.toString());
+    if (min_courses !== undefined) url.searchParams.append('min_courses', min_courses.toString());
+    if (max_courses !== undefined) url.searchParams.append('max_courses', max_courses.toString());
+    if (min_students !== undefined) url.searchParams.append('min_students', min_students.toString());
+    if (max_students !== undefined) url.searchParams.append('max_students', max_students.toString());
+    if (min_faculty !== undefined) url.searchParams.append('min_faculty', min_faculty.toString());
+    if (max_faculty !== undefined) url.searchParams.append('max_faculty', max_faculty.toString());
+
+    response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
-
-  // Add count filters if provided
-  if (min_programs !== undefined) url.searchParams.append('min_programs', min_programs.toString());
-  if (max_programs !== undefined) url.searchParams.append('max_programs', max_programs.toString());
-  if (min_courses !== undefined) url.searchParams.append('min_courses', min_courses.toString());
-  if (max_courses !== undefined) url.searchParams.append('max_courses', max_courses.toString());
-  if (min_students !== undefined) url.searchParams.append('min_students', min_students.toString());
-  if (max_students !== undefined) url.searchParams.append('max_students', max_students.toString());
-  if (min_faculty !== undefined) url.searchParams.append('min_faculty', min_faculty.toString());
-  if (max_faculty !== undefined) url.searchParams.append('max_faculty', max_faculty.toString());
-
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

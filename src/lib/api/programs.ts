@@ -73,6 +73,7 @@ export interface OrganizationOption {
 export interface ProgramCodeOption {
   id: number;
   code: string;
+  name?: string;
 }
 
 // ==================== API Functions ====================
@@ -325,7 +326,7 @@ export async function getProgramCodesByOrganization(organizationId: number): Pro
   const data = await response.json();
   // Normalize to ProgramCodeOption[] to keep typings accurate
   if (!Array.isArray(data)) return [];
-  return data.map((d: any) => ({ id: Number(d.id), code: String(d.code) }));
+  return data.map((d: any) => ({ id: Number(d.id), code: String(d.code), name: d.name ?? undefined }));
 }
 
 // Export as programsAPI object for consistency
