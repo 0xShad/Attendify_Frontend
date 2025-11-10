@@ -26,19 +26,22 @@ export async function POST(request: Request) {
   // Preserve the incoming Content-Type (including boundary)
   const contentType = request.headers.get('content-type') || '';
 
-  // Read the raw body and forward as-is
-  const body = await request.arrayBuffer();
+  // Do NOT consume the body into an ArrayBuffer here as that may cause
+  // re-encoding and accidental corruption for binary multipart boundaries.
+  // Forward the request.body stream directly and include `duplex` when present.
+  const body = request.body;
 
   const headers: Record<string, string> = {};
   if (contentType) headers['content-type'] = contentType;
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
 
   try {
-    const resp = await fetch(backendUrl, {
-      method: 'POST',
-      body: Buffer.from(body),
-      headers,
-    });
+    const postInit: any = { method: 'POST', headers };
+    if (body != null) {
+      postInit.body = body;
+      postInit.duplex = 'half';
+    }
+    const resp = await fetch(backendUrl, postInit);
 
     const respText = await resp.text();
     const respContentType = resp.headers.get('content-type') || 'application/json';

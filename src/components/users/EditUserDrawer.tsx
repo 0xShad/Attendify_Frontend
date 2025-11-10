@@ -131,6 +131,8 @@ export function EditUserDrawer({ profileId, authUserId, onUpdated, open: openPro
           return;
         }
 
+  // loaded profile (no debug logging emitted)
+
         if (!mounted) return;
         const seed: UserFormData = {
           email: profile.email ?? undefined,
@@ -143,12 +145,50 @@ export function EditUserDrawer({ profileId, authUserId, onUpdated, open: openPro
           bio: profile.bio ?? undefined,
           profile_image: profile.avatar_url ?? undefined,
           face_image: profile.face_image ?? undefined,
-          program_id: profile.academic_data?.program_id ?? undefined,
+          // Prefer top-level program_id (newer backend responses) then fallback
+          // to nested academic_data.program_id for older responses.
+          program_id: (profile as any).program_id ?? profile.academic_data?.program_id ?? undefined,
           program_code: undefined,
         };
-        setInitial(seed);
-        setForm(seed);
-        if (seed.profile_image && typeof seed.profile_image === 'string') setPreviewUrl(getAvatarSrc(String(seed.profile_image)) ?? null);
+  setInitial(seed);
+  setForm(seed);
+  if (seed.profile_image && typeof seed.profile_image === 'string') setPreviewUrl(getAvatarSrc(String(seed.profile_image)) ?? null);
+
+    // seeded form values derived from profile (no debug logging emitted)
+
+        // Populate organization -> roles -> programs hierarchy so dropdowns are prefilled
+        try {
+          if (seed.organization) {
+            const orgIdNum = Number(seed.organization);
+
+            // Load roles for the organization without triggering the handlers that
+            // clear program values. This avoids racing with program resolution.
+            try {
+              const params: any = {};
+              if (!Number.isNaN(orgIdNum) && orgIdNum > 0) params.organization_id = orgIdNum;
+              const opts = await profilesAPI.listRoles(params);
+              if (Array.isArray(opts)) setRoles(opts.map((r: any) => (typeof r === 'string' ? r : String(r))));
+              // roles loaded
+              // set the role from seed so the UI shows it
+              if (seed.role) handleChange({ role: seed.role });
+            } catch (e) {
+              console.warn('[EditUserDrawer] failed to load roles during prefill', e);
+              setRoles([]);
+            }
+
+            // Always attempt to fetch programs when an organization id exists
+            if (!Number.isNaN(orgIdNum) && orgIdNum > 0) {
+              const normalized = await fetchPrograms(orgIdNum);
+              const seeded = seed.program_id as any;
+              const { programs: updatedPrograms, resolvedId, resolvedCode } = resolveSeededProgram(normalized, seeded, (seed as any).program_code);
+              // ensure UI programs list reflects any injected fallback entries
+              if (Array.isArray(updatedPrograms)) setPrograms(updatedPrograms);
+              handleChange({ program_id: resolvedId ?? undefined, program_code: resolvedCode ?? undefined });
+            }
+          }
+        } catch (e) {
+          console.warn('[EditUserDrawer] failed to populate organization/role/program during prefill', e);
+        }
       } catch (err: any) {
         console.error('Failed to load profile for edit', err);
         toast({ title: 'Failed to load user', description: err?.message || 'Could not fetch user data', variant: 'destructive' });
@@ -218,13 +258,105 @@ export function EditUserDrawer({ profileId, authUserId, onUpdated, open: openPro
         }
       }
       setPrograms(normalized);
+      return normalized;
     } catch (e) {
       console.warn('Failed to load programs for organization', organizationId, e);
       setPrograms([]);
+      return [] as Array<{id:number, code:string}>;
     } finally {
       setLoadingPrograms(false);
     }
   };
+
+  // Helper to resolve a seeded program value against a list of programs.
+  // Returns an object with possibly-updated programs array and resolved id/code.
+  const resolveSeededProgram = (
+    list: Array<{id:number, code:string}>,
+    seeded: any,
+    seededCode?: string
+  ) => {
+    const programsCopy = Array.isArray(list) ? list.slice() : [];
+    let resolvedId: number | undefined;
+    let resolvedCode: string | undefined;
+
+    const hasSeed = seeded !== undefined && seeded !== null;
+    if (hasSeed) {
+      const seededStr = String(seeded);
+      const n = Number(seededStr);
+      if (!Number.isNaN(n)) {
+        const found = programsCopy.find((p) => Number(p.id) === n);
+        if (found) {
+          resolvedId = found.id;
+          resolvedCode = found.code;
+        } else {
+          const foundByCode = programsCopy.find((p) => String(p.code).toLowerCase() === seededStr.toLowerCase());
+          if (foundByCode) {
+            resolvedId = foundByCode.id;
+            resolvedCode = foundByCode.code;
+          }
+        }
+      } else {
+        const foundByCode = programsCopy.find((p) => String(p.code).toLowerCase() === seededStr.toLowerCase());
+        if (foundByCode) {
+          resolvedId = foundByCode.id;
+          resolvedCode = foundByCode.code;
+        }
+      }
+    }
+
+    // If not resolved yet and seeded is numeric, inject numeric fallback
+    if (!resolvedId && hasSeed && !Number.isNaN(Number(seeded))) {
+      const numericSeed = Number(seeded);
+      if (!programsCopy.find((p) => Number(p.id) === numericSeed)) {
+        const fallbackCode = seededCode ?? `Program ${numericSeed}`;
+        programsCopy.unshift({ id: numericSeed, code: String(fallbackCode) });
+      }
+      resolvedId = numericSeed;
+      resolvedCode = seededCode ?? `Program ${numericSeed}`;
+    }
+
+    // If seeded is a non-numeric code and not found, inject negative fallback id
+    if (!resolvedId && hasSeed && Number.isNaN(Number(String(seeded)))) {
+      const seededStr = String(seeded);
+      if (!programsCopy.find((p) => String(p.code).toLowerCase() === seededStr.toLowerCase())) {
+        const fallbackId = -Math.floor(Date.now() % 1000000);
+        programsCopy.unshift({ id: fallbackId, code: seededStr });
+        resolvedId = fallbackId;
+        resolvedCode = seededStr;
+      } else {
+        const found = programsCopy.find((p) => String(p.code).toLowerCase() === seededStr.toLowerCase());
+        resolvedId = found?.id;
+        resolvedCode = found?.code;
+      }
+    }
+
+    // If still unresolved and no seeded value, but only one program exists, choose it.
+    if (!resolvedId && !hasSeed && programsCopy.length === 1) {
+      resolvedId = programsCopy[0].id;
+      resolvedCode = programsCopy[0].code;
+    }
+
+    return { programs: programsCopy, resolvedId, resolvedCode };
+  };
+
+  // Ensure form.program_id is set when programs become available.
+  // This handles the case where programs are fetched *after* the initial prefill
+  // (for example: user -> org -> role -> programs). We try resolving by numeric
+  // id first, then by code. If still not found we inject a fallback option so the
+  // Select can display the seeded program value.
+  React.useEffect(() => {
+    if (!open) return;
+    if (!initial) return;
+    if (initial.program_id === undefined || initial.program_id === null) return;
+    // If form already has a matching program_id, nothing to do
+    if (form.program_id !== undefined && form.program_id !== null) return;
+    // Resolve against current programs list using helper
+    if (programs && programs.length > 0) {
+      const { programs: updatedPrograms, resolvedId, resolvedCode } = resolveSeededProgram(programs, initial.program_id, initial.program_code);
+      if (Array.isArray(updatedPrograms)) setPrograms(updatedPrograms);
+      if (resolvedId !== undefined) handleChange({ program_id: resolvedId, program_code: resolvedCode });
+    }
+  }, [programs, initial, open]);
 
   const handleRoleChange = async (value: string | undefined) => {
     handleChange({ role: value, program_id: undefined, program_code: undefined });
@@ -318,7 +450,7 @@ export function EditUserDrawer({ profileId, authUserId, onUpdated, open: openPro
         else setStep(1);
       }
     } catch (e) {}
-    console.info('[EditUserDrawer] server validation messages', { raw: raw, dedup, mapped, toastMsgs });
+  // Server validation messages are surfaced to the user via toast; no debug logs
     if (toastMsgs.length === 1) {
       toast({ title: 'Failed to update user', description: String(toastMsgs[0]), variant: 'destructive' });
     } else if (toastMsgs.length > 1) {
@@ -335,7 +467,13 @@ export function EditUserDrawer({ profileId, authUserId, onUpdated, open: openPro
   };
 
   const selectedOrg = orgs.find((o) => String(o.id) === String(form.organization));
-  const showProgram = Boolean(selectedOrg && selectedOrg.type && String(selectedOrg.type).toLowerCase() === 'academic' && form.role && ['Student', 'Faculty'].includes(form.role));
+  const showProgram = Boolean(
+    selectedOrg &&
+    selectedOrg.type &&
+    String(selectedOrg.type).toLowerCase() === 'academic' &&
+    form.role &&
+    ['student', 'faculty'].includes(String(form.role).toLowerCase())
+  );
 
   const buildPatch = () => {
     const payload: Record<string, any> = {};
@@ -350,6 +488,17 @@ export function EditUserDrawer({ profileId, authUserId, onUpdated, open: openPro
     }
     if (form.program_id !== undefined && form.program_id !== (initial as any).program_id) payload.program_id = form.program_id;
     if (form.program_code !== undefined && form.program_code !== (initial as any).program_code) payload.program_code = form.program_code;
+
+    // Safety: if we injected a negative fallback id for display, don't send it as program_id to the backend.
+    // Prefer sending program_code when available.
+    if (payload.program_id !== undefined && typeof payload.program_id === 'number' && payload.program_id < 0) {
+      if (payload.program_code) {
+        delete payload.program_id;
+      } else {
+        // No program_code available; drop program_id to avoid sending an invalid id
+        delete payload.program_id;
+      }
+    }
     return payload;
   };
 
@@ -371,15 +520,79 @@ export function EditUserDrawer({ profileId, authUserId, onUpdated, open: openPro
 
     try {
       setSaving(true);
-      let targetUserId: number | null = null;
-      if (authUserId) targetUserId = Number(authUserId);
-      else if (profileId) {
-        const p = await (profilesAPI as any).getProfileByProfileId(Number(profileId));
-        if (p && p.user_id) targetUserId = Number(p.user_id);
+      // The backend admin update route now expects profile_id in the URL.
+      // Prefer using the provided profileId prop. If only authUserId is available,
+      // resolve it to the profile id via the profiles API.
+      let targetProfileId: number | null = null;
+      if (profileId) targetProfileId = Number(profileId);
+      else if (authUserId) {
+        const p = await (profilesAPI as any).getProfile(Number(authUserId));
+        if (p && p.id) targetProfileId = Number(p.id);
       }
-      if (!targetUserId) throw new Error('Could not determine target user id for update');
+      if (!targetProfileId) throw new Error('Could not determine target profile id for update');
 
-      const res = await (profilesAPI as any).updateAdminUser(targetUserId, patch);
+      // If files are present (avatar or captured face), send multipart/form-data
+      const hasProfileImageFile = form.profile_image && typeof form.profile_image !== 'string';
+      const fallbackAvatarFile = fileInputRef.current?.files?.[0] ?? null;
+      const profileImageFile = hasProfileImageFile ? (form.profile_image as File) : fallbackAvatarFile;
+
+      let faceFile: File | null = null;
+      if (form.face_image && typeof form.face_image === 'string') {
+        try {
+          faceFile = dataUrlToFile(form.face_image as string, 'face.png');
+        } catch (e) {
+          console.warn('face conversion failed', e);
+          faceFile = null;
+        }
+      }
+
+      let res: any = null;
+      if (profileImageFile || faceFile) {
+        const fd = new FormData();
+
+        // Append any scalar fields from the patch
+        for (const [k, v] of Object.entries(patch)) {
+          // Skip undefined/null
+          if (v === undefined || v === null) continue;
+          // Form fields expect strings for primitives
+          fd.append(k, String(v));
+        }
+
+        // If the form stores a profile_image as a URL and no file was provided,
+        // include it as avatar_url so the backend can accept it.
+        if (form.profile_image && typeof form.profile_image === 'string') {
+          fd.append('avatar_url', form.profile_image as string);
+        }
+
+        if (profileImageFile) fd.append('avatar_file', profileImageFile, (profileImageFile as File).name);
+        if (faceFile) fd.append('face_file', faceFile, faceFile.name);
+
+        // Ensure program_id/program_code appended when present on form (respect buildPatch safety already applied)
+        if (form.program_id !== undefined && form.program_id !== null) fd.append('program_id', String(form.program_id));
+        else if (form.program_code) fd.append('program_code', String(form.program_code));
+
+        // Send multipart/form-data to same-origin proxy so cookie is forwarded
+        const proxyUrl = `/api/admin/users/${targetProfileId}`;
+        const proxyResp = await fetch(proxyUrl, {
+          method: 'PATCH',
+          body: fd,
+          credentials: 'include',
+        });
+
+        try { res = await proxyResp.json(); } catch (e) { res = { detail: proxyResp.statusText }; }
+
+        if (!proxyResp.ok) {
+          const message = res?.detail || res?.message || proxyResp.statusText || `HTTP ${proxyResp.status}`;
+          const err: any = new Error(message);
+          err.status = proxyResp.status;
+          err.body = res;
+          throw err;
+        }
+      } else {
+        // No files: use JSON PATCH path
+        res = await (profilesAPI as any).updateAdminUser(targetProfileId, patch);
+      }
+
       toast({ title: 'User updated', description: 'User was successfully updated' });
       if (onUpdated) onUpdated(res);
       try { router.refresh(); } catch (e) { }

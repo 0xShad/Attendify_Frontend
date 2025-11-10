@@ -357,7 +357,7 @@ export async function updateAdminUser(userId: number | string, body: Record<stri
   if (token) {
     const url = `${API_BASE_URL}/users/${path}`;
     const resp = await fetch(url, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
@@ -380,7 +380,7 @@ export async function updateAdminUser(userId: number | string, body: Record<stri
   if (isBrowser) {
     const proxyUrl = `/api/admin/users/${path}`;
     const resp = await fetch(proxyUrl, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       credentials: 'include',
@@ -400,7 +400,7 @@ export async function updateAdminUser(userId: number | string, body: Record<stri
   // Server-side but no token: call backend directly (may fail if auth required)
   const url = `${API_BASE_URL}/users/${path}`;
   const resp = await fetch(url, {
-    method: 'PUT',
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });

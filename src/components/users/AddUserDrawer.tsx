@@ -263,8 +263,7 @@ export function AddUserDrawer({ onCreate }: AddUserDrawerProps) {
     } catch (e) {
       // ignore navigation errors
     }
-    // log for debugging so developer can see raw and mapped messages
-    console.info('[AddUserDrawer] server validation messages', { raw: raw, dedup, mapped, toastMsgs });
+  // Server validation messages are surfaced to the user via toast; no debug logs
     if (toastMsgs.length === 1) {
       toast({ title: 'Failed to create user', description: String(toastMsgs[0]), variant: 'destructive' });
     } else if (toastMsgs.length > 1) {
@@ -335,7 +334,8 @@ export function AddUserDrawer({ onCreate }: AddUserDrawerProps) {
         const avatarFile = fileInputRef.current?.files?.[0] ?? null;
         if (avatarFile) fd.append('avatar_file', avatarFile, avatarFile.name);
       }
-      if (form.program_id) fd.append('program_id', String(form.program_id));
+      // Append program_id when explicitly set (allow numeric 0 or other numeric ids).
+      if (form.program_id !== undefined && form.program_id !== null) fd.append('program_id', String(form.program_id));
       else if (form.program_code) fd.append('program_code', String(form.program_code));
       if (form.face_image && typeof form.face_image === 'string') {
         try {
@@ -346,20 +346,7 @@ export function AddUserDrawer({ onCreate }: AddUserDrawerProps) {
         }
       }
 
-      // In development, dump FormData entries to console for easier debugging of missing fields
-      if (process.env.NODE_ENV !== 'production') {
-        try {
-          const entries: Record<string, string> = {};
-          // FormData entries may include File objects; convert to a descriptive string
-          for (const [k, v] of (fd as any).entries()) {
-            entries[k] = v instanceof File ? `FILE:${v.name}` : String(v);
-          }
-          // eslint-disable-next-line no-console
-          console.info('[AddUserDrawer] submitting FormData', entries);
-        } catch (e) {
-          // ignore logging errors
-        }
-      }
+      // Intentionally not logging FormData to console in production or development
 
       const result = await (profilesAPI as any).createAdminUser(fd);
       const ok = result && (result.success === true || result.user || result.data || result.id || result.profile);
@@ -529,9 +516,10 @@ export function AddUserDrawer({ onCreate }: AddUserDrawerProps) {
                           <div className="text-sm text-muted-foreground">Loading programs...</div>
                         ) : programs.length > 0 ? (
                           <Select value={String(form.program_id ?? '')} onValueChange={(v) => {
-                            const pid = Number(v);
-                            const p = programs.find(x => String(x.id) === String(pid));
-                            handleChange({ program_id: pid || undefined, program_code: p ? p.code : undefined });
+                            // treat empty string as no selection
+                            const pid = (v === '' || v === null || v === undefined) ? undefined : Number(v);
+                            const p = (typeof pid === 'number' && !Number.isNaN(pid)) ? programs.find(x => Number(x.id) === Number(pid)) : undefined;
+                            handleChange({ program_id: (typeof pid === 'number' && !Number.isNaN(pid)) ? pid : undefined, program_code: p ? p.code : undefined });
                           }}>
                             <SelectTrigger id="program" className={selectTriggerClass('program')}><SelectValue placeholder="Select program" /></SelectTrigger>
                             <SelectContent>{programs.map(p => <SelectItem key={p.id ?? p.code} value={String(p.id)}>{p.code}</SelectItem>)}</SelectContent>
