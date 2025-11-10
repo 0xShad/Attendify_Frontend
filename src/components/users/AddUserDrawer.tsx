@@ -318,9 +318,23 @@ export function AddUserDrawer({ onCreate }: AddUserDrawerProps) {
         if (selOrg && selOrg.name) fd.append('organization', String(selOrg.name));
       }
       if (form.bio) fd.append('bio', form.bio);
-      if (form.profile_image && typeof form.profile_image === 'string') fd.append('avatar_url', form.profile_image as string);
-      const avatarFile = fileInputRef.current?.files?.[0] ?? null;
-      if (avatarFile) fd.append('avatar_file', avatarFile, avatarFile.name);
+      // If user supplied an existing URL string (no file selected), send it.
+      if (form.profile_image && typeof form.profile_image === 'string') {
+        fd.append('avatar_url', form.profile_image as string);
+      }
+
+      // Prefer the File stored on the form state (set by the hidden file input's onChange)
+      const profileImageFile = form.profile_image && typeof form.profile_image !== 'string' ? (form.profile_image as File) : null;
+      if (profileImageFile) {
+        // Send the uploaded file under the 'avatar_file' field. Do NOT send
+        // avatar_url when a file is provided to avoid confusing server-side
+        // validators that expect avatar_url to be a URL string.
+        fd.append('avatar_file', profileImageFile, profileImageFile.name);
+      } else {
+        // Fallback: read directly from the hidden file input if present
+        const avatarFile = fileInputRef.current?.files?.[0] ?? null;
+        if (avatarFile) fd.append('avatar_file', avatarFile, avatarFile.name);
+      }
       if (form.program_id) fd.append('program_id', String(form.program_id));
       else if (form.program_code) fd.append('program_code', String(form.program_code));
       if (form.face_image && typeof form.face_image === 'string') {
@@ -363,9 +377,12 @@ export function AddUserDrawer({ onCreate }: AddUserDrawerProps) {
   // Refresh the app router so any server-rendered tables re-fetch their data
   try { router.refresh(); } catch (e) { /* ignore if router not available */ }
   setOpen(false);
-      setForm({});
-      setStep(1);
-      setErrors({});
+  // reset form and file preview/input
+  setForm({});
+  try { if (fileInputRef.current) fileInputRef.current.value = ''; } catch (_) { /* ignore */ }
+  setPreviewUrl(null);
+  setStep(1);
+  setErrors({});
     } catch (err: any) {
       const body = err?.body ?? err?.response ?? null;
       const handled = handleServerErrors(body);
@@ -464,7 +481,22 @@ export function AddUserDrawer({ onCreate }: AddUserDrawerProps) {
                       {previewUrl ? <img src={previewUrl} alt="preview" className="h-full w-full object-cover" /> : <div className="text-sm text-muted-foreground">No image</div>}
                     </div>
                     <div className="mt-3 flex items-center gap-2">
-                      <input id="profile_image" ref={fileInputRef} type="file" className="hidden" onChange={(e) => handleChange({ profile_image: e.target.files?.[0] ?? null })} />
+                      <input
+                        id="profile_image"
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] ?? null;
+                          handleChange({ profile_image: file });
+                          try {
+                            if (file) setPreviewUrl(URL.createObjectURL(file)); else setPreviewUrl(null);
+                          } catch (_) {
+                            // ignore createObjectURL errors
+                          }
+                        }}
+                      />
                       <Button variant="outline" onClick={() => fileInputRef.current?.click()}><IconUpload className="mr-2" />Upload image</Button>
                       <div className="text-sm text-muted-foreground truncate max-w-56">{form.profile_image && typeof form.profile_image !== 'string' ? (form.profile_image as File).name : (!form.profile_image ? 'No file chosen' : 'Using existing image')}</div>
                     </div>
