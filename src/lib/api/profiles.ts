@@ -82,10 +82,44 @@ export interface SearchProfilesParams {
 }
 
 export async function getProfile(userId: number): Promise<Profile> {
+  const isBrowser = typeof window !== 'undefined';
+  let requestUrl: string;
+  if (isBrowser) {
+    // Prefer same-origin proxy so server code can read HTTP-only cookie and
+    // forward Authorization to the backend when enriching profile data.
+    requestUrl = `/api/profiles/${userId}`;
+    const init: RequestInit = { method: 'GET', headers: {} };
+    // include credentials so cookie is sent to Next.js route
+    init.credentials = 'include';
+    const data = await fetchWithDedupe(requestUrl, init);
+    return data as Profile;
+  }
+
   const url = PROFILES_ENDPOINTS.DETAIL(userId);
   const data = await fetchWithDedupe(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
   return data as Profile;
 }
+
+// Fetch profile by the profiles table primary key (profile.id). This calls
+// the same-origin proxy so Authorization from the HTTP-only cookie is
+// forwarded when in the browser.
+export async function getProfileByProfileId(profileId: number): Promise<Profile> {
+  const isBrowser = typeof window !== 'undefined';
+  if (isBrowser) {
+    const requestUrl = `/api/profiles/id/${profileId}`;
+    const init: RequestInit = { method: 'GET', headers: {} };
+    init.credentials = 'include';
+    const data = await fetchWithDedupe(requestUrl, init);
+    return data as Profile;
+  }
+
+  const url = `${API_BASE_URL}/profiles/id/${profileId}`;
+  const data = await fetchWithDedupe(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+  return data as Profile;
+}
+
+// getProfileByProfileId will be attached to profilesAPI later when the
+// profilesAPI object is initialized further down the file.
 
 export async function searchProfiles(params: SearchProfilesParams = {}, token?: string): Promise<Profile[]> {
   const { skip = 0, limit = 50 } = params;
@@ -311,8 +345,77 @@ export async function createAdminUser(formData: FormData, token?: string) {
   }
 }
 
-// attach createAdminUser and program fetcher and export the API object
-Object.assign(profilesAPI, { createAdminUser, listProgramCodesByOrganization });
+// attach createAdminUser, program fetcher, and profile-by-id helper, then export the API object
+Object.assign(profilesAPI, { createAdminUser, listProgramCodesByOrganization, getProfileByProfileId });
 export default profilesAPI;
+
+// Update an existing user (admin operation). Accepts a partial JSON body.
+export async function updateAdminUser(userId: number | string, body: Record<string, any> = {}, token?: string) {
+  const isBrowser = typeof window !== 'undefined';
+  const path = String(userId);
+
+  if (token) {
+    const url = `${API_BASE_URL}/users/${path}`;
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+    let parsed: any = {};
+    try { parsed = await resp.json(); } catch (e) { parsed = { detail: resp.statusText }; }
+    if (!resp.ok) {
+      const message = parsed?.detail || parsed?.message || resp.statusText || `HTTP ${resp.status}`;
+      const err: any = new Error(message);
+      err.status = resp.status;
+      err.body = parsed;
+      throw err;
+    }
+    return parsed;
+  }
+
+  // Browser: call same-origin proxy which will attach Authorization from cookie
+  if (isBrowser) {
+    const proxyUrl = `/api/admin/users/${path}`;
+    const resp = await fetch(proxyUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      credentials: 'include',
+    });
+    let parsed: any = {};
+    try { parsed = await resp.json(); } catch (e) { parsed = { detail: resp.statusText }; }
+    if (!resp.ok) {
+      const message = parsed?.detail || parsed?.message || resp.statusText || `HTTP ${resp.status}`;
+      const err: any = new Error(message);
+      err.status = resp.status;
+      err.body = parsed;
+      throw err;
+    }
+    return parsed;
+  }
+
+  // Server-side but no token: call backend directly (may fail if auth required)
+  const url = `${API_BASE_URL}/users/${path}`;
+  const resp = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  let parsed: any = {};
+  try { parsed = await resp.json(); } catch (e) { parsed = { detail: resp.statusText }; }
+  if (!resp.ok) {
+    const message = parsed?.detail || parsed?.message || resp.statusText || `HTTP ${resp.status}`;
+    const err: any = new Error(message);
+    err.status = resp.status;
+    err.body = parsed;
+    throw err;
+  }
+  return parsed;
+}
+
+Object.assign(profilesAPI, { updateAdminUser });
 
 

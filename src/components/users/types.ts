@@ -10,6 +10,8 @@ export const userSchema = z.object({
   status: z.string(),
   lastActive: z.string().optional(),
   avatar: z.string().optional(),
+  // backend auth user id (when available) - used to fetch enriched profile details
+  auth_user_id: z.number().optional(),
   // Additional display fields
   type: z.string().optional(), // e.g. Admin | Business | Academic
   createdAt: z.string().optional(),

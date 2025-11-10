@@ -7,6 +7,7 @@ import { SearchBar } from "./SearchBar";
 import { UsersFilters, type UsersFilterValues } from "./UsersFilters";
 import { UsersColumnCustomizer } from "./UsersColumnCustomizer";
 import AddUserDrawer from "./AddUserDrawer";
+import EditUserDrawer from "./EditUserDrawer";
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { UsersPaginationControls } from "./UsersPaginationControls";
 import { profilesAPI, type Profile } from "@/lib/api/profiles";
@@ -45,6 +46,9 @@ export function UsersManagement({
   const [totalItems, setTotalItems] = React.useState(0);
   const [refreshKey, setRefreshKey] = React.useState(0);
   const itemsPerPage = 10;
+  const [editingProfileId, setEditingProfileId] = React.useState<string | null>(null);
+  const [editingAuthUserId, setEditingAuthUserId] = React.useState<number | null>(null);
+  const [editingOpen, setEditingOpen] = React.useState(false);
 
   const handleSearch = () => {
     setSearchQuery(globalFilter);
@@ -153,6 +157,8 @@ export function UsersManagement({
       status,
       lastActive,
       avatar,
+      // expose the auth user id (user_id) so callers can request profile by user id
+      auth_user_id: p.user_id ?? undefined,
       type: finalType,
   // If the organization is absent or id===0 show 'Attendify'. Otherwise show the organization name.
   organization_name: (!orgData || orgData.id === 0) ? "Attendify" : (orgData.name ?? "Unknown"),
@@ -249,7 +255,12 @@ export function UsersManagement({
         onColumnFiltersChange={setColumnFilters}
         onAddUser={onAddUser}
         onViewUser={onViewUser}
-        onEditUser={onEditUser}
+        onEditUser={(user) => {
+          try { setEditingProfileId(String(user.id)); } catch (e) { setEditingProfileId(null); }
+          try { setEditingAuthUserId((user as any).auth_user_id ?? null); } catch (e) { setEditingAuthUserId(null); }
+          setEditingOpen(true);
+          if (onEditUser) onEditUser(user);
+        }}
         onDeleteUser={onDeleteUser}
         renderToolbar={({ table }) => (
           <>
@@ -294,6 +305,26 @@ export function UsersManagement({
             />
           </div>
         )}
+      />
+      {/* Edit drawer controlled by table action */}
+      <EditUserDrawer
+        profileId={editingProfileId}
+        authUserId={editingAuthUserId}
+        open={editingOpen}
+        onOpenChange={(v) => {
+          setEditingOpen(v);
+          if (!v) {
+            setEditingProfileId(null);
+            setEditingAuthUserId(null);
+          }
+        }}
+        onUpdated={(res) => {
+          // Refresh list after update
+          setRefreshKey((k) => k + 1);
+          setEditingOpen(false);
+          setEditingProfileId(null);
+          setEditingAuthUserId(null);
+        }}
       />
     </div>
   );

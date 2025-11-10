@@ -19,7 +19,7 @@ import {
 } from "@tanstack/react-table";
 import { User, userSchema } from "./types";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -95,9 +95,21 @@ const columns: ColumnDef<User>[] = [
       return (
         <div className="flex items-center gap-3">
           <Avatar className="w-10 h-10">
-            <AvatarFallback className="bg-slate-500 text-white">
-              <UserIcon className="w-5 h-5" />
-            </AvatarFallback>
+            {(() => {
+              const avatar = user.avatar;
+              if (!avatar) return (
+                <AvatarFallback className="bg-slate-500 text-white">
+                  <UserIcon className="w-5 h-5" />
+                </AvatarFallback>
+              );
+              if (/^https?:\/\//i.test(avatar)) {
+                return <AvatarImage src={avatar} alt={`${user.name ?? 'avatar'}`} />;
+              }
+              const raw = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+              const origin = raw.replace(/\/api\/(v\d+|v1)\/?$/i, "");
+              const src = `${origin}${avatar}`;
+              return <AvatarImage src={src} alt={`${user.name ?? 'avatar'}`} />;
+            })()}
           </Avatar>
           <div>
             <div className="font-medium">{user.name}</div>
@@ -278,6 +290,8 @@ export function UsersTable({
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
+
+  
 
   // Dragging removed — rows render statically now
 
