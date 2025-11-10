@@ -502,6 +502,20 @@ export function EditUserDrawer({ profileId, authUserId, onUpdated, open: openPro
     return payload;
   };
 
+  // Ensure that when organization is Attendify and role is Admin, is_superuser is true.
+  // This helper will update a patch object (used for JSON and FormData flows).
+  const ensureSuperuserFlag = (patchObj: Record<string, any>) => {
+    try {
+      const selOrg = orgs.find((o) => String(o.id) === String(form.organization));
+      if (selOrg && selOrg.name === 'Attendify' && form.role && String(form.role).toLowerCase() === 'admin') {
+        // If the backend expects a boolean, include true; during FormData we stringify.
+        patchObj.is_superuser = true;
+      }
+    } catch (e) {
+      // no-op
+    }
+  };
+
   const handleSubmit = async () => {
     const errs: Record<string,string> = {};
     if (!form.email) errs.email = 'Email is required';
@@ -512,6 +526,8 @@ export function EditUserDrawer({ profileId, authUserId, onUpdated, open: openPro
     if (Object.keys(errs).length) return;
 
     const patch = buildPatch();
+  // Ensure the superuser flag is set when appropriate
+  ensureSuperuserFlag(patch);
     if (Object.keys(patch).length === 0) {
       toast({ title: 'No changes', description: 'No fields were changed', variant: 'default' });
       setOpen(false);
