@@ -416,6 +416,64 @@ export async function updateAdminUser(userId: number | string, body: Record<stri
   return parsed;
 }
 
-Object.assign(profilesAPI, { updateAdminUser });
+// Delete an admin user (soft delete). If `hard` is true the backend will
+// also attempt to delete the auth user via the Auth service. When called
+// from the browser we use the same-origin proxy so the HTTP-only cookie
+// is forwarded by the server and attached as Authorization to the backend.
+export async function deleteAdminUser(profileId: number | string, hard: boolean = false, token?: string | undefined) {
+  const isBrowser = typeof window !== 'undefined';
+  const path = String(profileId);
+
+  // If a token is provided, call backend directly with Authorization header
+  if (token) {
+    const url = `${API_BASE_URL}/admin/users/${path}?hard=${hard ? 'true' : 'false'}`;
+    const resp = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    let parsed: any = {};
+    try { parsed = await resp.json(); } catch (e) { parsed = { detail: resp.statusText }; }
+    if (!resp.ok) {
+      const message = parsed?.detail || parsed?.message || resp.statusText || `HTTP ${resp.status}`;
+      const err: any = new Error(message);
+      err.status = resp.status;
+      err.body = parsed;
+      throw err;
+    }
+    return parsed;
+  }
+
+  // Browser: call same-origin proxy so cookies are forwarded by Next.js
+  if (isBrowser) {
+    const proxyUrl = `/api/admin/users/${path}?hard=${hard ? 'true' : 'false'}`;
+    const resp = await fetch(proxyUrl, { method: 'DELETE', credentials: 'include' });
+    let parsed: any = {};
+    try { parsed = await resp.json(); } catch (e) { parsed = { detail: resp.statusText }; }
+    if (!resp.ok) {
+      const message = parsed?.detail || parsed?.message || resp.statusText || `HTTP ${resp.status}`;
+      const err: any = new Error(message);
+      err.status = resp.status;
+      err.body = parsed;
+      throw err;
+    }
+    return parsed;
+  }
+
+  // Server-side without token: call backend directly
+  const url = `${API_BASE_URL}/admin/users/${path}?hard=${hard ? 'true' : 'false'}`;
+  const resp = await fetch(url, { method: 'DELETE' });
+  let parsed: any = {};
+  try { parsed = await resp.json(); } catch (e) { parsed = { detail: resp.statusText }; }
+  if (!resp.ok) {
+    const message = parsed?.detail || parsed?.message || resp.statusText || `HTTP ${resp.status}`;
+    const err: any = new Error(message);
+    err.status = resp.status;
+    err.body = parsed;
+    throw err;
+  }
+  return parsed;
+}
+
+Object.assign(profilesAPI, { updateAdminUser, deleteAdminUser });
 
 

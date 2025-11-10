@@ -89,4 +89,30 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
+// Support DELETE for admin user soft/hard delete. Forwards query string (e.g. ?hard=true)
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  const cookieHeader = request.headers.get('cookie') || '';
+  const ACCESS_COOKIE_NAME = 'access_token';
+  const accessToken = parseCookie(cookieHeader, ACCESS_COOKIE_NAME);
+
+  const backendBase = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_USER_API_URL || 'http://localhost:8082/api/v1';
+  // Preserve incoming search params (e.g. ?hard=true)
+  const incoming = new URL(request.url);
+  const search = incoming.search || '';
+  const backendUrl = `${backendBase}/admin/users/${params.id}${search}`;
+
+  const headers: Record<string, string> = {};
+  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+
+  try {
+    const resp = await fetch(backendUrl, { method: 'DELETE', headers });
+    const respText = await resp.text();
+    const respContentType = resp.headers.get('content-type') || 'application/json';
+    return new Response(respText, { status: resp.status, headers: { 'content-type': respContentType } });
+  } catch (err) {
+    console.error('Proxy to backend DELETE /admin/users/{id} failed for', backendUrl, err && (err.stack || err.message || err));
+    return NextResponse.json({ detail: 'Proxy error' }, { status: 502 });
+  }
+}
+
 export const runtime = 'nodejs';

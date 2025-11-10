@@ -12,6 +12,8 @@ import ViewUserDrawer from "./ViewUserDrawer";
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { UsersPaginationControls } from "./UsersPaginationControls";
 import { profilesAPI, type Profile } from "@/lib/api/profiles";
+import { useToast } from "@/hooks/use-toast";
+import DeleteUserDialog from "./DeleteUserDialog";
 
 interface UsersManagementProps {
   data: User[];
@@ -53,6 +55,11 @@ export function UsersManagement({
   const [viewProfileId, setViewProfileId] = React.useState<string | null>(null);
   const [viewAuthUserId, setViewAuthUserId] = React.useState<number | null>(null);
   const [viewOpen, setViewOpen] = React.useState(false);
+  const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<User | null>(null);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   const handleSearch = () => {
     setSearchQuery(globalFilter);
@@ -241,6 +248,34 @@ export function UsersManagement({
     fetchProfiles();
   }, [searchQuery, appliedFilters, currentPage, refreshKey]);
 
+  // Open delete confirmation dialog for a user.
+  const handleOpenDelete = (user: User) => {
+    setDeleteTarget(user);
+    setDeleteError(null);
+    setDeleteDialogOpen(true);
+  };
+
+  // Confirm delete from the dialog
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    const name = deleteTarget.name ?? String(deleteTarget.id ?? '');
+    try {
+      setIsDeleting(true);
+      setDeleteError(null);
+      await (profilesAPI as any).deleteAdminUser(Number(deleteTarget.id));
+      toast({ title: 'User deleted', description: `Profile ${name} marked deleted`, variant: 'default' });
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+      // Trigger list refresh
+      setRefreshKey((k) => k + 1);
+    } catch (e: any) {
+      const msg = e?.message || 'Could not delete user';
+      setDeleteError(msg);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-5 p-4 md:p-6">
       <div>
@@ -272,7 +307,7 @@ export function UsersManagement({
           setEditingOpen(true);
           if (onEditUser) onEditUser(user);
         }}
-        onDeleteUser={onDeleteUser}
+  onDeleteUser={(user) => { handleOpenDelete(user); if (onDeleteUser) onDeleteUser(user); }}
         renderToolbar={({ table }) => (
           <>
             <div className="flex items-center gap-2 flex-1">
@@ -348,6 +383,20 @@ export function UsersManagement({
             setViewAuthUserId(null);
           }
         }}
+      />
+      <DeleteUserDialog
+        open={deleteDialogOpen}
+        onOpenChange={(v) => {
+          setDeleteDialogOpen(v);
+          if (!v) {
+            setDeleteTarget(null);
+            setDeleteError(null);
+          }
+        }}
+        user={deleteTarget}
+        error={deleteError}
+        loading={isDeleting}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );
