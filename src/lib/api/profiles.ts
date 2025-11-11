@@ -225,6 +225,17 @@ export async function listProfiles(params: ListProfilesParams = {}): Promise<Pro
   return data as Profile[];
 }
 
+/**
+ * Fetch lightweight faculty options used by UI selects.
+ * Calls backend: GET /options/profiles/faculty?organization_id={id}
+ */
+export async function listFacultyOptions(organization_id?: number): Promise<Array<{ id: number; name: string }>> {
+  const url = new URL(`${API_BASE_URL}/options/profiles/faculty`);
+  if (organization_id !== undefined && organization_id !== null) url.searchParams.append('organization_id', String(organization_id));
+  const data = await fetchWithDedupe(url.toString(), { method: 'GET' });
+  return Array.isArray(data) ? data as Array<{ id: number; name: string }> : [];
+}
+
 // Simple in-memory deduper for identical in-flight requests.
 // Keeps a map of url -> Promise so concurrent callers share the same network request.
 // We intentionally do not cache responses long-term here; entries are removed after

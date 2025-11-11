@@ -18,6 +18,7 @@ import {
   IconSchool,
   IconUser,
   IconBooks,
+  IconChalkboard,
 } from "@tabler/icons-react";
 import {
   Card,
@@ -61,6 +62,7 @@ import { LogsDataTable } from "@/components/logs-data-table";
 import { SchoolsManagement } from "@/components/schools-management";
 import { ProgramsManagement } from "@/components/programs-management";
 import { CoursesManagement } from "@/components/courses-management";
+import ClassesManagement from "@/components/classes/ClassesManagement";
 import {
   Sidebar,
   SidebarContent,
@@ -201,19 +203,21 @@ function SidebarUserMenu({
   );
 }
 
+// ClassesManagement is provided by src/components/classes/ClassesManagement
+
 export function AdminPortal() {
   const { toast } = useToast();
 
   // Navigation - Always start with dashboard to avoid hydration mismatch
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "schools" | "programs" | "courses" | "users" | "reports" | "logs"
+    "dashboard" | "schools" | "programs" | "classes" | "courses" | "users" | "reports" | "logs"
   >("dashboard");
 
   // Restore from localStorage after mount (client-side only)
   React.useEffect(() => {
     const saved = localStorage.getItem("admin-active-tab");
-    if (saved && ["dashboard", "schools", "programs", "courses", "users", "reports", "logs"].includes(saved)) {
-      setActiveTab(saved as "dashboard" | "schools" | "programs" | "courses" | "users" | "reports" | "logs");
+    if (saved && ["dashboard", "schools", "programs", "courses", "classes", "users", "reports", "logs"].includes(saved)) {
+      setActiveTab(saved as "dashboard" | "schools" | "programs" | "courses" | "classes" | "users" | "reports" | "logs");
     }
   }, []);
 
@@ -355,6 +359,7 @@ export function AdminPortal() {
     { id: "schools", icon: IconSchool, label: "Schools" },
     { id: "programs", icon: IconSchool, label: "Programs" },
     { id: "courses", icon: IconBooks, label: "Courses" },
+    { id: "classes", icon: IconChalkboard, label: "Classes" },
     { id: "users", icon: IconUsers, label: "Users" },
     { id: "reports", icon: IconFileText, label: "Reports" },
     { id: "logs", icon: IconList, label: "System Logs" },
@@ -528,6 +533,7 @@ export function AdminPortal() {
                               | "dashboard"
                               | "schools"
                               | "programs"
+                              | "classes"
                               | "courses"
                               | "users"
                               | "reports"
@@ -842,6 +848,9 @@ export function AdminPortal() {
 
             {/* Courses Management */}
             {activeTab === "courses" && <CoursesManagement />}
+
+            {/* Classes Management */}
+            {activeTab === "classes" && <ClassesManagement />}
 
             {/* Users Management */}
             {activeTab === "users" && (
