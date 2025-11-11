@@ -305,10 +305,7 @@ export function ClassesFilters({ open, onOpenChange, filters, onFiltersChange, o
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Query</Label>
-            <Input value={localFilters.query ?? ""} onChange={(e) => setLocalFilters((prev) => ({ ...prev, query: e.target.value || undefined }))} placeholder="Search code or name" />
-          </div>
+          {/* Query removed: use the main SearchBar for free-text searches */}
         </div>
         <DrawerFooter className="px-0 pt-4">
           <div className="flex gap-3 max-w-md mx-auto w-full md:max-w-2xl">
