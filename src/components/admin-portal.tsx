@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   IconHome,
@@ -142,6 +143,7 @@ function SidebarUserMenu({
   setSettingsOpen: (open: boolean) => void;
 }) {
   const { isMobile } = useSidebar();
+  const router = useRouter();
 
   return (
     <SidebarMenu>
@@ -192,7 +194,7 @@ function SidebarUserMenu({
               <IconSettings className="w-4 h-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push('/auth/logout')}>
               <IconLogout className="w-4 h-4" />
               Log out
             </DropdownMenuItem>
