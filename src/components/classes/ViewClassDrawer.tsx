@@ -7,6 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { classesAPI } from "@/lib/api/classes";
 import type { Class } from "./types";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import StudentsTab from "./StudentsTab";
+import SchedulesTab from "./SchedulesTab";
 
 type Props = {
   open: boolean;
@@ -75,61 +78,85 @@ export default function ViewClassDrawer({ open, classId, onClose }: Props) {
         <DialogHeader>
           <DialogTitle>View Class</DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-3">
+        <div className="space-y-3 overflow-y-auto max-h-[70vh] sm:max-h-[60vh]">
           {loading ? (
             <div>Loading…</div>
           ) : data ? (
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <Label>Class code</Label>
-                <Input readOnly value={data.class_code ?? ""} />
+            <>
+              {/* Header summary */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                <div className="space-y-2">
+                  <div>
+                    <Label>Class code</Label>
+                    <Input readOnly value={data.class_code ?? ""} />
+                  </div>
+                  <div>
+                    <Label>Course</Label>
+                    <Input readOnly value={(data.course_code ? `${data.course_code} — ` : "") + (data.course_name ?? "")} />
+                  </div>
+                  <div>
+                    <Label>Program</Label>
+                    <Input readOnly value={data.program_name ?? ""} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <Label>Organization</Label>
+                    <Input readOnly value={data.organization_name ?? ""} />
+                  </div>
+                  <div>
+                    <Label>Room</Label>
+                    <Input readOnly value={data.room ?? ""} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label>Academic year</Label>
+                      <Input readOnly value={data.academic_year ?? ""} />
+                    </div>
+                    <div>
+                      <Label>Semester</Label>
+                      <Input readOnly value={data.semester ?? ""} />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label>Course code</Label>
-                <Input readOnly value={data.course_code ?? ""} />
-              </div>
-              <div>
-                <Label>Course name</Label>
-                <Input readOnly value={data.course_name ?? ""} />
-              </div>
-              <div>
-                <Label>Program</Label>
-                <Input readOnly value={data.program_name ?? ""} />
-              </div>
-              <div>
-                <Label>Organization</Label>
-                <Input readOnly value={data.organization_name ?? ""} />
-              </div>
-              <div>
-                <Label>Room</Label>
-                <Input readOnly value={data.room ?? ""} />
-              </div>
-              <div>
-                <Label>Academic year</Label>
-                <Input readOnly value={data.academic_year ?? ""} />
-              </div>
-              <div>
-                <Label>Semester</Label>
-                <Input readOnly value={data.semester ?? ""} />
-              </div>
-              <div>
+
+              <div className="mb-3">
                 <Label>Instructor</Label>
                 <Input readOnly value={data.assigned_faculty_name ?? (data.assigned_faculty_id ? `Faculty #${data.assigned_faculty_id}` : "")} />
               </div>
-              <div>
+
+              <div className="mb-3">
                 <Label>Description</Label>
                 <Input readOnly value={data.description ?? ""} />
               </div>
-            </div>
+
+              {/* Tabs */}
+              <div className="w-full">
+                <Tabs defaultValue="students">
+                <TabsList>
+                  <TabsTrigger value="students">Students</TabsTrigger>
+                  <TabsTrigger value="schedules">Schedules</TabsTrigger>
+                </TabsList>
+                <TabsContent value="students">
+                  <div className="pt-2">
+                    <StudentsTab classId={data.id ?? undefined} />
+                  </div>
+                </TabsContent>
+                <TabsContent value="schedules">
+                  <div className="pt-2">
+                    <SchedulesTab classId={data.id ?? undefined} />
+                  </div>
+                </TabsContent>
+                </Tabs>
+              </div>
+            </>
           ) : (
             <div>No class selected</div>
           )}
         </div>
 
-        <div className="flex justify-end mt-4">
-          <Button variant="ghost" onClick={onClose}>Close</Button>
-        </div>
+        
       </DialogContent>
     </Dialog>
   );

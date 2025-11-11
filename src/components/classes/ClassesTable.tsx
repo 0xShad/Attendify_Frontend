@@ -16,9 +16,65 @@ interface Props {
 }
 
 export default function ClassesTable({ classes, visibleColumns, onView, onEdit, onDelete }: Props) {
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const isDraggingRef = React.useRef(false);
+  const startXRef = React.useRef(0);
+  const scrollLeftRef = React.useRef(0);
+  const [isDragging, setIsDragging] = React.useState(false);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    const el = containerRef.current;
+    if (!el) return;
+    isDraggingRef.current = true;
+    setIsDragging(true);
+    startXRef.current = e.pageX - el.offsetLeft;
+    scrollLeftRef.current = el.scrollLeft;
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    const el = containerRef.current;
+    if (!el || !isDraggingRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    const walk = x - startXRef.current;
+    el.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+  const endDrag = () => {
+    isDraggingRef.current = false;
+    setIsDragging(false);
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    const el = containerRef.current;
+    if (!el) return;
+    isDraggingRef.current = true;
+    setIsDragging(true);
+    startXRef.current = e.touches[0].pageX - el.offsetLeft;
+    scrollLeftRef.current = el.scrollLeft;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    const el = containerRef.current;
+    if (!el || !isDraggingRef.current) return;
+    const x = e.touches[0].pageX - el.offsetLeft;
+    const walk = x - startXRef.current;
+    el.scrollLeft = scrollLeftRef.current - walk;
+  };
+
   return (
-    <div className="overflow-x-auto">
-      <Table>
+    <div
+      ref={containerRef}
+      className={`overflow-x-auto ${isDragging ? "cursor-grabbing select-none" : "cursor-grab"}`}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={endDrag}
+      onMouseLeave={endDrag}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={endDrag}
+    >
+      <Table className="min-w-max">
         <TableHeader>
           <TableRow>
             {visibleColumns?.class_code !== false && <TableHead>Class Code</TableHead>}
