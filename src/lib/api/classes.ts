@@ -39,7 +39,7 @@ export async function listClasses(params: ListClassesParams = {}): Promise<any[]
   // Note: kept as console.debug so it won't spam production logs unless the devtools are open.
   try {
     console.debug("Fetching classes list:", url.toString());
-    const res = await fetch(url.toString(), { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+    const res = await fetch(url.toString(), { method: 'GET' });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || res.statusText || `HTTP ${res.status}`);
@@ -54,7 +54,7 @@ export async function listClasses(params: ListClassesParams = {}): Promise<any[]
 }
 
 export async function getClass(id: number): Promise<any> {
-  const res = await fetch(CLASSES_ENDPOINTS.DETAIL(String(id)), { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+  const res = await fetch(CLASSES_ENDPOINTS.DETAIL(String(id)), { method: 'GET' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || res.statusText);
@@ -101,10 +101,136 @@ export async function deleteClass(id: number): Promise<any> {
   return res.status === 204 ? null : res.json().catch(() => null);
 }
 
+export async function listEnrolleesForClass(classId: number): Promise<any[]> {
+  const url = `${API_BASE_URL}/classes/${classId}/enrollees`;
+  try {
+    const res = await fetch(url, { method: 'GET', credentials: 'include' });
+    if (res.status === 404) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`NotFound: ${body || 'Class not found'}`);
+    }
+    if (!res.ok) {
+      const err = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(err));
+    }
+    const data = await res.json();
+    // Normalize returned enrollee objects to the expected frontend schema:
+    // { id, profile_id, user_id, full_name, avatar_url, enrollment_date }
+    if (Array.isArray(data)) {
+      return data.map((item: any) => {
+        const avatar = item?.avatar_url ?? item?.avatar ?? item?.avatarUrl ?? item?.profile?.avatar_url ?? item?.profile?.avatar ?? item?.profile_avatar ?? null;
+        const id = typeof item?.id === 'number' ? item.id : (item?.id ? Number(item.id) : null);
+        const profile_id = (item?.profile_id ?? item?.profile?.id ?? item?.profile_id) ?? null;
+        const user_id = (item?.user_id ?? item?.user_id) ?? null;
+        const full_name = item?.full_name ?? item?.fullName ?? item?.profile?.full_name ?? item?.profile?.name ?? null;
+        const enrollment_date = item?.enrollment_date ?? item?.enrolled_at ?? item?.enrollmentDate ?? null;
+        return {
+          id: id === null ? null : Number(id),
+          profile_id: profile_id === undefined || profile_id === null ? null : Number(profile_id),
+          user_id: user_id === undefined ? null : (user_id === null ? null : Number(user_id)),
+          full_name: full_name ?? null,
+          avatar_url: avatar ?? null,
+          enrollment_date: enrollment_date ?? null,
+        } as any;
+      });
+    }
+    return data as any[];
+  } catch (err: any) {
+    throw err;
+  }
+}
+
+// List students that can be added to the class (candidates)
+export async function listAvailableStudentsForClass(
+  classId: number,
+  q?: string | null,
+  skip: number = 0,
+  limit: number = 100
+): Promise<any[]> {
+  // Fetch the class to determine its organization, then list students for that organization.
+  try {
+    const cls = await getClass(classId).catch(() => null);
+    const orgId = cls?.organization_id ?? cls?.organization?.id ?? null;
+    if (!orgId) {
+      // If we can't determine organization, return empty list instead of throwing so UI can handle gracefully
+      return [];
+    }
+
+    const url = new URL(`${API_BASE_URL}/organizations/${orgId}/students`);
+    url.searchParams.append('skip', String(skip));
+    url.searchParams.append('limit', String(limit));
+    if (q) url.searchParams.append('q', String(q));
+
+    const res = await fetch(url.toString(), { method: 'GET', credentials: 'include' });
+    if (res.status === 404) {
+      // organization not found or endpoint not present — return empty list
+      return [];
+    }
+    if (!res.ok) {
+      const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(body));
+    }
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (err: any) {
+    throw err;
+  }
+}
+
+// Add an enrollee (associate a profile/user to the class)
+export async function addEnrolleeToClass(
+  classId: number,
+  payload: { profile_id?: number | null; user_id?: number | null } | Array<{ profile_id?: number | null; user_id?: number | null }>
+): Promise<any> {
+  // The backend now accepts either a single enrollee object or a list of them
+  const url = `${API_BASE_URL}/classes/${classId}/enrollees`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(body));
+    }
+    return res.json();
+  } catch (err: any) {
+    throw err;
+  }
+}
+
+// Delete an enrollee from a class by enrollee record id
+export async function deleteEnrolleeFromClass(classId: number, enrolleeId: number): Promise<null> {
+  const url = `${API_BASE_URL}/classes/${classId}/enrollees/${enrolleeId}`;
+  try {
+    const res = await fetch(url, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    if (res.status === 404) {
+      const body = await res.text().catch(() => 'Not Found');
+      throw new Error(String(body));
+    }
+    if (!res.ok) {
+      const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(body));
+    }
+    // server returns 204 on success
+    return null;
+  } catch (err: any) {
+    throw err;
+  }
+}
 export const classesAPI = {
   listClasses,
   getClass,
   createClass,
   updateClass,
   deleteClass,
+  listEnrolleesForClass,
+  listAvailableStudentsForClass,
+  addEnrolleeToClass,
+  deleteEnrolleeFromClass,
 };
