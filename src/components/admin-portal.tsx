@@ -64,6 +64,7 @@ import { SchoolsManagement } from "@/components/schools-management";
 import { ProgramsManagement } from "@/components/programs-management";
 import { CoursesManagement } from "@/components/courses-management";
 import ClassesManagement from "@/components/classes/ClassesManagement";
+import HolidaysManagement from "@/components/holidays/HolidaysManagement";
 import {
   Sidebar,
   SidebarContent,
@@ -212,14 +213,14 @@ export function AdminPortal() {
 
   // Navigation - Always start with dashboard to avoid hydration mismatch
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "schools" | "programs" | "classes" | "courses" | "users" | "reports" | "logs"
+    "dashboard" | "schools" | "programs" | "classes" | "courses" | "users" | "reports" | "logs" | "holidays"
   >("dashboard");
 
   // Restore from localStorage after mount (client-side only)
   React.useEffect(() => {
     const saved = localStorage.getItem("admin-active-tab");
-    if (saved && ["dashboard", "schools", "programs", "courses", "classes", "users", "reports", "logs"].includes(saved)) {
-      setActiveTab(saved as "dashboard" | "schools" | "programs" | "courses" | "classes" | "users" | "reports" | "logs");
+    if (saved && ["dashboard", "schools", "programs", "courses", "classes", "users", "reports", "logs", "holidays"].includes(saved)) {
+      setActiveTab(saved as "dashboard" | "schools" | "programs" | "courses" | "classes" | "users" | "reports" | "logs" | "holidays");
     }
   }, []);
 
@@ -362,6 +363,7 @@ export function AdminPortal() {
     { id: "programs", icon: IconSchool, label: "Programs" },
     { id: "courses", icon: IconBooks, label: "Courses" },
     { id: "classes", icon: IconChalkboard, label: "Classes" },
+    { id: "holidays", icon: IconClockHour4, label: "Holidays" },
     { id: "users", icon: IconUsers, label: "Users" },
     { id: "reports", icon: IconFileText, label: "Reports" },
     { id: "logs", icon: IconList, label: "System Logs" },
@@ -853,6 +855,16 @@ export function AdminPortal() {
 
             {/* Classes Management */}
             {activeTab === "classes" && <ClassesManagement />}
+
+            {/* Holidays Management (placeholder) */}
+            {activeTab === "holidays" && (
+              // import lazily to avoid adding to top-level bundle unnecessarily in future
+              <React.Suspense fallback={<div className="p-4">Loading…</div>}>
+                {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+                {/* @ts-ignore */}
+                <HolidaysManagement />
+              </React.Suspense>
+            )}
 
             {/* Users Management */}
             {activeTab === "users" && (
