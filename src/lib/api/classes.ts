@@ -53,6 +53,67 @@ export async function listClasses(params: ListClassesParams = {}): Promise<any[]
   }
 }
 
+/**
+ * List classes for a specific faculty profile id.
+ * Calls: GET /classes/faculty/{faculty_id}
+ */
+export async function listClassesForFaculty(
+  facultyId: number,
+  params: Partial<ListClassesParams> = {}
+): Promise<any[]> {
+  const url = new URL(`${API_BASE_URL}/classes/faculty/${facultyId}`);
+  const { skip = 0, limit = 100 } = params as any;
+  url.searchParams.append('skip', String(skip));
+  url.searchParams.append('limit', String(limit));
+  if (params.course_id !== undefined && params.course_id !== null) url.searchParams.append('course_id', String(params.course_id));
+  if (params.academic_year) url.searchParams.append('academic_year', String(params.academic_year));
+  if (params.semester) url.searchParams.append('semester', String(params.semester));
+  if (params.organization_id !== undefined && params.organization_id !== null) url.searchParams.append('organization_id', String(params.organization_id));
+  if (params.program_id !== undefined && params.program_id !== null) url.searchParams.append('program_id', String(params.program_id));
+
+  try {
+    console.debug("Fetching classes for faculty:", url.toString());
+    const res = await import("./fetchClient").then((m) => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || res.statusText || `HTTP ${res.status}`);
+    }
+    return res.json();
+  } catch (err: any) {
+    const msg = err?.message ? String(err.message) : String(err);
+    throw new Error(`Failed to fetch classes for faculty ${facultyId}: ${msg}`);
+  }
+}
+
+/**
+ * List classes assigned to the current authenticated faculty (caller).
+ * Calls GET /classes/mine via same-origin proxy so HTTP-only cookies work.
+ */
+export async function listMyClasses(params: Partial<ListClassesParams> = {}): Promise<any[]> {
+  const url = new URL(`/api/classes/mine`, window.location.origin);
+  const { skip = 0, limit = 100 } = params as any;
+  url.searchParams.append('skip', String(skip));
+  url.searchParams.append('limit', String(limit));
+  if (params.academic_year) url.searchParams.append('academic_year', String(params.academic_year));
+  if (params.semester) url.searchParams.append('semester', String(params.semester));
+  if (params.organization_id !== undefined && params.organization_id !== null) url.searchParams.append('organization_id', String(params.organization_id));
+  if (params.program_id !== undefined && params.program_id !== null) url.searchParams.append('program_id', String(params.program_id));
+  if (params.course_id !== undefined && params.course_id !== null) url.searchParams.append('course_id', String(params.course_id));
+
+  try {
+    console.debug('Fetching my classes:', url.toString());
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
+    if (!res.ok) {
+      const err = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(err));
+    }
+    return res.json();
+  } catch (err: any) {
+    const msg = err?.message ? String(err.message) : String(err);
+    throw new Error(`Failed to fetch my classes: ${msg}`);
+  }
+}
+
 export async function getClass(id: number): Promise<any> {
   const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(CLASSES_ENDPOINTS.DETAIL(String(id)), { method: 'GET' }));
   if (!res.ok) {
@@ -73,6 +134,89 @@ export async function createClass(payload: Record<string, any>): Promise<any> {
     throw new Error(err.detail || res.statusText);
   }
   return res.json();
+}
+
+/**
+ * Create a class assigned to the current authenticated faculty user.
+ * Calls POST /classes/mine with the minimal ClassCreate payload.
+ */
+export async function createMyClass(payload: {
+  course_id?: number;
+  new_course?: {
+    code: string;
+    name: string;
+    description?: string | null;
+    program_id?: number | null;
+  };
+  description?: string | null;
+  room?: string | null;
+  academic_year?: string | null;
+  semester?: string | null;
+}): Promise<any> {
+  // Use same-origin proxy so HTTP-only cookies are forwarded by the server
+  // and the backend receives a valid Authorization header.
+  const url = `/api/classes/mine`;
+  try {
+    const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }));
+    // Expect 201 Created on success per API contract
+    if (res.status === 201) {
+      return res.json();
+    }
+
+    // Map common error statuses to clearer messages
+    let body: any = null;
+    try {
+      body = await res.json().catch(() => null);
+    } catch (e) {
+      body = null;
+    }
+
+    if (res.status === 401) {
+      throw new Error('Unauthorized');
+    }
+    if (res.status === 400) {
+      // Provide Pydantic validation details or a helpful fallback message
+      let msg = 'Bad Request';
+      if (body) {
+        const candidate = body.detail ?? body.message ?? body;
+        msg = typeof candidate === 'string' ? candidate : JSON.stringify(candidate);
+      }
+      throw new Error(msg);
+    }
+    if (res.status === 403) {
+      throw new Error('Forbidden');
+    }
+    if (res.status >= 500) {
+      throw new Error('Internal Server Error');
+    }
+
+    // Fallback for other non-OK responses
+    let fallback = res.statusText || `HTTP ${res.status}`;
+    if (body) {
+      const candidate = body.detail ?? body.message ?? body;
+      fallback = typeof candidate === 'string' ? candidate : JSON.stringify(candidate);
+    }
+    throw new Error(fallback || `HTTP ${res.status}`);
+  } catch (err: any) {
+    let msg: string;
+    if (err instanceof Error) {
+      // If the Error message contains an object-like string, try to make it clearer
+      msg = err.message && err.message !== '[object Object]' ? err.message : JSON.stringify(err as any);
+    } else if (typeof err === 'object') {
+      try {
+        msg = JSON.stringify(err);
+      } catch (e) {
+        msg = String(err);
+      }
+    } else {
+      msg = String(err);
+    }
+    throw new Error(`Failed to create class via /classes/mine: ${msg}`);
+  }
 }
 
 export async function updateClass(id: number, payload: Record<string, any>): Promise<any> {
@@ -223,8 +367,11 @@ export async function deleteEnrolleeFromClass(classId: number, enrolleeId: numbe
 }
 export const classesAPI = {
   listClasses,
+  listClassesForFaculty,
+  listMyClasses,
   getClass,
   createClass,
+  createMyClass,
   updateClass,
   deleteClass,
   listEnrolleesForClass,

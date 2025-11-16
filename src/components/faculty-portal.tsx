@@ -71,6 +71,11 @@ import {
   CardDescription,
   CardFooter,
 } from "@/components/ui/card";
+import ClassesManagement from "@/components/faculty/classes/ClassesManagement";
+import ManualAttendanceDrawer from "@/components/faculty/classes/ManualAttendanceDrawer";
+import ActiveSessions from "@/components/faculty/classes/ActiveSessions";
+import { classesAPI } from "@/lib/api";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,15 +86,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-  DrawerClose,
-  DrawerFooter,
-} from "@/components/ui/drawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -123,29 +119,13 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarProvider,
   SidebarTrigger,
   SidebarInset,
-  useSidebar,
+  SidebarProvider,
 } from "@/components/ui/sidebar";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import {
-  Bar,
-  BarChart,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
 
+// --- Types used by the faculty portal (kept local during modularization) ---
 interface Class {
   id: string;
   name: string;
@@ -159,8 +139,8 @@ interface Class {
   status: "Active" | "Inactive" | "Scheduled";
   location?: string;
   description?: string;
-  cutoffTime?: number; // minutes before class
-  locationRadius?: number; // meters for location-based attendance
+  cutoffTime?: number;
+  locationRadius?: number;
 }
 
 interface Student {
@@ -199,103 +179,28 @@ interface Announcement {
   status: "Draft" | "Published";
 }
 
-// Notification dropdown with glassy styling
+// Minimal NotificationMenu used in several portals
 function NotificationMenu() {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <IconBell className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64 bg-stone-50/70 supports-[backdrop-filter]:backdrop-blur-md border shadow-lg">
-        <div className="p-2">
-          <div className="text-sm font-medium">Notifications</div>
-          <div className="mt-2 space-y-2">
-            <div className="text-sm text-muted-foreground">
-              CS101 session starting in 15 minutes
-            </div>
-            <div className="text-sm text-muted-foreground">
-              New student enrollment request
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Attendance report ready for export
-            </div>
-          </div>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div>
+      <Button variant="ghost" size="icon" className="relative">
+        <IconBell className="w-5 h-5" />
+        <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full" />
+      </Button>
+    </div>
   );
 }
 
-// Separate component for sidebar user menu that can use useSidebar hook
-function SidebarUserMenu({
-  setSettingsOpen,
-}: {
-  setSettingsOpen: (open: boolean) => void;
-}) {
-  const { isMobile } = useSidebar();
-
+// Minimal Sidebar user menu used in faculty portal
+function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean) => void }) {
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarFallback className="rounded-lg bg-green-500 text-white">
-                  <User className="w-4 h-4" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Dr. Sarah Johnson</span>
-                <span className="text-muted-foreground truncate text-xs">
-                  faculty@attendify.com
-                </span>
-              </div>
-              <IconDots className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? "top" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg bg-green-500 text-white">
-                    <User className="w-4 h-4" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">
-                    Dr. Sarah Johnson
-                  </span>
-                  <span className="text-muted-foreground truncate text-xs">
-                    faculty@attendify.com
-                  </span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-              <IconSettings className="w-4 h-4" />
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <IconLogout className="w-4 h-4" />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+    <div>
+      <Button size="lg" onClick={() => setSettingsOpen(true)}>
+        <Avatar className="h-8 w-8 rounded-lg">
+          <AvatarFallback className="rounded-lg bg-green-500 text-white">U</AvatarFallback>
+        </Avatar>
+      </Button>
+    </div>
   );
 }
 
@@ -365,13 +270,11 @@ export function FacultyPortal() {
   const [startingSession, setStartingSession] = useState(false);
 
   // Form states
-  const [newClassName, setNewClassName] = useState("");
-  const [newClassCode, setNewClassCode] = useState("");
-  const [newClassSchedule, setNewClassSchedule] = useState("");
-  const [newClassMode, setNewClassMode] = useState<
-    "Online" | "In-Person" | "Hybrid"
-  >("In-Person");
-  const [newClassLocation, setNewClassLocation] = useState("");
+  // Form states (create via backend: course_id required)
+  const [newCourseId, setNewCourseId] = useState("");
+  const [newClassRoom, setNewClassRoom] = useState("");
+  const [newClassAcademicYear, setNewClassAcademicYear] = useState("");
+  const [newClassSemester, setNewClassSemester] = useState("");
   const [newClassDescription, setNewClassDescription] = useState("");
 
   // Announcement form
@@ -382,50 +285,8 @@ export function FacultyPortal() {
   >("Medium");
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
 
-  // Mock data
-  const [classes, setClasses] = useState<Class[]>([
-    {
-      id: "CS101",
-      name: "Introduction to Computer Science",
-      code: "CS101",
-      schedule: "Mon, Wed, Fri 9:00 AM",
-      mode: "In-Person",
-      enrolledStudents: 45,
-      totalSessions: 48,
-      completedSessions: 32,
-      attendanceRate: 92.5,
-      status: "Active",
-      location: "Room 202",
-      cutoffTime: 10,
-      locationRadius: 50,
-    },
-    {
-      id: "CS201",
-      name: "Data Structures and Algorithms",
-      code: "CS201",
-      schedule: "Tue, Thu 2:00 PM",
-      mode: "Hybrid",
-      enrolledStudents: 38,
-      totalSessions: 32,
-      completedSessions: 20,
-      attendanceRate: 88.7,
-      status: "Active",
-      location: "Room 304 / Online",
-      cutoffTime: 15,
-    },
-    {
-      id: "CS301",
-      name: "Database Management Systems",
-      code: "CS301",
-      schedule: "Mon, Wed 11:00 AM",
-      mode: "Online",
-      enrolledStudents: 52,
-      totalSessions: 30,
-      completedSessions: 18,
-      attendanceRate: 95.2,
-      status: "Active",
-    },
-  ]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const { user } = useAuthContext();
 
   const [students, setStudents] = useState<Student[]>([
     {
@@ -464,6 +325,71 @@ export function FacultyPortal() {
       presentSessions: 0,
     },
   ]);
+
+  // Load classes from backend for the current faculty user
+  useEffect(() => {
+    if (!user || !user.id) return;
+
+    let mounted = true;
+
+    (async () => {
+      try {
+        setIsLoading(true);
+        const backend = await classesAPI.listClassesForFaculty(Number(user.id));
+        if (!mounted) return;
+
+        const mapped: Class[] = Array.isArray(backend)
+          ? backend.map((c: any) => {
+              const schedules: any[] = Array.isArray(c.schedules) ? c.schedules : [];
+
+              // Build a human-friendly schedule string
+              const scheduleStr = schedules
+                .map((s) => {
+                  if (s.type === "normal") {
+                    return `${s.day_of_week} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`.trim();
+                  }
+                  if (s.type === "special") {
+                    return `${s.date} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`.trim();
+                  }
+                  return "";
+                })
+                .filter(Boolean)
+                .join(", ");
+
+              // Determine mode: Online / In-Person / Hybrid
+              const modes = schedules.flatMap((s) => Array.isArray(s.modes) ? s.modes : []);
+              const hasOnline = modes.some((m: string) => m.toLowerCase().includes("online"));
+              const hasF2f = modes.some((m: string) => m.toLowerCase().includes("face") || m.toLowerCase().includes("f2f") || m.toLowerCase().includes("face_to_face"));
+              const mode: Class["mode"] = hasOnline && hasF2f ? "Hybrid" : hasOnline ? "Online" : "In-Person";
+
+              return {
+                id: String(c.id),
+                name: c.course_name ?? c.class_code ?? c.course_code ?? `Class ${c.id}`,
+                code: c.class_code ?? c.course_code ?? "",
+                schedule: scheduleStr || (c.room ? String(c.room) : ""),
+                mode,
+                enrolledStudents: c.enrolled_students ?? c.students_count ?? 0,
+                totalSessions: c.total_sessions ?? 0,
+                completedSessions: c.completed_sessions ?? 0,
+                attendanceRate: typeof c.attendance_rate === 'number' ? c.attendance_rate : (c.attendance_rate ? Number(c.attendance_rate) : 0),
+                status: "Active",
+                location: c.room ?? c.location ?? c.organization_name ?? undefined,
+                description: c.description ?? undefined,
+              } as Class;
+            })
+          : [];
+
+        setClasses(mapped);
+      } catch (err: any) {
+        console.error("Failed to load classes for faculty:", err);
+        toast({ title: "Failed to load classes", description: String(err?.message ?? err) });
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, [user]);
 
   const [activeSessions, setActiveSessions] = useState<AttendanceSession[]>([
     {
@@ -558,51 +484,77 @@ export function FacultyPortal() {
   // Handlers
   const handleAddClass = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!newClassName || !newClassCode) {
+    if (!newCourseId) {
       toast({
         title: "Error",
-        description: "Class name and code are required",
+        description: "Course id is required",
         variant: "destructive",
       });
       return;
     }
 
     setAddingClass(true);
-    await new Promise((r) => setTimeout(r, 800));
+    try {
+      const payload: any = { course_id: Number(newCourseId) };
+      if (newClassDescription) payload.description = newClassDescription;
+      if (newClassRoom) payload.room = newClassRoom;
+      if (newClassAcademicYear) payload.academic_year = newClassAcademicYear;
+      if (newClassSemester) payload.semester = newClassSemester;
 
-    const newClass: Class = {
-      id: newClassCode,
-      name: newClassName,
-      code: newClassCode,
-      schedule: newClassSchedule,
-      mode: newClassMode,
-      enrolledStudents: 0,
-      totalSessions: 0,
-      completedSessions: 0,
-      attendanceRate: 0,
-      status: "Active",
-      location: newClassLocation,
-      description: newClassDescription,
-      cutoffTime: 10,
-      locationRadius: 50,
-    };
+      const created = await classesAPI.createMyClass(payload);
 
-    setClasses((prev) => [newClass, ...prev]);
-    setAddingClass(false);
-    setAddClassOpen(false);
+      // Map backend-created class to local `Class` shape (same mapping as list effect)
+      const schedules: any[] = Array.isArray(created.schedules) ? created.schedules : [];
+      const scheduleStr = schedules
+        .map((s) => {
+          if (s.type === "normal") {
+            return `${s.day_of_week} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`.trim();
+          }
+          if (s.type === "special") {
+            return `${s.date} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`.trim();
+          }
+          return "";
+        })
+        .filter(Boolean)
+        .join(", ");
 
-    // Reset form
-    setNewClassName("");
-    setNewClassCode("");
-    setNewClassSchedule("");
-    setNewClassMode("In-Person");
-    setNewClassLocation("");
-    setNewClassDescription("");
+      const modes = schedules.flatMap((s) => Array.isArray(s.modes) ? s.modes : []);
+      const hasOnline = modes.some((m: string) => m.toLowerCase().includes("online"));
+      const hasF2f = modes.some((m: string) => m.toLowerCase().includes("face") || m.toLowerCase().includes("f2f") || m.toLowerCase().includes("face_to_face"));
+      const mode: Class["mode"] = hasOnline && hasF2f ? "Hybrid" : hasOnline ? "Online" : "In-Person";
 
-    toast({
-      title: "Success",
-      description: "Class created successfully",
-    });
+      const mapped: Class = {
+        id: String(created.id),
+        name: created.course_name ?? created.class_code ?? created.course_code ?? `Class ${created.id}`,
+        code: created.class_code ?? created.course_code ?? "",
+        schedule: scheduleStr || (created.room ? String(created.room) : ""),
+        mode,
+        enrolledStudents: created.enrolled_students ?? created.students_count ?? 0,
+        totalSessions: created.total_sessions ?? 0,
+        completedSessions: created.completed_sessions ?? 0,
+        attendanceRate: typeof created.attendance_rate === 'number' ? created.attendance_rate : (created.attendance_rate ? Number(created.attendance_rate) : 0),
+        status: "Active",
+        location: created.room ?? created.location ?? created.organization_name ?? undefined,
+        description: created.description ?? undefined,
+      } as Class;
+
+      setClasses((prev) => [mapped, ...prev]);
+      setAddClassOpen(false);
+
+      // Reset form
+      setNewCourseId("");
+      setNewClassRoom("");
+      setNewClassAcademicYear("");
+      setNewClassSemester("");
+      setNewClassDescription("");
+
+      toast({ title: "Success", description: "Class created successfully" });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "Failed to create class", description: String(err?.message ?? err) });
+    } finally {
+      setAddingClass(false);
+    }
   };
 
   const handleStartSession = (classId: string) => {
@@ -906,64 +858,12 @@ export function FacultyPortal() {
                         </CardContent>
                       </Card>
 
-                      {/* Active Sessions */}
-                      <Card className="lg:col-span-2 border shadow-sm bg-stone-50/40 supports-[backdrop-filter]:backdrop-blur-md border-stone-200/50">
-                        <CardHeader className="pb-4">
-                          <CardTitle className="text-lg">
-                            Active Sessions
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {activeSessions.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                              <IconClockHour4 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                              <p>No active sessions</p>
-                              <p className="text-sm">
-                                Start an attendance session to monitor real-time
-                                attendance
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="space-y-3">
-                              {activeSessions.map((session) => (
-                                <div
-                                  key={session.id}
-                                  className="flex items-center justify-between p-4 rounded-lg bg-stone-100/30 border"
-                                >
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium truncate">
-                                      {session.className}
-                                    </h4>
-                                    <p className="text-sm text-muted-foreground">
-                                      {session.presentCount}/
-                                      {session.totalStudents} present
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      Started: {session.startTime} •{" "}
-                                      {session.location}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Badge className="bg-green-100 text-green-700 border-green-200">
-                                      Active
-                                    </Badge>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() =>
-                                        handleEndSession(session.id)
-                                      }
-                                    >
-                                      <Square className="w-3 h-3 mr-1" />
-                                      End
-                                    </Button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
+                      <ActiveSessions
+                        sessions={activeSessions}
+                        variant="compact"
+                        onEndSession={handleEndSession}
+                        onStartSession={handleStartSession}
+                      />
                     </div>
 
                     {/* Recent Classes Overview */}
@@ -1022,173 +922,8 @@ export function FacultyPortal() {
               </div>
             )}
 
-            {/* Classes Management */}
             {activeTab === "classes" && (
-              <div className="space-y-4">
-                {/* Header with Add Class Button */}
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium">My Classes</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Create and manage your classes, schedules, and
-                        enrollment
-                      </p>
-                    </div>
-                    <Button onClick={() => setAddClassOpen(true)} size="sm">
-                      <IconPlus className="w-4 h-4 mr-2" />
-                      Add Class
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Mobile-First Classes List */}
-                <div className="space-y-4">
-                  {classes.map((classItem) => (
-                    <Card key={classItem.id} className="overflow-hidden">
-                      <CardContent className="p-4">
-                        {/* Class Header */}
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-base truncate">
-                              {classItem.name}
-                            </h4>
-                            <p className="text-sm text-muted-foreground">
-                              {classItem.code} • {classItem.mode}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant="outline"
-                              className={
-                                classItem.status === "Active"
-                                  ? "border-green-200 text-green-700 bg-green-50"
-                                  : "border-gray-200 text-gray-700 bg-gray-50"
-                              }
-                            >
-                              {classItem.status}
-                            </Badge>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreVertical className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedClass(classItem);
-                                    setViewClassOpen(true);
-                                  }}
-                                >
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedClass(classItem);
-                                    setEditClassOpen(true);
-                                  }}
-                                >
-                                  <Edit className="w-4 h-4 mr-2" />
-                                  Edit Class
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedClass(classItem);
-                                    setEnrollStudentOpen(true);
-                                  }}
-                                >
-                                  <UserPlus className="w-4 h-4 mr-2" />
-                                  Enroll Student
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleStartSession(classItem.id)
-                                  }
-                                >
-                                  <Play className="w-4 h-4 mr-2" />
-                                  Start Session
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600">
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Delete Class
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-
-                        {/* Class Details Grid */}
-                        <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">
-                              {classItem.schedule}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-muted-foreground" />
-                            <span>{classItem.enrolledStudents} students</span>
-                          </div>
-                          {classItem.location && (
-                            <div className="flex items-center gap-2 col-span-2">
-                              <IconChalkboard className="w-4 h-4 text-muted-foreground" />
-                              <span className="truncate">
-                                {classItem.location}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Progress Section */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span>
-                              Sessions: {classItem.completedSessions}/
-                              {classItem.totalSessions}
-                            </span>
-                            <span className="font-medium">
-                              Attendance: {classItem.attendanceRate}%
-                            </span>
-                          </div>
-                          <Progress
-                            value={
-                              (classItem.completedSessions /
-                                classItem.totalSessions) *
-                              100
-                            }
-                            className="h-2"
-                          />
-                        </div>
-
-                        {/* Quick Actions */}
-                        <div className="flex gap-2 mt-4">
-                          <Button
-                            size="sm"
-                            onClick={() => handleStartSession(classItem.id)}
-                            className="flex-1"
-                          >
-                            <Play className="w-3 h-3 mr-1" />
-                            Start Session
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedClass(classItem);
-                              setViewClassOpen(true);
-                            }}
-                          >
-                            <Eye className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
+              <ClassesManagement />
             )}
 
             {/* Attendance Management */}
@@ -1213,291 +948,29 @@ export function FacultyPortal() {
                   </Button>
                 </div>
 
-                {/* Active Sessions */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Active Sessions</CardTitle>
-                    <CardDescription>
-                      Sessions currently accepting attendance
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {activeSessions.filter((s) => s.status === "Active")
-                      .length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <IconClockHour4 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p>No active sessions</p>
-                        <p className="text-sm">
-                          Start a session from your classes to begin taking
-                          attendance
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {activeSessions
-                          .filter((s) => s.status === "Active")
-                          .map((session) => (
-                            <div
-                              key={session.id}
-                              className="p-4 rounded-lg border bg-green-50/50 border-green-200"
-                            >
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium">
-                                    {session.className}
-                                  </h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    Started: {session.startTime} •{" "}
-                                    {session.location}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <Badge className="bg-green-100 text-green-700 border-green-200">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" />
-                                    Live
-                                  </Badge>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleEndSession(session.id)}
-                                    className="whitespace-nowrap"
-                                  >
-                                    End Session
-                                  </Button>
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                <Card>
-                                  <CardContent className="p-4">
-                                    <div className="text-center">
-                                      <div className="text-2xl font-bold text-green-600">
-                                        {session.presentCount}
-                                      </div>
-                                      <div className="text-sm text-muted-foreground">
-                                        Present
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                                <Card>
-                                  <CardContent className="p-4">
-                                    <div className="text-center">
-                                      <div className="text-2xl font-bold text-red-600">
-                                        {session.totalStudents -
-                                          session.presentCount}
-                                      </div>
-                                      <div className="text-sm text-muted-foreground">
-                                        Absent
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                                <Card>
-                                  <CardContent className="p-4">
-                                    <div className="text-center">
-                                      <div className="text-2xl font-bold">
-                                        {Math.round(
-                                          (session.presentCount /
-                                            session.totalStudents) *
-                                            100
-                                        )}
-                                        %
-                                      </div>
-                                      <div className="text-sm text-muted-foreground">
-                                        Attendance
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              </div>
-
-                              {/* Student Attendance Table */}
-                              <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                  <h5 className="font-medium text-sm">
-                                    Student Attendance
-                                  </h5>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedSession(session);
-                                      setManualAttendanceOpen(true);
-                                    }}
-                                  >
-                                    <Edit className="w-3 h-3 mr-1" />
-                                    Manual Edit
-                                  </Button>
-                                </div>
-
-                                {/* Mobile-First Student List */}
-                                <div className="space-y-2 max-h-64 overflow-y-auto">
-                                  {Array.from(
-                                    { length: session.totalStudents },
-                                    (_, i) => {
-                                      const isPresent =
-                                        i < session.presentCount;
-                                      const student = {
-                                        id: `student-${i}`,
-                                        name: `Student ${i + 1}`,
-                                        email: `student${i + 1}@university.edu`,
-                                        avatar: `S${i + 1}`,
-                                        isPresent,
-                                      };
-
-                                      return (
-                                        <div
-                                          key={student.id}
-                                          className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                                            isPresent
-                                              ? "bg-green-50 border-green-200"
-                                              : "bg-red-50 border-red-200"
-                                          }`}
-                                        >
-                                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            <Avatar className="w-8 h-8 shrink-0">
-                                              <AvatarFallback className="text-xs">
-                                                {student.avatar}
-                                              </AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1 min-w-0">
-                                              <div className="font-medium text-sm truncate">
-                                                {student.name}
-                                              </div>
-                                              <div className="text-xs text-muted-foreground truncate">
-                                                {student.email}
-                                              </div>
-                                            </div>
-                                          </div>
-
-                                          <div className="flex items-center gap-2 shrink-0">
-                                            <Badge
-                                              variant={
-                                                isPresent
-                                                  ? "default"
-                                                  : "secondary"
-                                              }
-                                              className={
-                                                isPresent
-                                                  ? "bg-green-100 text-green-700 border-green-200"
-                                                  : "bg-red-100 text-red-700 border-red-200"
-                                              }
-                                            >
-                                              {isPresent ? "Present" : "Absent"}
-                                            </Badge>
-
-                                            <DropdownMenu>
-                                              <DropdownMenuTrigger asChild>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                >
-                                                  <MoreVertical className="w-3 h-3" />
-                                                </Button>
-                                              </DropdownMenuTrigger>
-                                              <DropdownMenuContent align="end">
-                                                <DropdownMenuItem
-                                                  onClick={() => {
-                                                    // Toggle attendance status
-                                                    console.log(
-                                                      `Toggle attendance for ${student.name}`
-                                                    );
-                                                  }}
-                                                >
-                                                  <CheckCircle className="w-3 h-3 mr-2" />
-                                                  {isPresent
-                                                    ? "Mark Absent"
-                                                    : "Mark Present"}
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                  onClick={() => {
-                                                    setSelectedStudent({
-                                                      id: student.id,
-                                                      name: student.name,
-                                                      email: student.email,
-                                                      studentId: `ST${String(
-                                                        i + 1
-                                                      ).padStart(3, "0")}`,
-                                                      classId: session.classId,
-                                                      enrollmentStatus:
-                                                        "Enrolled",
-                                                      attendanceRate:
-                                                        Math.floor(
-                                                          Math.random() * 20
-                                                        ) + 80,
-                                                      totalSessions: 15,
-                                                      presentSessions:
-                                                        Math.floor(
-                                                          ((Math.random() * 20 +
-                                                            80) *
-                                                            15) /
-                                                            100
-                                                        ),
-                                                    });
-                                                    setViewStudentOpen(true);
-                                                  }}
-                                                >
-                                                  <Eye className="w-3 h-3 mr-2" />
-                                                  View Profile
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem>
-                                                  <Send className="w-3 h-3 mr-2" />
-                                                  Send Message
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem
-                                                  className="text-red-600"
-                                                  onClick={() => {
-                                                    console.log(
-                                                      `Remove ${student.name} from session`
-                                                    );
-                                                  }}
-                                                >
-                                                  <Trash2 className="w-3 h-3 mr-2" />
-                                                  Remove from Session
-                                                </DropdownMenuItem>
-                                              </DropdownMenuContent>
-                                            </DropdownMenu>
-                                          </div>
-                                        </div>
-                                      );
-                                    }
-                                  )}
-                                </div>
-
-                                {/* Quick Actions */}
-                                <div className="flex gap-2 pt-2 border-t">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="flex-1"
-                                    onClick={() =>
-                                      console.log("Mark all present")
-                                    }
-                                  >
-                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                    All Present
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="flex-1"
-                                    onClick={() =>
-                                      console.log("Mark all absent")
-                                    }
-                                  >
-                                    <X className="w-3 h-3 mr-1" />
-                                    All Absent
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      <ActiveSessions
+                        sessions={activeSessions}
+                        variant="detailed"
+                        onEndSession={handleEndSession}
+                        onManualEdit={(session) => {
+                          setSelectedSession(session);
+                          setManualAttendanceOpen(true);
+                        }}
+                        onViewStudent={(student) => {
+                          setSelectedStudent((prev) => ({
+                            id: student.id,
+                            name: student.name,
+                            email: student.email,
+                            studentId: student.id,
+                            classId: student.classId || selectedClass?.id || "",
+                            enrollmentStatus: "Enrolled",
+                            attendanceRate: 90,
+                            totalSessions: 15,
+                            presentSessions: 14,
+                          }));
+                          setViewStudentOpen(true);
+                        }}
+                      />
 
                 {/* Recent Sessions */}
                 <Card>
@@ -1691,103 +1164,7 @@ export function FacultyPortal() {
           </div>
         </SidebarInset>
 
-        {/* Add Class Drawer */}
-        <Drawer open={addClassOpen} onOpenChange={setAddClassOpen}>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>Create New Class</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4 space-y-4 overflow-y-auto">
-              <div>
-                <Label htmlFor="class-name">Class Name</Label>
-                <Input
-                  id="class-name"
-                  value={newClassName}
-                  onChange={(e) => setNewClassName(e.target.value)}
-                  placeholder="e.g., Introduction to Computer Science"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="class-code">Class Code</Label>
-                <Input
-                  id="class-code"
-                  value={newClassCode}
-                  onChange={(e) => setNewClassCode(e.target.value)}
-                  placeholder="e.g., CS101"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="class-schedule">Schedule</Label>
-                <Input
-                  id="class-schedule"
-                  value={newClassSchedule}
-                  onChange={(e) => setNewClassSchedule(e.target.value)}
-                  placeholder="e.g., Mon, Wed, Fri 9:00 AM"
-                />
-              </div>
-              <div>
-                <Label htmlFor="class-mode">Mode</Label>
-                <Select
-                  value={newClassMode}
-                  onValueChange={(value: "Online" | "In-Person" | "Hybrid") =>
-                    setNewClassMode(value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="In-Person">In-Person</SelectItem>
-                    <SelectItem value="Online">Online</SelectItem>
-                    <SelectItem value="Hybrid">Hybrid</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="class-location">Location (optional)</Label>
-                <Input
-                  id="class-location"
-                  value={newClassLocation}
-                  onChange={(e) => setNewClassLocation(e.target.value)}
-                  placeholder="e.g., Room 202"
-                />
-              </div>
-              <div>
-                <Label htmlFor="class-description">
-                  Description (optional)
-                </Label>
-                <Textarea
-                  id="class-description"
-                  value={newClassDescription}
-                  onChange={(e) => setNewClassDescription(e.target.value)}
-                  placeholder="Brief description of the class"
-                  rows={3}
-                />
-              </div>
-            </div>
-            <DrawerFooter>
-              <Button
-                onClick={handleAddClass}
-                disabled={addingClass}
-                className="w-full"
-              >
-                {addingClass ? (
-                  <IconLoader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <IconPlus className="w-4 h-4 mr-2" />
-                )}
-                Create Class
-              </Button>
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Cancel
-                </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
+        
 
         {/* Add Announcement Drawer */}
         <Drawer
@@ -2029,364 +1406,7 @@ export function FacultyPortal() {
           </DrawerContent>
         </Drawer>
 
-        {/* View Class Details Drawer */}
-        <Drawer open={viewClassOpen} onOpenChange={setViewClassOpen}>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>
-                {selectedClass?.name || "Class Details"}
-              </DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4 space-y-6 overflow-y-auto">
-              {selectedClass && (
-                <>
-                  {/* Class Information */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-sm text-muted-foreground">
-                      Class Information
-                    </h3>
-                    <div className="grid grid-cols-1 gap-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Class Code:
-                        </span>
-                        <span className="font-medium">
-                          {selectedClass.code}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Schedule:</span>
-                        <span className="font-medium">
-                          {selectedClass.schedule}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Mode:</span>
-                        <Badge variant="outline">{selectedClass.mode}</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Location:</span>
-                        <span className="font-medium">
-                          {selectedClass.location || "Not specified"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Status:</span>
-                        <Badge
-                          variant={
-                            selectedClass.status === "Active"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {selectedClass.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Enrolled Students Table */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-sm text-muted-foreground">
-                        Enrolled Students ({selectedClass.enrolledStudents})
-                      </h3>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setEnrollStudentOpen(true)}
-                      >
-                        <UserPlus className="w-3 h-3 mr-1" />
-                        Enroll
-                      </Button>
-                    </div>
-                    <div className="border rounded-lg">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[50px]">#</TableHead>
-                            <TableHead>Student</TableHead>
-                            <TableHead className="text-right">
-                              Attendance
-                            </TableHead>
-                            <TableHead className="w-[70px]">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {Array.from(
-                            { length: selectedClass.enrolledStudents },
-                            (_, i) => (
-                              <TableRow key={i}>
-                                <TableCell className="font-mono text-xs">
-                                  {String(i + 1).padStart(2, "0")}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-3">
-                                    <Avatar className="w-7 h-7">
-                                      <AvatarFallback className="text-xs">
-                                        {`S${i + 1}`}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <div className="font-medium text-sm">
-                                        Student {i + 1}
-                                      </div>
-                                      <div className="text-xs text-muted-foreground">
-                                        student{i + 1}@university.edu
-                                      </div>
-                                    </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="text-sm font-medium">
-                                    {Math.floor(Math.random() * 20) + 80}%
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm">
-                                        <MoreVertical className="w-3 h-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem>
-                                        <Eye className="w-3 h-3 mr-2" />
-                                        View Profile
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem>
-                                        <Send className="w-3 h-3 mr-2" />
-                                        Send Message
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem className="text-red-600">
-                                        <Trash2 className="w-3 h-3 mr-2" />
-                                        Remove
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TableCell>
-                              </TableRow>
-                            )
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-
-                  {/* Recent Sessions */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-sm text-muted-foreground">
-                      Recent Sessions
-                    </h3>
-                    <div className="space-y-3">
-                      {Array.from({ length: 3 }, (_, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between p-3 border rounded-lg bg-muted/30"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <div>
-                              <div className="text-sm font-medium">
-                                Session {selectedClass.completedSessions - i}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {new Date(
-                                  Date.now() - i * 24 * 60 * 60 * 1000
-                                ).toLocaleDateString()}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-sm font-medium">
-                            {Math.floor(Math.random() * 10) + 85}% attended
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            <DrawerFooter>
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Close
-                </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
-
-        {/* Edit Class Drawer */}
-        <Drawer open={editClassOpen} onOpenChange={setEditClassOpen}>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>Edit Class</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4 space-y-4 overflow-y-auto">
-              {selectedClass && (
-                <>
-                  <div>
-                    <Label htmlFor="edit-class-name">Class Name</Label>
-                    <Input
-                      id="edit-class-name"
-                      defaultValue={selectedClass.name}
-                      placeholder="e.g., Introduction to Computer Science"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-class-code">Class Code</Label>
-                    <Input
-                      id="edit-class-code"
-                      defaultValue={selectedClass.code}
-                      placeholder="e.g., CS101"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-class-schedule">Schedule</Label>
-                    <Input
-                      id="edit-class-schedule"
-                      defaultValue={selectedClass.schedule}
-                      placeholder="e.g., Mon, Wed, Fri 9:00 AM"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-class-mode">Mode</Label>
-                    <Select defaultValue={selectedClass.mode}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="In-Person">In-Person</SelectItem>
-                        <SelectItem value="Online">Online</SelectItem>
-                        <SelectItem value="Hybrid">Hybrid</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-class-location">Location</Label>
-                    <Input
-                      id="edit-class-location"
-                      defaultValue={selectedClass.location}
-                      placeholder="e.g., Room 202"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-class-status">Status</Label>
-                    <Select defaultValue={selectedClass.status}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Inactive">Inactive</SelectItem>
-                        <SelectItem value="Completed">Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-            </div>
-            <DrawerFooter>
-              <Button className="w-full">
-                <Settings className="w-4 h-4 mr-2" />
-                Save Changes
-              </Button>
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Cancel
-                </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
-
-        {/* Enroll Student Drawer */}
-        <Drawer open={enrollStudentOpen} onOpenChange={setEnrollStudentOpen}>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>Enroll Student</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4 space-y-4 overflow-y-auto">
-              <div>
-                <Label htmlFor="student-search">Search Students</Label>
-                <Input
-                  id="student-search"
-                  placeholder="Search by name, email, or student ID..."
-                  className="mt-1"
-                />
-              </div>
-
-              {/* Available Students List */}
-              <div className="space-y-3">
-                <Label>Available Students</Label>
-                <div className="max-h-60 overflow-y-auto border rounded-lg p-3 space-y-2">
-                  {Array.from({ length: 8 }, (_, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-8 h-8">
-                          <AvatarFallback className="text-xs">
-                            {`U${i + 1}`}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium text-sm">
-                            Student {i + 1}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            student{i + 1}@university.edu
-                          </div>
-                        </div>
-                      </div>
-                      <Button size="sm" variant="outline">
-                        <UserPlus className="w-3 h-3 mr-1" />
-                        Enroll
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Manual Enrollment */}
-              <div className="space-y-3 pt-4 border-t">
-                <Label>Manual Enrollment</Label>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="manual-name">Student Name</Label>
-                    <Input id="manual-name" placeholder="Full name" />
-                  </div>
-                  <div>
-                    <Label htmlFor="manual-email">Email Address</Label>
-                    <Input
-                      id="manual-email"
-                      type="email"
-                      placeholder="student@university.edu"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="manual-id">Student ID</Label>
-                    <Input id="manual-id" placeholder="Student ID number" />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <DrawerFooter>
-              <Button className="w-full">
-                <UserPlus className="w-4 h-4 mr-2" />
-                Enroll Student
-              </Button>
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Cancel
-                </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
+        
 
         {/* View Announcement Details Drawer */}
         <Drawer
@@ -2647,285 +1667,52 @@ export function FacultyPortal() {
           </DrawerContent>
         </Drawer>
 
-        {/* View Student Details Drawer */}
-        <Drawer open={viewStudentOpen} onOpenChange={setViewStudentOpen}>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>
-                {selectedStudent?.name || "Student Profile"}
-              </DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4 space-y-6 overflow-y-auto">
-              {selectedStudent && (
-                <>
-                  {/* Student Information */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="w-16 h-16">
-                        <AvatarFallback className="text-lg">
-                          {selectedStudent.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="font-semibold text-lg">
-                          {selectedStudent.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {selectedStudent.email}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          ID: {selectedStudent.studentId}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Attendance Statistics */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-sm text-muted-foreground">
-                      Attendance Statistics
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 border rounded-lg text-center">
-                        <div className="text-2xl font-bold text-green-600">
-                          {selectedStudent.attendanceRate}%
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Overall Rate
-                        </div>
-                      </div>
-                      <div className="p-3 border rounded-lg text-center">
-                        <div className="text-2xl font-bold">
-                          {selectedStudent.presentSessions}/
-                          {selectedStudent.totalSessions}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Sessions
-                        </div>
-                      </div>
-                    </div>
-                    <Progress
-                      value={selectedStudent.attendanceRate}
-                      className="h-2"
-                    />
-                  </div>
-
-                  {/* Recent Attendance */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-sm text-muted-foreground">
-                      Recent Sessions
-                    </h4>
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                      {Array.from({ length: 5 }, (_, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between p-3 border rounded-lg"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                Math.random() > 0.2
-                                  ? "bg-green-500"
-                                  : "bg-red-500"
-                              }`}
-                            ></div>
-                            <div>
-                              <div className="text-sm font-medium">
-                                Session {selectedStudent.totalSessions - i}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {new Date(
-                                  Date.now() - i * 24 * 60 * 60 * 1000
-                                ).toLocaleDateString()}
-                              </div>
-                            </div>
-                          </div>
-                          <Badge
-                            variant={
-                              Math.random() > 0.2 ? "default" : "secondary"
-                            }
-                          >
-                            {Math.random() > 0.2 ? "Present" : "Absent"}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Contact Information */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-sm text-muted-foreground">
-                      Contact Actions
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button variant="outline" size="sm">
-                        <Send className="w-3 h-3 mr-2" />
-                        Send Email
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <MessageSquare className="w-3 h-3 mr-2" />
-                        Send Message
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            <DrawerFooter>
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Close
-                </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
-
-        {/* Manual Attendance Edit Drawer */}
-        <Drawer
+        
+        <ManualAttendanceDrawer
           open={manualAttendanceOpen}
           onOpenChange={setManualAttendanceOpen}
-        >
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>Manual Attendance Edit</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4 space-y-4 overflow-y-auto">
-              {selectedSession && (
-                <>
-                  <div className="p-3 bg-muted/30 rounded-lg">
-                    <h4 className="font-medium text-sm">
-                      {selectedSession.className}
-                    </h4>
-                    <p className="text-xs text-muted-foreground">
-                      Session started: {selectedSession.startTime} •{" "}
-                      {selectedSession.location}
-                    </p>
-                  </div>
+          selectedSession={selectedSession}
+          onSave={(sessionId, presentIndexes) => {
+            // Update activeSessions presentCount and selectedSession copy
+            setActiveSessions((prev) =>
+              prev.map((s) =>
+                s.id === sessionId ? { ...s, presentCount: presentIndexes.length } : s
+              )
+            );
 
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">
-                        Student List
-                      </Label>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => console.log("Select all")}
-                        >
-                          Select All
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => console.log("Clear all")}
-                        >
-                          Clear All
-                        </Button>
-                      </div>
-                    </div>
+            setSelectedSession((prev) =>
+              prev && prev.id === sessionId ? { ...prev, presentCount: presentIndexes.length } : prev
+            );
 
-                    <div className="space-y-2 max-h-80 overflow-y-auto border rounded-lg p-3">
-                      {Array.from(
-                        { length: selectedSession.totalStudents },
-                        (_, i) => {
-                          const isPresent = i < selectedSession.presentCount;
-                          return (
-                            <div
-                              key={i}
-                              className="flex items-center justify-between p-2 border rounded-md"
-                            >
-                              <div className="flex items-center gap-3">
-                                <Avatar className="w-6 h-6">
-                                  <AvatarFallback className="text-xs">
-                                    {`S${i + 1}`}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <div className="font-medium text-sm">
-                                    Student {i + 1}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    student{i + 1}@university.edu
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  id={`manual-student-${i}`}
-                                  defaultChecked={isPresent}
-                                  className="h-4 w-4"
-                                  onChange={(e) => {
-                                    console.log(
-                                      `Student ${i + 1} attendance:`,
-                                      e.target.checked
-                                    );
-                                  }}
-                                />
-                                <Label
-                                  htmlFor={`manual-student-${i}`}
-                                  className="text-sm font-normal"
-                                >
-                                  Present
-                                </Label>
-                              </div>
-                            </div>
-                          );
-                        }
-                      )}
-                    </div>
-                  </div>
+            // Update per-student attendance counts for students in this class
+            const session = activeSessions.find((s) => s.id === sessionId) || selectedSession;
+            const classId = session?.classId;
+            if (classId) {
+              setStudents((prev) => {
+                // get students in the class in current order
+                const classStudents = prev.filter((st) => st.classId === classId);
+                return prev.map((st) => {
+                  if (st.classId !== classId) return st;
+                  const idx = classStudents.findIndex((cs) => cs.id === st.id);
+                  if (idx === -1) return st;
+                  const wasPresent = presentIndexes.includes(idx);
+                  const newTotal = (st.totalSessions ?? 0) + 1;
+                  const newPresent = (st.presentSessions ?? 0) + (wasPresent ? 1 : 0);
+                  const newRate = newTotal > 0 ? Math.round((newPresent / newTotal) * 1000) / 10 : 0;
+                  return {
+                    ...st,
+                    totalSessions: newTotal,
+                    presentSessions: newPresent,
+                    attendanceRate: newRate,
+                  };
+                });
+              });
+            }
 
-                  {/* Additional Options */}
-                  <div className="space-y-3 pt-3 border-t">
-                    <Label className="text-sm font-medium">
-                      Additional Options
-                    </Label>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="late-arrival"
-                          className="h-4 w-4"
-                        />
-                        <Label htmlFor="late-arrival" className="text-sm">
-                          Allow late arrivals (next 15 minutes)
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="auto-save"
-                          defaultChecked
-                          className="h-4 w-4"
-                        />
-                        <Label htmlFor="auto-save" className="text-sm">
-                          Auto-save changes
-                        </Label>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            <DrawerFooter>
-              <Button className="w-full">
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Save Attendance
-              </Button>
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Cancel
-                </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
+            setManualAttendanceOpen(false);
+            toast({ title: "Success", description: "Attendance saved" });
+          }}
+        />
       </div>
     </SidebarProvider>
   );

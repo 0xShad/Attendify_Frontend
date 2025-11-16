@@ -108,6 +108,33 @@ export async function getCourseOptions(params: { program_id?: number; organizati
   return response.json();
 }
 
+
+/**
+ * Get course options for the currently authenticated user.
+ * Calls backend route: GET /courses/options/me
+ * Uses same-origin proxy when in browser so HTTP-only cookie is forwarded.
+ */
+export async function getCourseOptionsForMe(): Promise<any[]> {
+  const isBrowser = typeof window !== 'undefined';
+  if (isBrowser) {
+    const requestUrl = `/api/courses/options/me`;
+    const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(requestUrl, { method: 'GET' }));
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || response.statusText);
+    }
+    return response.json();
+  }
+
+  const url = `${API_BASE_URL}/courses/options/me`;
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'GET' }));
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || response.statusText);
+  }
+  return response.json();
+}
+
 export async function createCourse(payload: CreateCoursePayload): Promise<any> {
   const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(COURSES_ENDPOINTS.CREATE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }));
   if (!response.ok) {
@@ -139,6 +166,7 @@ export const coursesAPI = {
   listCourses,
   getCourse,
   getCourseOptions,
+  getCourseOptionsForMe,
   createCourse,
   updateCourse,
   deleteCourse,

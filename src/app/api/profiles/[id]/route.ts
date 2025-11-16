@@ -10,13 +10,22 @@ function parseCookie(header: string | null, name: string) {
   return null;
 }
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: any }) {
   const cookieHeader = request.headers.get('cookie') || '';
   const ACCESS_COOKIE_NAME = 'access_token';
   const accessToken = parseCookie(cookieHeader, ACCESS_COOKIE_NAME);
 
   const backendBase = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_USER_API_URL || 'http://localhost:8082/api/v1';
-  const backendUrl = `${backendBase}/profiles/${params.id}`;
+  // In some Next.js runtimes `params` may be a promise-like object. Await
+  // it if necessary to avoid the runtime error about sync dynamic APIs.
+  let resolvedParams: any = params;
+  try {
+    if (typeof params?.then === 'function') resolvedParams = await params;
+  } catch (e) {
+    // ignore
+  }
+  const id = resolvedParams?.id;
+  const backendUrl = `${backendBase}/profiles/${id}`;
 
   const headers: Record<string, string> = {};
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;

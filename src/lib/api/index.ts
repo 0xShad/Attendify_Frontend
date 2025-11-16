@@ -13,3 +13,5 @@ export * from "./schedules";
 export { schedulesAPI } from "./schedules";
 export * from "./holidays";
 export { holidaysAPI } from "./holidays";
+export * from "./classes";
+export { classesAPI } from "./classes";

@@ -7,6 +7,9 @@
  * Protected routes that require authentication
  */
 export const PROTECTED_ROUTES = [
+  "/admin",
+  "/faculty",
+  "/student",
   "/admin/dashboard",
   "/admin/schools",
   "/admin/programs",
