@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { checkAuth } from "@/lib/api/auth";
 import { IconAlertTriangle, IconRefresh } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,14 +27,66 @@ export default function ServiceUnavailablePage() {
     return () => clearInterval(timer);
   }, []);
 
+  // When countdown reaches zero we attempt navigation. Additionally, poll
+  // the auth endpoint regularly so the page will redirect as soon as the
+  // authentication service is available (without waiting for the timer).
   useEffect(() => {
     if (countdown === 0) {
       router.push("/auth/login");
       router.refresh();
+      return;
     }
   }, [countdown, router]);
 
-  const handleRetry = () => {
+  // Poll auth service in background and navigate immediately when available.
+  useEffect(() => {
+    let mounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const ok = await checkAuth();
+        if (!mounted) return;
+        if (ok) {
+          router.push("/auth/login");
+          router.refresh();
+        }
+      } catch (e) {
+        // ignore -- service still unavailable
+      }
+    }, 3000);
+
+    // Also do an immediate check on mount.
+    (async () => {
+      try {
+        const ok = await checkAuth();
+        if (!mounted) return;
+        if (ok) {
+          router.push("/auth/login");
+          router.refresh();
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [router]);
+
+  const handleRetry = async () => {
+    // Try a quick auth check first; navigate only if service is responding.
+    try {
+      const ok = await checkAuth();
+      if (ok) {
+        router.push("/auth/login");
+        router.refresh();
+        return;
+      }
+    } catch (e) {
+      // fallback to forcing a navigation so user can try manual login
+    }
+
     router.push("/auth/login");
     router.refresh();
   };
