@@ -57,6 +57,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { checkAuth } from "@/lib/clientAuth";
 import { UsersManagement } from "@/components/users";
 import { ReportsDataTable } from "@/components/reports-data-table";
 import { LogsDataTable } from "@/components/logs-data-table";
@@ -210,6 +211,7 @@ function SidebarUserMenu({
 
 export function AdminPortal() {
   const { toast } = useToast();
+  const router = useRouter();
 
   // Navigation - Always start with dashboard to avoid hydration mismatch
   const [activeTab, setActiveTab] = useState<
@@ -482,7 +484,14 @@ export function AdminPortal() {
     setTimeout(() => setIsLoading(false), 1000);
   };
 
-  const confirmDeleteUser = () => {
+  const confirmDeleteUser = async () => {
+    const ok = await checkAuth();
+    if (!ok) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     if (userToDelete) {
       setUsers((prev) => prev.filter((user) => user.id !== userToDelete));
       setDeleteUserOpen(false);
@@ -493,6 +502,23 @@ export function AdminPortal() {
       });
     }
   };
+
+  function handleNav(tabId: typeof navigationItems[number]['id']) {
+      // Optimistically switch tabs so UI remains responsive.
+      // Run auth check in the background and redirect to login if session expired.
+      setActiveTab(tabId as any);
+
+      checkAuth()
+        .then((ok) => {
+          if (!ok) {
+            const redirectTo = encodeURIComponent(window.location.pathname || '/');
+            router.push(`/auth/login?redirect=${redirectTo}`);
+          }
+        })
+        .catch(() => {
+          // Swallow errors from the auth check - don't block UI.
+        });
+    }
 
   React.useEffect(() => {
     loadDashboard();
@@ -531,19 +557,7 @@ export function AdminPortal() {
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         isActive={activeTab === item.id}
-                        onClick={() =>
-                          setActiveTab(
-                            item.id as
-                              | "dashboard"
-                              | "schools"
-                              | "programs"
-                              | "classes"
-                              | "courses"
-                              | "users"
-                              | "reports"
-                              | "logs"
-                          )
-                        }
+                        onClick={() => handleNav(item.id)}
                         className="w-full justify-start"
                         size="lg"
                       >

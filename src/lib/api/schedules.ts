@@ -32,11 +32,7 @@ export async function listSchedulesForClass(classId: number): Promise<Schedule[]
   const url = `${API_BASE_URL}/classes/${classId}/schedules`;
 
   try {
-    const res = await fetch(url, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-    });
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } }));
 
     if (res.status === 404) {
       // class not found
@@ -63,11 +59,7 @@ export const schedulesAPI = {
   async getScheduleForClass(classId: number, scheduleId: number): Promise<Schedule> {
     const url = `${API_BASE_URL}/classes/${classId}/schedules/${scheduleId}`;
 
-    const res = await fetch(url, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-    });
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } }));
 
     if (res.status === 404) {
       const body = await res.text().catch(() => "");
@@ -86,12 +78,7 @@ export const schedulesAPI = {
   async createScheduleForClass(classId: number, payload: Partial<ScheduleCommon> & Record<string, any>): Promise<Schedule> {
     const url = `${API_BASE_URL}/classes/${classId}/schedules`;
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }));
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -105,12 +92,7 @@ export const schedulesAPI = {
   async updateScheduleForClass(classId: number, scheduleId: number, payload: Partial<ScheduleCommon> & Record<string, any>): Promise<Schedule> {
     const url = `${API_BASE_URL}/classes/${classId}/schedules/${scheduleId}`;
 
-    const res = await fetch(url, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }));
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -124,10 +106,7 @@ export const schedulesAPI = {
   async deleteScheduleForClass(classId: number, scheduleId: number): Promise<void> {
     const url = `${API_BASE_URL}/classes/${classId}/schedules/${scheduleId}`;
 
-    const res = await fetch(url, {
-      method: "DELETE",
-      credentials: "include",
-    });
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'DELETE' }));
 
     if (res.status === 404) {
       // not found is acceptable for idempotent delete

@@ -39,7 +39,7 @@ export async function listClasses(params: ListClassesParams = {}): Promise<any[]
   // Note: kept as console.debug so it won't spam production logs unless the devtools are open.
   try {
     console.debug("Fetching classes list:", url.toString());
-    const res = await fetch(url.toString(), { method: 'GET' });
+    const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || res.statusText || `HTTP ${res.status}`);
@@ -54,7 +54,7 @@ export async function listClasses(params: ListClassesParams = {}): Promise<any[]
 }
 
 export async function getClass(id: number): Promise<any> {
-  const res = await fetch(CLASSES_ENDPOINTS.DETAIL(String(id)), { method: 'GET' });
+  const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(CLASSES_ENDPOINTS.DETAIL(String(id)), { method: 'GET' }));
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || res.statusText);
@@ -63,11 +63,11 @@ export async function getClass(id: number): Promise<any> {
 }
 
 export async function createClass(payload: Record<string, any>): Promise<any> {
-  const res = await fetch(CLASSES_ENDPOINTS.LIST, {
+  const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(CLASSES_ENDPOINTS.LIST, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  });
+  }));
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || res.statusText);
@@ -76,11 +76,11 @@ export async function createClass(payload: Record<string, any>): Promise<any> {
 }
 
 export async function updateClass(id: number, payload: Record<string, any>): Promise<any> {
-  const res = await fetch(CLASSES_ENDPOINTS.DETAIL(String(id)), {
+  const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(CLASSES_ENDPOINTS.DETAIL(String(id)), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  });
+  }));
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || res.statusText);
@@ -89,10 +89,10 @@ export async function updateClass(id: number, payload: Record<string, any>): Pro
 }
 
 export async function deleteClass(id: number): Promise<any> {
-  const res = await fetch(CLASSES_ENDPOINTS.DETAIL(String(id)), {
+  const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(CLASSES_ENDPOINTS.DETAIL(String(id)), {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-  });
+  }));
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || res.statusText);
@@ -104,7 +104,7 @@ export async function deleteClass(id: number): Promise<any> {
 export async function listEnrolleesForClass(classId: number): Promise<any[]> {
   const url = `${API_BASE_URL}/classes/${classId}/enrollees`;
   try {
-    const res = await fetch(url, { method: 'GET', credentials: 'include' });
+    const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(url, { method: 'GET' }));
     if (res.status === 404) {
       const body = await res.text().catch(() => '');
       throw new Error(`NotFound: ${body || 'Class not found'}`);
@@ -161,7 +161,7 @@ export async function listAvailableStudentsForClass(
     url.searchParams.append('limit', String(limit));
     if (q) url.searchParams.append('q', String(q));
 
-    const res = await fetch(url.toString(), { method: 'GET', credentials: 'include' });
+    const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
     if (res.status === 404) {
       // organization not found or endpoint not present — return empty list
       return [];
@@ -185,12 +185,11 @@ export async function addEnrolleeToClass(
   // The backend now accepts either a single enrollee object or a list of them
   const url = `${API_BASE_URL}/classes/${classId}/enrollees`;
   try {
-    const res = await fetch(url, {
+    const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(payload),
-    });
+    }));
     if (!res.ok) {
       const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
       throw new Error(String(body));
@@ -205,10 +204,9 @@ export async function addEnrolleeToClass(
 export async function deleteEnrolleeFromClass(classId: number, enrolleeId: number): Promise<null> {
   const url = `${API_BASE_URL}/classes/${classId}/enrollees/${enrolleeId}`;
   try {
-    const res = await fetch(url, {
+    const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(url, {
       method: 'DELETE',
-      credentials: 'include',
-    });
+    }));
     if (res.status === 404) {
       const body = await res.text().catch(() => 'Not Found');
       throw new Error(String(body));

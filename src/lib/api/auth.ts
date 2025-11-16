@@ -629,3 +629,38 @@ export const authAPI = new AuthAPI();
 
 // Export class for testing or custom instances
 export { AuthAPI };
+
+/**
+ * Lightweight check to verify current session/auth status.
+ * Returns `true` when the /users/me endpoint returns OK, `false` otherwise.
+ * Uses credentials (cookies) and will include a localStorage Bearer token if present.
+ */
+export async function checkAuth(force = false): Promise<boolean> {
+  // If called on server (no window), we cannot perform client-side check
+  if (typeof window === "undefined") return false;
+
+  const url = USER_ENDPOINTS.ME;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+  // Try to include any locally-stored token if available (best-effort)
+  try {
+    const token =
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("authToken");
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  } catch (e) {
+    // ignore localStorage errors
+  }
+
+  try {
+    const res = await fetch(url, { method: "GET", credentials: "include", headers });
+    if (res.ok) return true;
+    if (res.status === 401 || res.status === 403) return false;
+    // treat other non-OK as not authenticated
+    return false;
+  } catch (err) {
+    // network error -> conservatively treat as not authenticated
+    return false;
+  }
+}

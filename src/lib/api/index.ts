@@ -11,3 +11,5 @@ export * from "./programs";
 export { programsAPI } from "./programs";
 export * from "./schedules";
 export { schedulesAPI } from "./schedules";
+export * from "./holidays";
+export { holidaysAPI } from "./holidays";

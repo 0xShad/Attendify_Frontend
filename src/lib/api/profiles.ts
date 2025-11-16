@@ -271,24 +271,26 @@ async function fetchWithDedupe(url: string, init?: RequestInit) {
     // ignore header manipulation errors
   }
 
-  const p = fetch(url, safeInit).then(async (response) => {
-    if (!response.ok) {
-      // Try to parse JSON error body for richer diagnostics
-      const text = await response.text().catch(() => '');
-      let parsed: any = {};
-      try {
-        parsed = text ? JSON.parse(text) : {};
-      } catch (e) {
-        parsed = { detail: text };
+  const p = import('./fetchClient').then(({ fetchRawWithAuth }) => {
+    return fetchRawWithAuth(url, safeInit).then(async (response) => {
+      if (!response.ok) {
+        // Try to parse JSON error body for richer diagnostics
+        const text = await response.text().catch(() => '');
+        let parsed: any = {};
+        try {
+          parsed = text ? JSON.parse(text) : {};
+        } catch (e) {
+          parsed = { detail: text };
+        }
+        const message = parsed?.detail || parsed?.message || response.statusText || `HTTP ${response.status}`;
+        // Attach details for easier debugging in dev
+        const err = new Error(message) as any;
+        err.status = response.status;
+        err.body = parsed;
+        throw err;
       }
-      const message = parsed?.detail || parsed?.message || response.statusText || `HTTP ${response.status}`;
-      // Attach details for easier debugging in dev
-      const err = new Error(message) as any;
-      err.status = response.status;
-      err.body = parsed;
-      throw err;
-    }
-    return response.json();
+      return response.json();
+    });
   }).finally(() => {
     inFlightRequests.delete(url);
   });

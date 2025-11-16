@@ -94,12 +94,7 @@ export async function searchPrograms(
     url.searchParams.append('query', query.trim());
   }
 
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -141,12 +136,7 @@ export async function listPrograms(
   if (min_students !== undefined) url.searchParams.append('min_students', min_students.toString());
   if (max_students !== undefined) url.searchParams.append('max_students', max_students.toString());
 
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -163,12 +153,7 @@ export async function listPrograms(
  * Get a single program by ID
  */
 export async function getProgram(id: number): Promise<Program> {
-  const response = await fetch(PROGRAMS_ENDPOINTS.DETAIL(id), {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(PROGRAMS_ENDPOINTS.DETAIL(id), { method: 'GET' }));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -183,13 +168,7 @@ export async function getProgram(id: number): Promise<Program> {
  * Create a new program
  */
 export async function createProgram(data: ProgramCreate): Promise<Program> {
-  const response = await fetch(PROGRAMS_ENDPOINTS.CREATE, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(PROGRAMS_ENDPOINTS.CREATE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }));
 
   if (!response.ok) {
     try {
@@ -216,13 +195,7 @@ export async function updateProgram(
   id: number,
   data: ProgramUpdate
 ): Promise<Program> {
-  const response = await fetch(PROGRAMS_ENDPOINTS.UPDATE(id), {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(PROGRAMS_ENDPOINTS.UPDATE(id), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -237,12 +210,7 @@ export async function updateProgram(
  * Delete a program
  */
 export async function deleteProgram(id: number): Promise<void> {
-  const response = await fetch(PROGRAMS_ENDPOINTS.DELETE(id), {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(PROGRAMS_ENDPOINTS.DELETE(id), { method: 'DELETE', headers: { 'Content-Type': 'application/json' } }));
 
   if (!response.ok) {
     // Try to parse error detail from response
@@ -269,12 +237,7 @@ export async function getOrganizationOptions(): Promise<OrganizationOption[]> {
   // Filter to Academic organizations only
   url.searchParams.append('type', 'Academic');
   
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -289,12 +252,7 @@ export async function getOrganizationOptions(): Promise<OrganizationOption[]> {
  * Get all unique program codes for filtering
  */
 export async function getProgramCodes(): Promise<string[]> {
-  const response = await fetch(PROGRAMS_ENDPOINTS.OPTIONS_CODES, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(PROGRAMS_ENDPOINTS.OPTIONS_CODES, { method: 'GET' }));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

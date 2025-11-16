@@ -22,7 +22,9 @@ export async function listHolidays(start?: string | null, end?: string | null, o
     if (organization_id !== undefined && organization_id !== null) url.searchParams.append('organization_id', String(organization_id));
   }
   try {
-    const res = await fetch(url.toString(), { method: 'GET', credentials: 'include' });
+    const res = await import('./fetchClient').then(({ fetchRawWithAuth }) =>
+      fetchRawWithAuth(url.toString(), { method: 'GET' })
+    );
     if (res.status === 404) return [];
     if (!res.ok) {
       const txt = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
@@ -45,20 +47,13 @@ export async function createHoliday(payload: {
 }): Promise<Holiday> {
   const url = `${API_BASE_URL}/holidays`;
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    // include Authorization header if an auth token is present in localStorage
-    try {
-      const token = (typeof window !== 'undefined' && localStorage.getItem('authToken')) || null;
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-    } catch (e) {
-      // ignore localStorage errors
-    }
-    const res = await fetch(url, {
-      method: 'POST',
-      credentials: 'include',
-      headers,
-      body: JSON.stringify(payload),
-    });
+    const res = await import('./fetchClient').then(({ fetchRawWithAuth }) =>
+      fetchRawWithAuth(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+    );
     if (!res.ok) {
       const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
       throw new Error(String(body));
@@ -79,17 +74,13 @@ export async function updateHoliday(holidayId: number, payload: Partial<{
 }>): Promise<Holiday> {
   const url = `${API_BASE_URL}/holidays/${holidayId}`;
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    try {
-      const token = (typeof window !== 'undefined' && localStorage.getItem('authToken')) || null;
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-    } catch (e) {}
-    const res = await fetch(url, {
-      method: 'PUT',
-      credentials: 'include',
-      headers,
-      body: JSON.stringify(payload),
-    });
+    const res = await import('./fetchClient').then(({ fetchRawWithAuth }) =>
+      fetchRawWithAuth(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+    );
     if (!res.ok) {
       const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
       throw new Error(String(body));
@@ -108,12 +99,9 @@ export async function deleteHoliday(holidayId: number): Promise<boolean> {
   try {
     for (const url of tryUrls) {
       try {
-        const headers: Record<string, string> = {};
-        try {
-          const token = (typeof window !== 'undefined' && localStorage.getItem('authToken')) || null;
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-        } catch (e) {}
-        const res = await fetch(url, { method: 'DELETE', credentials: 'include', headers });
+        const res = await import('./fetchClient').then(({ fetchRawWithAuth }) =>
+          fetchRawWithAuth(url, { method: 'DELETE' })
+        );
         if (res.ok || res.status === 204) return true;
         if (res.status === 404) continue; // try next url
         // other non-ok statuses -> throw

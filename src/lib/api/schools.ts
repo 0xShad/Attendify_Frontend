@@ -90,10 +90,7 @@ export async function listSchools(
   const hasAnyParam = Object.keys(params).some((k) => (params as any)[k] !== undefined);
   let response: Response;
   if (!hasAnyParam) {
-    response = await fetch(SCHOOLS_ENDPOINTS.LIST, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    response = await import('./fetchClient').then(m => m.fetchRawWithAuth(SCHOOLS_ENDPOINTS.LIST, { method: 'GET' }));
   } else {
     const { 
       skip = 0, 
@@ -123,12 +120,7 @@ export async function listSchools(
     if (min_faculty !== undefined) url.searchParams.append('min_faculty', min_faculty.toString());
     if (max_faculty !== undefined) url.searchParams.append('max_faculty', max_faculty.toString());
 
-    response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    response = await import('./fetchClient').then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
   }
 
   if (!response.ok) {
@@ -146,12 +138,7 @@ export async function listSchools(
  * Get a single school by ID
  */
 export async function getSchool(id: number): Promise<School> {
-  const response = await fetch(SCHOOLS_ENDPOINTS.DETAIL(id), {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(SCHOOLS_ENDPOINTS.DETAIL(id), { method: 'GET' }));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -167,13 +154,7 @@ export async function getSchool(id: number): Promise<School> {
  * Backend returns: (school_data, None) on success or (None, "error message") on failure
  */
 export async function createSchool(data: SchoolCreate): Promise<School> {
-  const response = await fetch(SCHOOLS_ENDPOINTS.CREATE, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(SCHOOLS_ENDPOINTS.CREATE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -192,13 +173,7 @@ export async function updateSchool(
   id: number,
   data: SchoolUpdate
 ): Promise<School> {
-  const response = await fetch(SCHOOLS_ENDPOINTS.UPDATE(id), {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(SCHOOLS_ENDPOINTS.UPDATE(id), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -213,12 +188,7 @@ export async function updateSchool(
  * Delete a school
  */
 export async function deleteSchool(id: number): Promise<void> {
-  const response = await fetch(SCHOOLS_ENDPOINTS.DELETE(id), {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(SCHOOLS_ENDPOINTS.DELETE(id), { method: 'DELETE', headers: { 'Content-Type': 'application/json' } }));
 
   if (!response.ok) {
     // Try to parse error detail from response

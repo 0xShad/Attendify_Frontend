@@ -53,7 +53,7 @@ export async function listCourses(params: ListCoursesParams = {}): Promise<any[]
   if (program_id !== undefined && program_id !== null) url.searchParams.append('program_id', String(program_id));
   if (params.organization_id !== undefined && params.organization_id !== null) url.searchParams.append('organization_id', String(params.organization_id));
 
-  const response = await fetch(url.toString(), { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.detail || response.statusText);
@@ -74,7 +74,7 @@ export async function searchCourses(params: SearchCoursesParams = {}): Promise<a
   url.searchParams.append('limit', String(limit));
   if (query && String(query).trim()) url.searchParams.append('query', String(query).trim());
 
-  const response = await fetch(url.toString(), { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.detail || response.statusText);
@@ -83,7 +83,7 @@ export async function searchCourses(params: SearchCoursesParams = {}): Promise<a
 }
 
 export async function getCourse(id: number): Promise<any> {
-  const response = await fetch(COURSES_ENDPOINTS.DETAIL(String(id)), { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(COURSES_ENDPOINTS.DETAIL(String(id)), { method: 'GET' }));
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.detail || response.statusText);
@@ -100,7 +100,7 @@ export async function getCourseOptions(params: { program_id?: number; organizati
   if (params.program_id !== undefined && params.program_id !== null) url.searchParams.append('program_id', String(params.program_id));
   if (params.organization_id !== undefined && params.organization_id !== null) url.searchParams.append('organization_id', String(params.organization_id));
 
-  const response = await fetch(url.toString(), { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.detail || response.statusText);
@@ -109,7 +109,7 @@ export async function getCourseOptions(params: { program_id?: number; organizati
 }
 
 export async function createCourse(payload: CreateCoursePayload): Promise<any> {
-  const response = await fetch(COURSES_ENDPOINTS.CREATE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(COURSES_ENDPOINTS.CREATE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }));
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.detail || err.message || response.statusText);
@@ -119,7 +119,7 @@ export async function createCourse(payload: CreateCoursePayload): Promise<any> {
 
 export async function updateCourse(id: number, payload: Partial<CreateCoursePayload>): Promise<any> {
   // Use PATCH for partial updates; some backends reject PUT for partial updates.
-  const response = await fetch(COURSES_ENDPOINTS.UPDATE(String(id)), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(COURSES_ENDPOINTS.UPDATE(String(id)), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }));
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.detail || err.message || response.statusText);
@@ -128,7 +128,7 @@ export async function updateCourse(id: number, payload: Partial<CreateCoursePayl
 }
 
 export async function deleteCourse(id: number): Promise<void> {
-  const response = await fetch(COURSES_ENDPOINTS.DELETE(String(id)), { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(COURSES_ENDPOINTS.DELETE(String(id)), { method: 'DELETE', headers: { 'Content-Type': 'application/json' } }));
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.detail || response.statusText);
