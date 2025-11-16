@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Progress } from "@/components/ui/progress";
+// Progress not used in this component
 import {
   MoreVertical,
   Eye,
@@ -23,21 +23,7 @@ import {
   Clock,
 } from "lucide-react";
 import { IconChalkboard, IconPlus } from "@tabler/icons-react";
-import ClassCard from "./ClassCard";
-
-export interface ClassItem {
-  id: string;
-  name: string;
-  code: string;
-  schedule: string;
-  mode: "Online" | "In-Person" | "Hybrid";
-  enrolledStudents: number;
-  totalSessions: number;
-  completedSessions: number;
-  attendanceRate: number;
-  status: "Active" | "Inactive" | "Scheduled";
-  location?: string;
-}
+import ClassCard, { ClassItem } from "./ClassCard";
 
 interface Props {
   classes: ClassItem[];

@@ -9,6 +9,7 @@ import {
   DrawerFooter,
   DrawerClose,
 } from "@/components/ui/drawer";
+import type { ClassItem as CardClassItem } from "./ClassCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,25 +20,10 @@ import { MoreVertical, Eye, Send, Trash2 } from "lucide-react";
 
 type ClassMode = "Online" | "In-Person" | "Hybrid";
 
-export interface ClassType {
-  id: string;
-  name: string;
-  code: string;
-  schedule: string;
-  mode: ClassMode;
-  enrolledStudents: number;
-  totalSessions: number;
-  completedSessions: number;
-  attendanceRate: number;
-  status: "Active" | "Inactive" | "Scheduled";
-  location?: string;
-  description?: string;
-}
-
 interface ViewClassDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedClass: ClassType | null;
+  selectedClass: CardClassItem | null;
   onOpenEnroll?: () => void;
   onViewStudent?: (student: { id: string; name: string; email: string }) => void;
 }
@@ -53,7 +39,7 @@ const ViewClassDrawer: React.FC<ViewClassDrawerProps> = ({
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[90vh]">
         <DrawerHeader>
-          <DrawerTitle>{selectedClass?.name || "Class Details"}</DrawerTitle>
+          <DrawerTitle>{selectedClass ? (selectedClass.class_code ?? selectedClass.course_name ?? `Class ${selectedClass.id}`) : "Class Details"}</DrawerTitle>
         </DrawerHeader>
 
         <div className="px-4 pb-4 space-y-6 overflow-y-auto">
@@ -65,23 +51,29 @@ const ViewClassDrawer: React.FC<ViewClassDrawerProps> = ({
                 <div className="grid grid-cols-1 gap-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Class Code:</span>
-                    <span className="font-medium">{selectedClass.code}</span>
+                    <span className="font-medium">{selectedClass?.class_code ?? '-'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Schedule:</span>
-                    <span className="font-medium">{selectedClass.schedule}</span>
+                    <span className="font-medium">
+                      {selectedClass?.schedules && selectedClass.schedules.length > 0
+                        ? (selectedClass.schedules[0].type === 'normal'
+                            ? `${selectedClass.schedules[0].day_of_week ?? ''} ${selectedClass.schedules[0].start_time?.slice(0,5) || ''}-${selectedClass.schedules[0].end_time?.slice(0,5) || ''}`
+                            : `${selectedClass.schedules[0].date ?? ''} ${selectedClass.schedules[0].start_time?.slice(0,5) || ''}-${selectedClass.schedules[0].end_time?.slice(0,5) || ''}`)
+                        : (selectedClass?.room ?? 'Not specified')}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Mode:</span>
-                    <Badge variant="outline">{selectedClass.mode}</Badge>
+                    <Badge variant="outline">{selectedClass && (selectedClass.schedules && selectedClass.schedules.some(s => (s.modes ?? []).includes('online')) ? 'Online' : 'In-Person')}</Badge>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Location:</span>
-                    <span className="font-medium">{selectedClass.location || "Not specified"}</span>
+                    <span className="font-medium">{selectedClass?.room || "Not specified"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status:</span>
-                    <Badge variant={selectedClass.status === "Active" ? "default" : "secondary"}>{selectedClass.status}</Badge>
+                    <Badge variant={selectedClass?.status === "Active" ? "default" : "secondary"}>{selectedClass?.status ?? 'Active'}</Badge>
                   </div>
                 </div>
               </div>
@@ -154,22 +146,26 @@ const ViewClassDrawer: React.FC<ViewClassDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Recent Sessions */}
+              {/* Recent Sessions (show up to 3 schedules if available) */}
               <div className="space-y-4">
                 <h3 className="font-medium text-sm text-muted-foreground">Recent Sessions</h3>
                 <div className="space-y-3">
-                  {Array.from({ length: 3 }, (_, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-green-500" />
-                        <div>
-                          <div className="text-sm font-medium">Session {selectedClass.completedSessions - i}</div>
-                          <div className="text-xs text-muted-foreground">{new Date(Date.now() - i * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
+                  {(selectedClass?.schedules && selectedClass.schedules.length > 0) ? (
+                    selectedClass.schedules.slice(0, 3).map((s) => (
+                      <div key={s.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                          <div>
+                            <div className="text-sm font-medium">{s.type === 'normal' ? `${s.day_of_week ?? ''}` : `${s.date ?? ''}`}</div>
+                            <div className="text-xs text-muted-foreground">{formatTimeRange(s.start_time, s.end_time)}</div>
+                          </div>
                         </div>
+                        <div className="text-sm font-medium">{Math.floor(Math.random() * 10) + 85}% attended</div>
                       </div>
-                      <div className="text-sm font-medium">{Math.floor(Math.random() * 10) + 85}% attended</div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <div className="text-sm text-muted-foreground">No recent sessions available</div>
+                  )}
                 </div>
               </div>
             </>

@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
+import type { ClassItem as CardClassItem } from "./ClassCard";
 
 type ClassMode = "Online" | "In-Person" | "Hybrid";
 
@@ -35,8 +36,8 @@ export interface ClassType {
 interface EditClassDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedClass: ClassType | null;
-  onSave?: (updated: ClassType) => void;
+  selectedClass: CardClassItem | null;
+  onSave?: (updated: any) => void;
 }
 
 const EditClassDrawer: React.FC<EditClassDrawerProps> = ({ open, onOpenChange, selectedClass, onSave }) => {
@@ -49,24 +50,29 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({ open, onOpenChange, s
 
   useEffect(() => {
     if (selectedClass) {
-      setName(selectedClass.name || "");
-      setCode(selectedClass.code || "");
-      setSchedule(selectedClass.schedule || "");
-      setMode(selectedClass.mode || "In-Person");
-      setLocation(selectedClass.location || "");
+      setName(selectedClass.course_name ?? selectedClass.class_code ?? "");
+      setCode(selectedClass.class_code ?? "");
+      // derive a simple schedule string from the first schedule or room
+      if (selectedClass.schedules && selectedClass.schedules.length > 0) {
+        const s = selectedClass.schedules[0];
+        setSchedule(s.type === 'normal' ? `${s.day_of_week ?? ''} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}` : `${s.date ?? ''} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`);
+      } else {
+        setSchedule(selectedClass.room ?? "");
+      }
+      setMode((selectedClass.schedules && selectedClass.schedules.some(s => (s.modes ?? []).includes('online'))) ? 'Online' : 'In-Person');
+      setLocation(selectedClass.room || "");
       setStatus((selectedClass.status as any) || "Active");
     }
   }, [selectedClass]);
 
   const handleSave = () => {
     if (!selectedClass) return;
-    const updated: ClassType = {
-      ...selectedClass,
-      name,
-      code,
-      schedule,
-      mode,
-      location,
+    const updated: any = {
+      id: selectedClass.id,
+      course_name: name,
+      class_code: code,
+      // we don't mutate schedules here; store schedule string in description as fallback
+      room: location,
       status: status === "Completed" ? ("Inactive" as const) : (status as any),
     };
     onSave?.(updated);

@@ -5,7 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { classesAPI } from "@/lib/api/classes";
 import { coursesAPI } from "@/lib/api/courses";
 import { useAuthContext } from "@/contexts/AuthContext";
-import MyClasses, { ClassItem } from "./MyClasses";
+import MyClasses from "./MyClasses";
+import type { ClassItem } from "./ClassCard";
 import CreateClassDrawer from "./CreateClassDrawer";
 import ViewClassDrawer from "./ViewClassDrawer";
 import EditClassDrawer from "./EditClassDrawer";
@@ -61,16 +62,24 @@ export default function ClassesManagement() {
         const normalized: ClassItem[] = Array.isArray(data)
           ? data.map((d: any) => ({
               id: String(d.id),
-              name: d.course_name ?? d.class_code ?? `Class ${d.id}`,
-              code: d.class_code ?? "",
-              schedule: Array.isArray(d.schedules) ? d.schedules.map((s: any) => s.type === 'normal' ? `${s.day_of_week} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}` : (s.type === 'special' ? `${s.date} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}` : '')).filter(Boolean).join(", ") : (d.room ?? ""),
-              mode: "In-Person",
+              course_id: d.course_id ?? undefined,
+              class_code: d.class_code ?? null,
+              course_code: d.course_code ?? null,
+              course_name: d.course_name ?? null,
+              program_id: d.program_id ?? null,
+              program_name: d.program_name ?? null,
+              organization_id: d.organization_id ?? null,
+              organization_name: d.organization_name ?? null,
+              description: d.description ?? null,
+              room: d.room ?? null,
+              assigned_faculty_id: d.assigned_faculty_id ?? null,
+              assigned_faculty_name: d.assigned_faculty_name ?? null,
+              academic_year: d.academic_year ?? null,
+              semester: d.semester ?? null,
+              schedules: Array.isArray(d.schedules) ? d.schedules : [],
               enrolledStudents: d.enrolled_students ?? d.students_count ?? 0,
-              totalSessions: d.total_sessions ?? 0,
-              completedSessions: d.completed_sessions ?? 0,
               attendanceRate: typeof d.attendance_rate === 'number' ? d.attendance_rate : (d.attendance_rate ? Number(d.attendance_rate) : 0),
-              status: "Active",
-              location: d.room ?? d.location ?? undefined,
+              status: d.status ?? 'Active',
             }))
           : [];
         setClasses(normalized);
@@ -156,16 +165,24 @@ export default function ClassesManagement() {
       const normalized: ClassItem[] = Array.isArray(data)
         ? data.map((d: any) => ({
             id: String(d.id),
-            name: d.course_name ?? d.class_code ?? `Class ${d.id}`,
-            code: d.class_code ?? "",
-            schedule: Array.isArray(d.schedules) ? d.schedules.map((s: any) => s.type === 'normal' ? `${s.day_of_week} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}` : (s.type === 'special' ? `${s.date} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}` : '')).filter(Boolean).join(", ") : (d.room ?? ""),
-            mode: "In-Person",
+            course_id: d.course_id ?? undefined,
+            class_code: d.class_code ?? null,
+            course_code: d.course_code ?? null,
+            course_name: d.course_name ?? null,
+            program_id: d.program_id ?? null,
+            program_name: d.program_name ?? null,
+            organization_id: d.organization_id ?? null,
+            organization_name: d.organization_name ?? null,
+            description: d.description ?? null,
+            room: d.room ?? null,
+            assigned_faculty_id: d.assigned_faculty_id ?? null,
+            assigned_faculty_name: d.assigned_faculty_name ?? null,
+            academic_year: d.academic_year ?? null,
+            semester: d.semester ?? null,
+            schedules: Array.isArray(d.schedules) ? d.schedules : [],
             enrolledStudents: d.enrolled_students ?? d.students_count ?? 0,
-            totalSessions: d.total_sessions ?? 0,
-            completedSessions: d.completed_sessions ?? 0,
             attendanceRate: typeof d.attendance_rate === 'number' ? d.attendance_rate : (d.attendance_rate ? Number(d.attendance_rate) : 0),
-            status: "Active",
-            location: d.room ?? d.location ?? undefined,
+            status: d.status ?? 'Active',
           }))
         : [];
       setClasses(normalized);
@@ -218,19 +235,27 @@ export default function ClassesManagement() {
         ? `${created.class_code}${created.course_name ? ` — ${created.course_name}` : ''}`
         : (created?.course_name ?? created?.name ?? `Class ${created?.id ?? ''}`);
       toast({ title: "Class created", description: `Created class ${displayName ? `"${displayName}"` : ''}` });
-      // prepend to list
+      // prepend to list using the new ClassItem shape
       setClasses((prev) => [{
         id: String(created.id),
-        name: created.course_name ?? created.class_code ?? `Class ${created.id}`,
-        code: created.class_code ?? "",
-        schedule: created.room ?? "",
-        mode: "In-Person",
+        course_id: created.course_id ?? undefined,
+        class_code: created.class_code ?? null,
+        course_code: created.course_code ?? null,
+        course_name: created.course_name ?? null,
+        program_id: created.program_id ?? null,
+        program_name: created.program_name ?? null,
+        organization_id: created.organization_id ?? null,
+        organization_name: created.organization_name ?? null,
+        description: created.description ?? null,
+        room: created.room ?? null,
+        assigned_faculty_id: created.assigned_faculty_id ?? null,
+        assigned_faculty_name: created.assigned_faculty_name ?? null,
+        academic_year: created.academic_year ?? null,
+        semester: created.semester ?? null,
+        schedules: [],
         enrolledStudents: created.enrolled_students ?? created.students_count ?? 0,
-        totalSessions: created.total_sessions ?? 0,
-        completedSessions: created.completed_sessions ?? 0,
         attendanceRate: typeof created.attendance_rate === 'number' ? created.attendance_rate : (created.attendance_rate ? Number(created.attendance_rate) : 0),
-        status: "Active",
-        location: created.room ?? created.location ?? undefined,
+        status: created.status ?? 'Active',
       }, ...prev]);
       setAddClassOpen(false);
       // reset form
