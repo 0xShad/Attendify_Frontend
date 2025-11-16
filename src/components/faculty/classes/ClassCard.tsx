@@ -1,4 +1,4 @@
-"use client";
+    "use client";
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,8 +52,8 @@ export interface ClassItem {
   academic_year?: string | null;
   semester?: string | null;
   schedules?: ScheduleOut[];
-  enrolledStudents?: number;
-  attendanceRate?: number;
+  student_count?: number;
+  attendance_rate?: number;
   status?: "Active" | "Inactive" | "Scheduled";
 }
 
@@ -136,10 +136,6 @@ export default function ClassCard({
             <Clock className="w-4 h-4 text-muted-foreground" />
             <span className="truncate">{classItem.room ?? 'No room specified'}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-muted-foreground" />
-            <span>{classItem.enrolledStudents ?? 0} students</span>
-          </div>
           {classItem.schedules && classItem.schedules.length > 0 && (
             <div className="flex items-center gap-2 col-span-2">
               <IconChalkboard className="w-4 h-4 text-muted-foreground" />
@@ -155,9 +151,11 @@ export default function ClassCard({
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-sm text-muted-foreground">{classItem.assigned_faculty_name ?? ''}</span>
-            <span className="font-medium">Attendance: {classItem.attendanceRate ?? 0}%</span>
+          <div className="flex items-center justify-end text-sm">
+            <div className="text-right">
+              <div className="text-sm font-medium">{classItem.student_count ?? 0} students</div>
+              <div className="text-sm">Attendance: {classItem.attendance_rate ?? 0}%</div>
+            </div>
           </div>
 
           <div className="flex gap-2 mt-4">
