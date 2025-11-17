@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { IconFilter } from "@tabler/icons-react";
 import { programsAPI } from "@/lib/api/programs";
 import { coursesAPI } from "@/lib/api/courses";
@@ -29,10 +29,16 @@ export function ClassesFilters({ open, onOpenChange, filters, onFiltersChange, o
   const [localFilters, setLocalFilters] = useState<ClassesFilterValues | any>(() => ({ ...filters }));
   const [yearOptions, setYearOptions] = useState<string[]>([]);
   const [semesterOptions, setSemesterOptions] = useState<string[]>([]);
+  // refs to hold the latest program/course selection synchronously
+  const programRef = useRef<string | undefined>(filters?.program);
+  const courseRef = useRef<string | undefined>((filters as any)?.course_option);
 
   useEffect(() => {
     if (!open) return;
     setLocalFilters({ ...filters });
+    // sync refs to incoming filters when the drawer opens
+    programRef.current = filters?.program;
+    courseRef.current = (filters as any)?.course_option;
     let mounted = true;
 
     programsAPI
@@ -114,8 +120,8 @@ export function ClassesFilters({ open, onOpenChange, filters, onFiltersChange, o
     }
 
     if (allowedProgramIds.length === 0) {
-      // no selected program and user has no programs — show no courses
-      setCourseOptions([]);
+      // no specific program selected — show all courses
+      setCourseOptions(fullCourseOptions);
       return;
     }
 
@@ -137,7 +143,16 @@ export function ClassesFilters({ open, onOpenChange, filters, onFiltersChange, o
 
           <div className="space-y-2">
             <Label className="text-sm font-medium">Program</Label>
-            <Select value={localFilters.program ?? "all"} onValueChange={(v) => setLocalFilters((prev: any) => ({ ...prev, program: v === "all" ? undefined : v }))}>
+            <Select value={localFilters.program ?? "all"} onValueChange={(v) => {
+                // update both state and ref so Apply reads the latest selection immediately
+                const nextProg = v === "all" ? undefined : v;
+                programRef.current = nextProg as any;
+                setLocalFilters((prev: any) => ({ ...prev, program: nextProg }));
+                if (v === "all") {
+                  // restore full course options when program is set to All
+                  setCourseOptions(fullCourseOptions);
+                }
+              }}>
               <SelectTrigger>
                 <SelectValue placeholder="All Programs" />
               </SelectTrigger>
@@ -154,8 +169,13 @@ export function ClassesFilters({ open, onOpenChange, filters, onFiltersChange, o
             <Label className="text-sm font-medium">Course (code or name)</Label>
             <Select value={(localFilters as any).course_option ?? "all"} onValueChange={(v) => {
               if (v === "all") {
+                // clear course filter and restore full course list immediately
+                courseRef.current = undefined;
                 setLocalFilters((prev: any) => ({ ...prev, course_option: undefined, query: undefined }));
+                setCourseOptions(fullCourseOptions);
               } else {
+                // store selection in ref for immediate reads from Apply
+                courseRef.current = String(v);
                 const found = courseOptions.find((c) => String(c.id) === String(v));
                 setLocalFilters((prev: any) => ({ ...prev, course_option: String(v), query: found?.code ?? found?.name ?? undefined }));
               }
@@ -212,7 +232,17 @@ export function ClassesFilters({ open, onOpenChange, filters, onFiltersChange, o
           <div className="flex gap-3 max-w-md mx-auto w-full md:max-w-2xl">
             <Button variant="outline" className="flex-1" onClick={() => { setLocalFilters({}); onClearFilters(); }}>Clear Filters</Button>
             <DrawerClose asChild>
-              <Button className="flex-1" onClick={() => { const payload = { ...localFilters }; onFiltersChange(payload); onApplyFilters(payload); }}>Apply Filters</Button>
+              <Button className="flex-1" onClick={() => {
+                // Build payload from localFilters but prefer the latest ref values
+                const payload = { ...localFilters } as any;
+                // Ensure program and course_option reflect latest user selection immediately
+                if (programRef.current !== undefined) payload.program = programRef.current;
+                else delete payload.program;
+                if (courseRef.current !== undefined) payload.course_option = courseRef.current;
+                else delete payload.course_option;
+                onFiltersChange(payload);
+                onApplyFilters(payload);
+              }}>Apply Filters</Button>
             </DrawerClose>
           </div>
         </DrawerFooter>
