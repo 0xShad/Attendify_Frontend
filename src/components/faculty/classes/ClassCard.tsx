@@ -112,7 +112,7 @@ export default function ClassCard({
               </div>
             </div>
             {/* Primary action placed bottom-left for easy access */}
-            <div className="mt-3 sm:mt-0">
+            <div className="mt-auto mb-3">
               <Button size="sm" className="w-full sm:w-auto flex items-center justify-center" onClick={() => onStartSession(classItem.id)}>
                 <Play className="w-4 h-4" />
                 <span className="hidden sm:inline ml-2">Start Session</span>
@@ -171,20 +171,9 @@ export default function ClassCard({
               <div className="text-xs text-muted-foreground">attendance</div>
             </div>
 
-            <div className="w-full">
-              <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={() => onView(classItem)} className="flex-1 flex items-center justify-center">
-                  <Eye className="w-4 h-4" />
-                  <span className="hidden sm:inline ml-2">View</span>
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => onEdit(classItem)} className="flex-1 flex items-center justify-center">
-                  <Edit className="w-4 h-4" />
-                  <span className="hidden sm:inline ml-2">Edit</span>
-                </Button>
-              </div>
-            </div>
+            {/* inline Edit removed — action available in dropdown */}
 
-            <div className="mt-2">
+            <div className="mt-8">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm">
@@ -192,13 +181,17 @@ export default function ClassCard({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onView(classItem)}>
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onEdit(classItem)}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Class
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onEnroll(classItem)}>
                     <UserPlus className="w-4 h-4 mr-2" />
                     Enroll Student
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onStartSession(classItem.id)}>
-                    <Play className="w-4 h-4 mr-2" />
-                    Start Session
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-red-600" onClick={() => onDelete && onDelete(classItem)}>

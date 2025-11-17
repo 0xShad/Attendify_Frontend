@@ -124,6 +124,29 @@ export async function getClass(id: number): Promise<any> {
   return res.json();
 }
 
+/**
+ * Fetch a single class belonging to the currently authenticated faculty user.
+ * Calls the same-origin proxy at `/api/classes/mine/{id}` so HTTP-only cookies
+ * and Authorization headers are forwarded by the Next.js server.
+ */
+export async function getMyClass(id: number): Promise<any> {
+  const url = `/api/classes/mine/${id}`;
+  try {
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'GET' }));
+    if (res.status === 404) {
+      const body = await res.text().catch(() => 'Not found');
+      throw new Error(`NotFound: ${body}`);
+    }
+    if (!res.ok) {
+      const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(body));
+    }
+    return res.json();
+  } catch (err: any) {
+    throw err;
+  }
+}
+
 export async function createClass(payload: Record<string, any>): Promise<any> {
   const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(CLASSES_ENDPOINTS.LIST, {
     method: 'POST',
@@ -371,6 +394,7 @@ export const classesAPI = {
   listClassesForFaculty,
   listMyClasses,
   getClass,
+  getMyClass,
   createClass,
   createMyClass,
   updateClass,
