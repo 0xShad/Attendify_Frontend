@@ -256,6 +256,42 @@ export async function updateClass(id: number, payload: Record<string, any>): Pro
   return res.json();
 }
 
+/**
+ * Update a class for the currently authenticated faculty via same-origin proxy.
+ * Calls PATCH /api/classes/mine/{id} and returns the updated Class object.
+ */
+export async function updateMyClass(id: number, payload: Record<string, any>): Promise<any> {
+  const url = `/api/classes/mine/${id}`;
+  try {
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }));
+
+    if (res.status === 400) {
+      const body = await res.json().catch(() => null);
+      let msg = 'Bad Request';
+      if (body) {
+        const candidate = body.detail ?? body.message ?? body;
+        msg = typeof candidate === 'string' ? candidate : JSON.stringify(candidate);
+      }
+      throw new Error(msg);
+    }
+    if (res.status === 401) throw new Error('Unauthorized');
+    if (res.status === 403) throw new Error('Forbidden');
+    if (res.status === 404) throw new Error('Not Found');
+    if (!res.ok) {
+      const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(body));
+    }
+
+    return res.json();
+  } catch (err: any) {
+    throw err;
+  }
+}
+
 export async function deleteClass(id: number): Promise<any> {
   const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(CLASSES_ENDPOINTS.DETAIL(String(id)), {
     method: 'DELETE',
@@ -303,6 +339,40 @@ export async function listEnrolleesForClass(classId: number): Promise<any[]> {
       });
     }
     return data as any[];
+  } catch (err: any) {
+    throw err;
+  }
+}
+
+/**
+ * Fetch enrollees for a class scoped to the currently authenticated faculty user.
+ * Calls same-origin proxy: GET /api/classes/mine/{class_id}/enrollees
+ */
+export async function getMyClassEnrollees(classId: number): Promise<any[]> {
+  const url = `/api/classes/mine/${classId}/enrollees`;
+  try {
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'GET' }));
+    if (res.status === 404) {
+      const body = await res.text().catch(() => 'Not Found');
+      throw new Error(String(body));
+    }
+    if (!res.ok) {
+      const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(body));
+    }
+    const data = await res.json();
+    // Normalize to frontend-friendly enrollee shape
+    if (Array.isArray(data)) {
+      return data.map((item: any) => ({
+        id: typeof item?.id === 'number' ? item.id : (item?.id ? Number(item.id) : null),
+        profile_id: item?.profile_id !== undefined && item?.profile_id !== null ? Number(item.profile_id) : null,
+        user_id: item?.user_id !== undefined && item?.user_id !== null ? Number(item.user_id) : null,
+        full_name: item?.full_name ?? item?.name ?? item?.profile?.full_name ?? null,
+        avatar_url: item?.avatar_url ?? item?.avatar ?? item?.profile?.avatar_url ?? null,
+        enrollment_date: item?.enrollment_date ?? item?.enrolled_at ?? null,
+      }));
+    }
+    return Array.isArray(data) ? data : [];
   } catch (err: any) {
     throw err;
   }
@@ -398,9 +468,11 @@ export const classesAPI = {
   createClass,
   createMyClass,
   updateClass,
+  updateMyClass,
   deleteClass,
   listEnrolleesForClass,
   listAvailableStudentsForClass,
   addEnrolleeToClass,
   deleteEnrolleeFromClass,
+  getMyClassEnrollees,
 };

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { IconLoader2, IconDeviceFloppy } from "@tabler/icons-react";
 import { useToast } from "@/hooks/use-toast";
 import { classesAPI } from "@/lib/api/classes";
@@ -64,6 +65,8 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
   const [initialLoading, setInitialLoading] = useState(false);
   const [localCourses, setLocalCourses] = useState<typeof courses>(() => (courses ?? []) as any);
   const [localCoursesLoading, setLocalCoursesLoading] = useState(false);
+  const [enrollees, setEnrollees] = useState<Array<any>>([]);
+  const [enrolleesLoading, setEnrolleesLoading] = useState(false);
 
   // Use provided courses prop if available; otherwise use localCourses fetched here
   const effectiveCourses = (Array.isArray(courses) && courses.length > 0) ? courses : localCourses;
@@ -179,6 +182,27 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
     };
   }, [selectedClass]);
 
+  // Fetch enrollees for secretary selection when class selected
+  useEffect(() => {
+    if (!selectedClass) return;
+    let mounted = true;
+    setEnrolleesLoading(true);
+    (async () => {
+      try {
+        const list = await classesAPI.getMyClassEnrollees(Number(selectedClass.id)).catch(() => []);
+        if (!mounted) return;
+        setEnrollees(Array.isArray(list) ? list : []);
+      } catch (err: any) {
+        console.error('Failed to load enrollees', err);
+        toast({ title: 'Failed to load students', description: String(err?.message ?? err) });
+        if (mounted) setEnrollees([]);
+      } finally {
+        if (mounted) setEnrolleesLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [selectedClass]);
+
   const handleSave = async () => {
     if (!selectedClass) return;
     setSaving(true);
@@ -205,7 +229,7 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
         delete payload.course_id;
       }
 
-      const updated = await classesAPI.updateClass(Number(selectedClass.id), payload as any);
+      const updated = await classesAPI.updateMyClass(Number(selectedClass.id), payload as any);
       toast({ title: "Class updated", description: `Updated class ${updated?.class_code ?? updated?.course_name ?? selectedClass.id}` });
       onSave?.(updated);
       onOpenChange(false);
@@ -318,9 +342,9 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
                 </div>
               </div>
             ) : null}
-            <div className="mt-2 text-sm text-muted-foreground">
-              {coursesLoading ? <span>Loading course options…</span> : null}
-            </div>
+              <div className="mt-2 text-sm text-muted-foreground">
+                {coursesLoading || localCoursesLoading ? <span>Loading course options…</span> : null}
+              </div>
           </div>
 
           <div>
@@ -343,11 +367,41 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
             <Textarea id="class-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
           </div>
 
-          {/* status field removed */}
-
+          {/* Secretary selection: show enrollees similar to EnrollStudentDrawer */}
           <div>
-            <Label htmlFor="class-secretary">Assigned Secretary (profile id)</Label>
-            <Input id="class-secretary" value={assignedSecretary} onChange={(e) => setAssignedSecretary(e.target.value)} placeholder="e.g., 123" />
+            <Label>Assign Secretary</Label>
+            <div className="max-h-44 overflow-y-auto border rounded-lg p-2 space-y-2 mt-2">
+              {enrolleesLoading ? (
+                <div className="text-sm text-muted-foreground">Loading students…</div>
+              ) : enrollees && enrollees.length > 0 ? (
+                enrollees.map((s: any) => (
+                  <div key={String(s.profile_id ?? s.id)} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-8 h-8">
+                        <AvatarFallback className="text-xs">{(s.full_name || '').charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium text-sm">{s.full_name ?? `Profile ${s.profile_id ?? s.id}`}</div>
+                        <div className="text-xs text-muted-foreground">{s.enrollment_date ?? ''}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {String(assignedSecretary) === String(s.profile_id) ? (
+                        <span className="text-sm text-green-600">Selected</span>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => setAssignedSecretary(String(s.profile_id))}>
+                          Select
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground">No enrolled students available</div>
+              )}
+            </div>
+
+            {/* manual entry removed; select from enrolled students only */}
           </div>
         </div>
 
