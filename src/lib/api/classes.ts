@@ -260,8 +260,12 @@ export async function updateClass(id: number, payload: Record<string, any>): Pro
  * Update a class for the currently authenticated faculty via same-origin proxy.
  * Calls PATCH /api/classes/mine/{id} and returns the updated Class object.
  */
-export async function updateMyClass(id: number, payload: Record<string, any>): Promise<any> {
-  const url = `/api/classes/mine/${id}`;
+export async function updateMyClass(id: number, payload: Record<string, any>, opts?: { generate_class_code?: boolean }): Promise<any> {
+  let url = `/api/classes/mine/${id}`;
+  if (opts?.generate_class_code) {
+    // append query param
+    url += `?generate_class_code=true`;
+  }
   try {
     const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, {
       method: 'PATCH',

@@ -60,6 +60,8 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
   const [description, setDescription] = useState<string>("");
   
   const [assignedSecretary, setAssignedSecretary] = useState<string>("");
+  const [classCode, setClassCode] = useState<string | null>(null);
+  const [generateClassCode, setGenerateClassCode] = useState<boolean>(false);
 
   const [saving, setSaving] = useState(false);
   const [initialLoading, setInitialLoading] = useState(false);
@@ -122,8 +124,8 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
 
   useEffect(() => {
     if (!selectedClass) return;
-    // When the drawer opens we should prefer the authenticated "mine" endpoint
-    // because it returns enriched fields (assigned_secretary_name, students_count, attendance_rate, schedules)
+    // When the drawer opens we should prefill from the authenticated "mine" endpoint
+    // so do the fetch whenever the drawer becomes open for this selected class.
     let mounted = true;
     const doPrefill = async () => {
       setInitialLoading(true);
@@ -137,6 +139,7 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
         setAcademicYear(src.academic_year ?? "");
         setSemester(src.semester ?? "");
         setDescription(src.description ?? "");
+        setClassCode(src.class_code ?? null);
         // status field removed from edit form
         setAssignedSecretary(src.assigned_secretary ? String(src.assigned_secretary) : "");
 
@@ -165,6 +168,7 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
         setAcademicYear(selectedClass.academic_year ?? "");
         setSemester(selectedClass.semester ?? "");
         setDescription(selectedClass.description ?? "");
+        setClassCode((selectedClass as any).class_code ?? null);
         // status field removed from edit form
         setAssignedSecretary((selectedClass as any).assigned_secretary ? String((selectedClass as any).assigned_secretary) : "");
       } finally {
@@ -172,15 +176,15 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
       }
     };
 
-    // Only fetch when the drawer is open (to avoid extra network calls)
-    if ((selectedClass as any) && (selectedClass as any).id) {
+    // Only fetch when the drawer is open for this class
+    if (open && (selectedClass as any) && (selectedClass as any).id) {
       void doPrefill();
     }
 
     return () => {
       mounted = false;
     };
-  }, [selectedClass]);
+  }, [selectedClass, open]);
 
   // Fetch enrollees for secretary selection when class selected
   useEffect(() => {
@@ -229,9 +233,43 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
         delete payload.course_id;
       }
 
-      const updated = await classesAPI.updateMyClass(Number(selectedClass.id), payload as any);
-      toast({ title: "Class updated", description: `Updated class ${updated?.class_code ?? updated?.course_name ?? selectedClass.id}` });
-      onSave?.(updated);
+      const updatedRaw = await classesAPI.updateMyClass(Number(selectedClass.id), payload as any, { generate_class_code: generateClassCode });
+      // Normalize backend response to the frontend `ClassItem` shape so parent list updates correctly
+      const normalized = {
+        id: String(updatedRaw?.id ?? selectedClass.id),
+        course_id: updatedRaw?.course_id ?? undefined,
+        class_code: updatedRaw?.class_code ?? null,
+        course_code: updatedRaw?.course_code ?? null,
+        course_name: updatedRaw?.course_name ?? null,
+        program_id: updatedRaw?.program_id ?? null,
+        program_name: updatedRaw?.program_name ?? null,
+        organization_id: updatedRaw?.organization_id ?? null,
+        organization_name: updatedRaw?.organization_name ?? null,
+        description: updatedRaw?.description ?? null,
+        room: updatedRaw?.room ?? null,
+        assigned_faculty_id: updatedRaw?.assigned_faculty_id ?? null,
+        assigned_faculty_name: updatedRaw?.assigned_faculty_name ?? null,
+        academic_year: updatedRaw?.academic_year ?? null,
+        semester: updatedRaw?.semester ?? null,
+        schedules: Array.isArray(updatedRaw?.schedules) ? updatedRaw.schedules : [],
+        enrolledStudents: updatedRaw?.enrolled_students ?? updatedRaw?.students_count ?? 0,
+        attendanceRate: typeof updatedRaw?.attendance_rate === 'number' ? updatedRaw.attendance_rate : (updatedRaw?.attendance_rate ? Number(updatedRaw.attendance_rate) : 0),
+        status: updatedRaw?.status ?? 'Active',
+      } as any;
+
+      // If class_code changed, show a special message indicating previous -> current
+      const prevClassCode = classCode;
+      if (prevClassCode && normalized?.class_code && String(prevClassCode) !== String(normalized.class_code)) {
+        toast({ title: "Class code updated", description: `Class ${prevClassCode} → ${normalized.class_code} has been updated.` });
+      } else {
+        toast({ title: "Class updated", description: `Updated class ${normalized?.class_code ?? normalized?.course_name ?? selectedClass.id}` });
+      }
+      // refresh classCode if server generated one
+      setClassCode(normalized?.class_code ?? null);
+      // Clear transient checkboxes so ticks don't persist between edits
+      setGenerateClassCode(false);
+      setCreateNewCourse(false);
+      onSave?.(normalized);
       onOpenChange(false);
     } catch (err: any) {
       console.error(err);
@@ -249,6 +287,18 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
         </DrawerHeader>
 
         <div className="px-4 pb-4 space-y-4 overflow-y-auto">
+          <div>
+            <div>
+              <Label>Class Code</Label>
+              <div className="mt-1 flex items-center gap-3">
+                <Input readOnly value={classCode ?? "(none)"} className="w-48" />
+                <label className="inline-flex items-center gap-2">
+                  <input type="checkbox" className="checkbox" checked={generateClassCode} onChange={(e) => setGenerateClassCode(Boolean(e.target.checked))} />
+                  <span className="text-sm">Generate new class code</span>
+                </label>
+              </div>
+            </div>
+          </div>
           <div>
             <Label htmlFor="program-filter">Program</Label>
             <div className="mb-2">
