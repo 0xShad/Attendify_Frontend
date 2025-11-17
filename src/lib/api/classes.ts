@@ -1,6 +1,8 @@
 /**
  * Classes API client
  */
+import { fetchRawWithAuth } from './fetchClient';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
 
 const CLASSES_ENDPOINTS = {
@@ -142,6 +144,35 @@ export async function getMyClass(id: number): Promise<any> {
       throw new Error(String(body));
     }
     return res.json();
+  } catch (err: any) {
+    throw err;
+  }
+}
+
+/**
+ * Delete a class owned by the currently authenticated faculty via same-origin proxy.
+ * Calls DELETE /api/classes/mine/{id}
+ */
+export async function deleteMyClass(id: number | string): Promise<null> {
+  const safeId = typeof id === 'string' ? id : String(id);
+  const url = `/api/classes/mine/${encodeURIComponent(safeId)}`;
+  try {
+    const res = await fetchRawWithAuth(url, { method: 'DELETE' });
+    if (res.status === 404) {
+      const body = await res.text().catch(() => 'Not Found');
+      throw new Error(String(body));
+    }
+    if (res.status === 400) {
+      const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(body));
+    }
+    if (res.status === 401) throw new Error('Unauthorized');
+    if (res.status === 403) throw new Error('Forbidden');
+    if (!res.ok && res.status !== 204) {
+      const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(body));
+    }
+    return null;
   } catch (err: any) {
     throw err;
   }
@@ -474,6 +505,7 @@ export const classesAPI = {
   updateClass,
   updateMyClass,
   deleteClass,
+  deleteMyClass,
   listEnrolleesForClass,
   listAvailableStudentsForClass,
   addEnrolleeToClass,

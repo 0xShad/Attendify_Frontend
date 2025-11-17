@@ -26,6 +26,8 @@ export async function GET(request: Request, { params }: { params: { classId: str
     const accessToken = parseCookie(cookie, 'access_token');
     if (accessToken) forwardedHeaders['authorization'] = `Bearer ${accessToken}`;
   }
+  // Forward cookies so backend can authenticate via session cookie if needed
+  if (cookie) forwardedHeaders['cookie'] = cookie;
 
   try {
     const res = await fetch(target, { method: 'GET', headers: forwardedHeaders });
@@ -56,6 +58,8 @@ export async function PATCH(request: Request, { params }: { params: { classId: s
     if (accessToken) forwardedHeaders['authorization'] = `Bearer ${accessToken}`;
   }
 
+  if (cookie) forwardedHeaders['cookie'] = cookie;
+
   // If content-type present on the incoming request, forward it. Otherwise let fetch set it.
   const incomingContentType = request.headers.get('content-type');
   if (incomingContentType) forwardedHeaders['content-type'] = incomingContentType;
@@ -68,6 +72,38 @@ export async function PATCH(request: Request, { params }: { params: { classId: s
     return new NextResponse(text, { status: res.status, headers: { 'content-type': contentType } });
   } catch (err) {
     console.error('Proxy to backend PATCH /classes/mine/{id} failed:', err);
+    return NextResponse.json({ detail: 'Proxy error' }, { status: 502 });
+  }
+}
+
+export async function DELETE(request: Request, { params }: { params: { classId: string } }) {
+  const { classId } = params;
+  const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8082/api/v1';
+  const target = `${API_BASE}/classes/mine/${encodeURIComponent(classId)}`;
+
+  const cookie = request.headers.get('cookie') || null;
+  const clientAuth = request.headers.get('authorization');
+
+  const forwardedHeaders: Record<string, string> = {};
+  if (clientAuth) forwardedHeaders['authorization'] = clientAuth;
+  else {
+    const accessToken = parseCookie(cookie, 'access_token');
+    if (accessToken) forwardedHeaders['authorization'] = `Bearer ${accessToken}`;
+  }
+
+  if (cookie) forwardedHeaders['cookie'] = cookie;
+
+  try {
+    const res = await fetch(target, { method: 'DELETE', headers: forwardedHeaders });
+    // If backend returned 204 No Content, avoid reading body and return 204 directly
+    if (res.status === 204) {
+      return new NextResponse(null, { status: 204 });
+    }
+    const text = await res.text();
+    const contentType = res.headers.get('content-type') || 'application/json';
+    return new NextResponse(text, { status: res.status, headers: { 'content-type': contentType } });
+  } catch (err) {
+    console.error('Proxy to backend DELETE /classes/mine/{id} failed:', err);
     return NextResponse.json({ detail: 'Proxy error' }, { status: 502 });
   }
 }

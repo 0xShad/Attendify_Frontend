@@ -13,6 +13,7 @@ import EditClassDrawer from "./EditClassDrawer";
 import EnrollStudentDrawer from "./EnrollStudentDrawer";
 import SearchBar from "./SearchBar";
 import ClassesFilters from "./ClassesFilters";
+import DeleteClassDialog from "./DeleteClassDialog";
 
 export default function ClassesManagement() {
   const { toast } = useToast();
@@ -39,6 +40,10 @@ export default function ClassesManagement() {
   const [editClassOpen, setEditClassOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [classToDelete, setClassToDelete] = useState<ClassItem | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Create form states (faculty drawer expects these props)
   const [newCourseId, setNewCourseId] = useState("");
@@ -438,6 +443,11 @@ export default function ClassesManagement() {
         setEditClassOpen={setEditClassOpen}
         setEnrollStudentOpen={setEnrollOpen}
         handleStartSession={(classId: string) => { /* noop for now */ }}
+        onDelete={(c) => {
+          setClassToDelete(c);
+          setDeleteError(null);
+          setDeleteOpen(true);
+        }}
       />
 
       <CreateClassDrawer
@@ -508,6 +518,38 @@ export default function ClassesManagement() {
         onOpenChange={setEnrollOpen}
         onEnrollStudent={() => { void refresh(); setEnrollOpen(false); }}
         onManualEnroll={() => { void refresh(); setEnrollOpen(false); }}
+      />
+
+      <DeleteClassDialog
+        open={deleteOpen}
+        onOpenChange={(v) => {
+          setDeleteOpen(v);
+          if (!v) {
+            setClassToDelete(null);
+            setDeleteError(null);
+          }
+        }}
+        classItem={classToDelete}
+        error={deleteError}
+        loading={deleting}
+        onConfirm={async () => {
+          if (!classToDelete) return;
+          setDeleting(true);
+          setDeleteError(null);
+          try {
+            await classesAPI.deleteMyClass(classToDelete.id);
+            toast({ title: "Class deleted", description: `Deleted class ${classToDelete.class_code ?? classToDelete.id}` });
+            setDeleteOpen(false);
+            setClassToDelete(null);
+            await refresh();
+          } catch (err: any) {
+            console.error("Delete failed", err);
+            setDeleteError(String(err?.message ?? err));
+            toast({ title: "Delete failed", description: String(err?.message ?? err), variant: "destructive" });
+          } finally {
+            setDeleting(false);
+          }
+        }}
       />
     </div>
   );

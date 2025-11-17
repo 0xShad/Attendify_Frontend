@@ -33,6 +33,7 @@ interface Props {
   setEditClassOpen: (open: boolean) => void;
   setEnrollStudentOpen: (open: boolean) => void;
   handleStartSession: (classId: string) => void;
+  onDelete?: (c: ClassItem) => void;
 }
 
 export default function MyClasses({
@@ -43,6 +44,7 @@ export default function MyClasses({
   setEditClassOpen,
   setEnrollStudentOpen,
   handleStartSession,
+  onDelete,
 }: Props) {
   return (
     <div className="space-y-4">
@@ -79,6 +81,7 @@ export default function MyClasses({
               setEnrollStudentOpen(true);
             }}
             onStartSession={handleStartSession}
+            onDelete={(c) => onDelete?.(c)}
           />
         ))}
       </div>

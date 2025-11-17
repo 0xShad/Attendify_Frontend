@@ -26,6 +26,8 @@ export async function POST(request: Request) {
     const accessToken = parseCookie(cookie, 'access_token');
     if (accessToken) forwardedHeaders['authorization'] = `Bearer ${accessToken}`;
   }
+  // Forward cookies as-is so backend can validate session-based auth if needed
+  if (cookie) forwardedHeaders['cookie'] = cookie;
 
   try {
     const body = await request.text();
@@ -57,6 +59,7 @@ export async function GET(request: Request) {
     const accessToken = parseCookie(cookie, 'access_token');
     if (accessToken) forwardedHeaders['authorization'] = `Bearer ${accessToken}`;
   }
+  if (cookie) forwardedHeaders['cookie'] = cookie;
 
   try {
     const res = await fetch(target, { method: 'GET', headers: forwardedHeaders });
