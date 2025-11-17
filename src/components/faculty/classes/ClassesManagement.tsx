@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { classesAPI } from "@/lib/api/classes";
 import { coursesAPI } from "@/lib/api/courses";
@@ -11,6 +11,8 @@ import CreateClassDrawer from "./CreateClassDrawer";
 import ViewClassDrawer from "./ViewClassDrawer";
 import EditClassDrawer from "./EditClassDrawer";
 import EnrollStudentDrawer from "./EnrollStudentDrawer";
+import SearchBar from "./SearchBar";
+import ClassesFilters from "./ClassesFilters";
 
 export default function ClassesManagement() {
   const { toast } = useToast();
@@ -52,47 +54,20 @@ export default function ClassesManagement() {
   const [newCourseDescription, setNewCourseDescription] = useState("");
   const [newCourseProgramId, setNewCourseProgramId] = useState("");
 
+  // Local search & filter UI state (client-side only; no backend yet)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<any>({});
+
+  // Debounce refs for search
+  const searchDebounceRef = useRef<number | null>(null);
+  const firstSearchRun = useRef(true);
+
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setLoading(true);
-      try {
-        const data = await classesAPI.listMyClasses();
-        if (!mounted) return;
-        const normalized: ClassItem[] = Array.isArray(data)
-          ? data.map((d: any) => ({
-              id: String(d.id),
-              course_id: d.course_id ?? undefined,
-              class_code: d.class_code ?? null,
-              course_code: d.course_code ?? null,
-              course_name: d.course_name ?? null,
-              program_id: d.program_id ?? null,
-              program_name: d.program_name ?? null,
-              organization_id: d.organization_id ?? null,
-              organization_name: d.organization_name ?? null,
-              description: d.description ?? null,
-              room: d.room ?? null,
-              assigned_faculty_id: d.assigned_faculty_id ?? null,
-              assigned_faculty_name: d.assigned_faculty_name ?? null,
-              academic_year: d.academic_year ?? null,
-              semester: d.semester ?? null,
-              schedules: Array.isArray(d.schedules) ? d.schedules : [],
-              enrolledStudents: d.enrolled_students ?? d.students_count ?? 0,
-              attendanceRate: typeof d.attendance_rate === 'number' ? d.attendance_rate : (d.attendance_rate ? Number(d.attendance_rate) : 0),
-              status: d.status ?? 'Active',
-            }))
-          : [];
-        setClasses(normalized);
-      } catch (err: any) {
-        console.error("Failed to load faculty classes", err);
-        toast({ title: "Failed to load classes", description: String(err?.message ?? err) });
-      } finally {
-        if (mounted) setLoading(false);
-      }
+    // initial load: fetch without filters
+    void (async () => {
+      await fetchClasses();
     })();
-    return () => {
-      mounted = false;
-    };
   }, [user]);
   // Load course options separately so the Create drawer can render a dropdown.
   useEffect(() => {
@@ -278,10 +253,185 @@ export default function ClassesManagement() {
     }
   };
 
+  // Build API params from local filters
+  const buildParamsFromFilters = (f: any = {}) => {
+    const params: any = {};
+    if (f.organization) {
+      const v = String(f.organization);
+      if (v && v !== "all") params.organization_id = Number(v);
+    }
+    if (f.program) {
+      const v = String(f.program);
+      if (v && v !== "all") params.program_id = Number(v);
+    }
+    if (f.course_option) {
+      const v = String(f.course_option);
+      if (v && v !== "all") params.course_id = Number(v);
+    }
+    if (f.academic_year) params.academic_year = String(f.academic_year);
+    if (f.semester && String(f.semester) !== "all") params.semester = String(f.semester);
+    if (f.room) params.room = String(f.room);
+    if (f.instructor) {
+      const v = String(f.instructor);
+      if (v && v !== "all") params.assigned_faculty_id = Number(v);
+    }
+    if (f.class_code) params.class_code = String(f.class_code);
+    return params;
+  };
+
+  // Centralized fetch routine that calls the backend and normalizes results
+  const fetchClasses = async (opts: any = {}) => {
+    setLoading(true);
+    try {
+      const params = { ...buildParamsFromFilters(filters), ...opts };
+      const data = await classesAPI.listMyClasses(params as any);
+      const normalized: ClassItem[] = Array.isArray(data)
+        ? data.map((d: any) => ({
+            id: String(d.id),
+            course_id: d.course_id ?? undefined,
+            class_code: d.class_code ?? null,
+            course_code: d.course_code ?? null,
+            course_name: d.course_name ?? null,
+            program_id: d.program_id ?? null,
+            program_name: d.program_name ?? null,
+            organization_id: d.organization_id ?? null,
+            organization_name: d.organization_name ?? null,
+            description: d.description ?? null,
+            room: d.room ?? null,
+            assigned_faculty_id: d.assigned_faculty_id ?? null,
+            assigned_faculty_name: d.assigned_faculty_name ?? null,
+            academic_year: d.academic_year ?? null,
+            semester: d.semester ?? null,
+            schedules: Array.isArray(d.schedules) ? d.schedules : [],
+            enrolledStudents: d.enrolled_students ?? d.students_count ?? 0,
+            attendanceRate: typeof d.attendance_rate === 'number' ? d.attendance_rate : (d.attendance_rate ? Number(d.attendance_rate) : 0),
+            status: d.status ?? 'Active',
+          }))
+        : [];
+      setClasses(normalized);
+    } catch (err: any) {
+      console.error("Failed to load faculty classes", err);
+      toast({ title: "Failed to load classes", description: String(err?.message ?? err) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Immediate search handler (cancels any pending debounce and calls API)
+  const handleSearchImmediate = (query?: string) => {
+    // clear pending debounce
+    if (searchDebounceRef.current) {
+      window.clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = null;
+    }
+    const q = String(query ?? searchQuery ?? "").trim();
+    if (q) {
+      void fetchClasses({ class_code: q });
+    } else {
+      void fetchClasses();
+    }
+  };
+
+  // Debounce effect: wait 1.5s after typing stops to call backend search
+  useEffect(() => {
+    // skip the very first render (initial load already fetches)
+    if (firstSearchRun.current) {
+      firstSearchRun.current = false;
+      return;
+    }
+
+    if (searchDebounceRef.current) {
+      window.clearTimeout(searchDebounceRef.current);
+    }
+    const q = String(searchQuery ?? "").trim();
+    searchDebounceRef.current = window.setTimeout(() => {
+      if (q) {
+        void fetchClasses({ class_code: q });
+      } else {
+        void fetchClasses();
+      }
+      searchDebounceRef.current = null;
+    }, 1500);
+
+    return () => {
+      if (searchDebounceRef.current) {
+        window.clearTimeout(searchDebounceRef.current);
+        searchDebounceRef.current = null;
+      }
+    };
+  }, [searchQuery]);
+
+  // Compute filtered classes locally based on search and filters
+  const filteredClasses = useMemo(() => {
+    const q = String(searchQuery ?? "").trim().toLowerCase();
+    return classes.filter((c) => {
+      // Search matching (class code, course code, course name, description)
+      if (q) {
+        const hay = (
+          String(c.class_code ?? "") + " " +
+          String(c.course_code ?? "") + " " +
+          String(c.course_name ?? "") + " " +
+          String(c.description ?? "")
+        ).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+
+      // Organization filter
+      if (filters.organization) {
+        if (String(filters.organization) !== "all" && String(c.organization_id ?? "") !== String(filters.organization)) return false;
+      }
+      // Program filter
+      if (filters.program) {
+        if (String(filters.program) !== "all" && String(c.program_id ?? "") !== String(filters.program)) return false;
+      }
+      // Course option (course id)
+      if (filters.course_option) {
+        if (String(filters.course_option) !== "all" && String(c.course_id ?? "") !== String(filters.course_option)) return false;
+      }
+      // Academic year
+      if (filters.academic_year) {
+        if (String(filters.academic_year) !== String(c.academic_year ?? "")) return false;
+      }
+      // Semester
+      if (filters.semester) {
+        if (String(filters.semester) !== "all" && String(filters.semester) !== String(c.semester ?? "")) return false;
+      }
+      // Room
+      if (filters.room) {
+        if (!String(c.room ?? "").toLowerCase().includes(String(filters.room).toLowerCase())) return false;
+      }
+      // Instructor (assigned_faculty_id)
+      if (filters.instructor) {
+        if (String(filters.instructor) !== "all" && String(c.assigned_faculty_id ?? "") !== String(filters.instructor)) return false;
+      }
+
+      return true;
+    });
+  }, [classes, searchQuery, filters]);
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-4">
+        <SearchBar
+          value={searchQuery}
+          onChange={(v) => setSearchQuery(v)}
+          onSearch={() => {
+            // perform immediate server-side search and cancel debounce
+            handleSearchImmediate();
+          }}
+          onClear={() => { setSearchQuery(""); handleSearchImmediate(""); }}
+        />
+        <ClassesFilters
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          filters={filters}
+          onFiltersChange={(f) => setFilters(f)}
+          onClearFilters={() => { setFilters({}); void fetchClasses(); }}
+          onApplyFilters={(f) => { setFilters(f); void fetchClasses(buildParamsFromFilters(f)); setFiltersOpen(false); }}
+        />
+      </div>
       <MyClasses
-        classes={classes}
+        classes={filteredClasses}
         setAddClassOpen={setAddClassOpen}
         setSelectedClass={(c) => setSelectedClass(c)}
         setViewClassOpen={setViewClassOpen}

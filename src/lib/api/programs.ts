@@ -18,6 +18,7 @@ const PROGRAMS_ENDPOINTS = {
   // (not under /programs). Use the organizations endpoint so we don't get 404s.
   OPTIONS_ORGANIZATIONS_CORRECTED: `${API_BASE_URL}/organizations/options/organizations`,
   OPTIONS_CODES: `${API_BASE_URL}/programs/options/codes`,
+  OPTIONS_CODES_MINE: `${API_BASE_URL}/programs/options/mine`,
   OPTIONS_CODES_BY_ORGANIZATION: (organizationId: number) => `${API_BASE_URL}/programs/options/codes/organization/${organizationId}`,
 } as const;
 
@@ -264,6 +265,24 @@ export async function getProgramCodes(): Promise<string[]> {
 }
 
 /**
+ * Get program options for the current authenticated user
+ */
+export async function getMyProgramOptions(): Promise<ProgramCodeOption[]> {
+  // Call the same-origin proxy so cookies/HTTP-only tokens are forwarded by the server
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth('/api/programs/options/mine', { method: 'GET' }));
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || response.statusText;
+    throw new Error(errorMessage);
+  }
+
+  const data = await response.json();
+  if (!Array.isArray(data)) return [];
+  return data.map((d: any) => ({ id: Number(d.id), code: String(d.code), name: d.name ?? undefined }));
+}
+
+/**
  * Get program codes for a specific organization
  */
 export async function getProgramCodesByOrganization(organizationId: number): Promise<ProgramCodeOption[]> {
@@ -297,5 +316,6 @@ export const programsAPI = {
   deleteProgram,
   getOrganizationOptions,
   getProgramCodes,
+  getMyProgramOptions,
   getProgramCodesByOrganization,
 };

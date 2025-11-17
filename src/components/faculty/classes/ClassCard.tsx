@@ -75,97 +75,139 @@ export default function ClassCard({
   onDelete,
 }: Props) {
   return (
-    <Card key={classItem.id} className="overflow-hidden">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-base truncate">
-              {classItem.class_code ? `${classItem.class_code} — ${classItem.course_name ?? ''}` : (classItem.course_name ?? `Class ${classItem.id}`)}
-            </h4>
-            <p className="text-sm text-muted-foreground">
-              {classItem.program_name ? `${classItem.program_name}${classItem.organization_name ? ` • ${classItem.organization_name}` : ''}` : (classItem.organization_name ?? '')}
-              {classItem.academic_year || classItem.semester ? ` • ${[classItem.academic_year, classItem.semester].filter(Boolean).join(' / ')}` : ''}
-            </p>
+    <Card key={classItem.id} className="overflow-hidden h-full transition-shadow hover:shadow-lg">
+      <CardContent className="p-3 sm:p-4 h-full flex flex-col">
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start flex-1">
+          {/* Left: title and meta */}
+          <div className="col-span-1 sm:col-span-7 h-full flex flex-col justify-between">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 mt-1">
+                <span className="inline-flex items-center justify-center h-10 w-10 rounded-md bg-primary/10 text-primary">
+                  <IconChalkboard className="w-5 h-5" />
+                </span>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-semibold truncate">
+                      {classItem.class_code ? `${classItem.class_code}` : `Class ${classItem.id}`}
+                    </h3>
+                    <div className="text-sm text-muted-foreground truncate">{classItem.course_name ?? ''}</div>
+                  </div>
+                </div>
+
+                <div className="mt-2 flex flex-wrap gap-2 items-center">
+                  {classItem.program_name && (
+                    <Badge variant="outline" className="text-xs px-2 py-0.5 rounded">{classItem.program_name}</Badge>
+                  )}
+                  {classItem.organization_name && <span className="text-xs text-muted-foreground">{classItem.organization_name}</span>}
+                  {(classItem.academic_year || classItem.semester) && (
+                    <span className="text-xs text-muted-foreground">{[classItem.academic_year, classItem.semester].filter(Boolean).join(' / ')}</span>
+                  )}
+                </div>
+
+                {classItem.description && (
+                  <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{classItem.description}</p>
+                )}
+              </div>
+            </div>
+            {/* Primary action placed bottom-left for easy access */}
+            <div className="mt-3 sm:mt-0">
+              <Button size="sm" className="w-full sm:w-auto flex items-center justify-center" onClick={() => onStartSession(classItem.id)}>
+                <Play className="w-4 h-4" />
+                <span className="hidden sm:inline ml-2">Start Session</span>
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Middle: schedules and room */}
+          <div className="col-span-1 sm:col-span-3">
+            <div className="mb-1 text-sm font-medium text-muted-foreground">Location</div>
+            <div className="flex items-center gap-2 text-sm mb-2">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <span className="truncate text-sm">{classItem.room ?? 'No room specified'}</span>
+            </div>
+
+            {/* On small screens show a single-line summary; on sm+ show up to 2 schedule items */}
+            <div className="space-y-1 text-xs">
+              {classItem.schedules && classItem.schedules.length > 0 ? (
+                <>
+                  <div className="sm:hidden text-xs text-muted-foreground">{classItem.schedules[0].type === 'normal' ? (classItem.schedules[0].day_of_week ?? '') : (classItem.schedules[0].date ?? '')} {formatTimeRange(classItem.schedules[0].start_time, classItem.schedules[0].end_time)}</div>
+                  <div className="hidden sm:block">
+                    {classItem.schedules.slice(0, 2).map((s) => (
+                      <div key={s.id} className="flex items-center gap-2">
+                        <IconChalkboard className="w-4 h-4 text-muted-foreground" />
+                        <div className="truncate">
+                          <div className="font-medium">{s.type === 'normal' ? (s.day_of_week ?? '') : (s.date ?? '')}</div>
+                          <div className="text-muted-foreground">{formatTimeRange(s.start_time, s.end_time)}{s.reason ? ` — ${s.reason}` : ''}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="text-xs text-muted-foreground">No schedule information</div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: stats and actions */}
+          <div className="col-span-1 sm:col-span-2 flex flex-col items-end gap-3 justify-between">
             <Badge
               variant="outline"
               className={
-                classItem.status === "Active"
-                  ? "border-green-200 text-green-700 bg-green-50"
-                  : "border-gray-200 text-gray-700 bg-gray-50"
+                classItem.status === 'Active'
+                  ? 'border-green-200 text-green-700 bg-green-50'
+                  : 'border-gray-200 text-gray-700 bg-gray-50'
               }
             >
               {classItem.status ?? 'Active'}
             </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onView(classItem)}>
-                  <Eye className="w-4 h-4 mr-2" />
-                  View Details
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onEdit(classItem)}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Class
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onEnroll(classItem)}>
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Enroll Student
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onStartSession(classItem.id)}>
-                  <Play className="w-4 h-4 mr-2" />
-                  Start Session
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600" onClick={() => onDelete && onDelete(classItem)}>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Class
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-muted-foreground" />
-            <span className="truncate">{classItem.room ?? 'No room specified'}</span>
-          </div>
-          {classItem.schedules && classItem.schedules.length > 0 && (
-            <div className="flex items-center gap-2 col-span-2">
-              <IconChalkboard className="w-4 h-4 text-muted-foreground" />
-              <div className="flex flex-col w-full">
-                {classItem.schedules.slice(0, 2).map((s) => (
-                  <span key={s.id} className="truncate text-xs">
-                    {s.type === 'normal' ? `${s.day_of_week ?? ''} ${formatTimeRange(s.start_time, s.end_time)}` : `${s.date ?? ''} ${formatTimeRange(s.start_time, s.end_time)}`}{s.reason ? ` — ${s.reason}` : ''}
-                  </span>
-                ))}
+            <div className="w-28 text-right">
+              <div className="text-sm font-semibold">{(classItem.student_count ?? (classItem as any).enrolledStudents) ?? 0}</div>
+              <div className="text-xs text-muted-foreground">students</div>
+              <div className="mt-2 text-sm font-semibold">{(classItem.attendance_rate ?? (classItem as any).attendanceRate) ?? 0}%</div>
+              <div className="text-xs text-muted-foreground">attendance</div>
+            </div>
+
+            <div className="w-full">
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => onView(classItem)} className="flex-1 flex items-center justify-center">
+                  <Eye className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-2">View</span>
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => onEdit(classItem)} className="flex-1 flex items-center justify-center">
+                  <Edit className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-2">Edit</span>
+                </Button>
               </div>
             </div>
-          )}
-        </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-end text-sm">
-            <div className="text-right">
-              <div className="text-sm font-medium">{classItem.student_count ?? 0} students</div>
-              <div className="text-sm">Attendance: {classItem.attendance_rate ?? 0}%</div>
+            <div className="mt-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onEnroll(classItem)}>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Enroll Student
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onStartSession(classItem.id)}>
+                    <Play className="w-4 h-4 mr-2" />
+                    Start Session
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-red-600" onClick={() => onDelete && onDelete(classItem)}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Class
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          </div>
-
-          <div className="flex gap-2 mt-4">
-            <Button size="sm" onClick={() => onStartSession(classItem.id)} className="flex-1">
-              <Play className="w-3 h-3 mr-1" />
-              Start Session
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => onView(classItem)}>
-              <Eye className="w-3 h-3" />
-            </Button>
           </div>
         </div>
       </CardContent>

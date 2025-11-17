@@ -96,6 +96,7 @@ export async function listMyClasses(params: Partial<ListClassesParams> = {}): Pr
   url.searchParams.append('limit', String(limit));
   if (params.academic_year) url.searchParams.append('academic_year', String(params.academic_year));
   if (params.semester) url.searchParams.append('semester', String(params.semester));
+  if ((params as any).class_code) url.searchParams.append('class_code', String((params as any).class_code));
   if (params.organization_id !== undefined && params.organization_id !== null) url.searchParams.append('organization_id', String(params.organization_id));
   if (params.program_id !== undefined && params.program_id !== null) url.searchParams.append('program_id', String(params.program_id));
   if (params.course_id !== undefined && params.course_id !== null) url.searchParams.append('course_id', String(params.course_id));
