@@ -79,6 +79,40 @@ export default function SchedulesTab({ classId }: Props) {
     []
   );
 
+    // Helper: normalize time strings for input and payload
+    const formatTimeForInput = (t?: string | null) => {
+      if (!t) return "";
+      // Accept formats like HH:MM or HH:MM:SS — return HH:MM for <input type=time>
+      const parts = String(t).split(":");
+      if (parts.length >= 2) return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
+      return String(t);
+    };
+
+    const ensureTimeHasSeconds = (t?: string | null) => {
+      if (!t) return null;
+      const parts = String(t).split(":");
+      if (parts.length === 2) return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}:00`;
+      if (parts.length === 3) return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}:${parts[2].padStart(2, "0")}`;
+      return String(t);
+    };
+
+    // Helper: convert HH:MM or HH:MM:SS -> seconds since midnight for comparisons
+    const timeToSeconds = (t?: string | null) => {
+      if (!t) return NaN;
+      const parts = String(t).split(":").map((p) => Number(p));
+      const h = Number.isFinite(parts[0]) ? parts[0] : 0;
+      const m = Number.isFinite(parts[1]) ? parts[1] : 0;
+      const s = Number.isFinite(parts[2]) ? parts[2] : 0;
+      return h * 3600 + m * 60 + s;
+    };
+
+    // Map UI mode values to backend mode strings
+    const modeMap: Record<string, string> = {
+      online: "online",
+      face_to_face: "face_to_face",
+      hybrid: "hybrid",
+    };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -267,13 +301,21 @@ export default function SchedulesTab({ classId }: Props) {
                   return;
                 }
 
-                // ensure start < end
-                if (startTime >= endTime) {
-                  toast({ title: "Validation", description: "Start time must be before end time", variant: "destructive" });
-                  return;
+                // ensure start < end (compare numerically)
+                if (Number.isFinite(timeToSeconds(startTime)) && Number.isFinite(timeToSeconds(endTime))) {
+                  if (timeToSeconds(startTime) >= timeToSeconds(endTime)) {
+                    toast({ title: "Validation", description: "Start time must be before end time", variant: "destructive" });
+                    return;
+                  }
+                } else {
+                  // fallback lexical check
+                  if (startTime >= endTime) {
+                    toast({ title: "Validation", description: "Start time must be before end time", variant: "destructive" });
+                    return;
+                  }
                 }
 
-                const payload: Record<string, any> = { type: formType, start_time: startTime, end_time: endTime, location: location || null, modes: selectedMode ? [selectedMode] : [] };
+                const payload: Record<string, any> = { type: formType, start_time: ensureTimeHasSeconds(startTime), end_time: ensureTimeHasSeconds(endTime), location: location || null, modes: selectedMode ? [modeMap[selectedMode] ?? selectedMode] : [] };
                 if (formType === "normal") {
                   payload.day_of_week = dayOfWeek;
                 } else {
@@ -354,9 +396,7 @@ export default function SchedulesTab({ classId }: Props) {
                         <span className="text-xs text-muted-foreground">•</span>
                         <span className="text-xs font-mono">{s.start_time} — {s.end_time}</span>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {s.location ?? "No location specified"}
-                      </div>
+                      {/* location intentionally omitted from schedule list */}
                       {s.type === "special" && (
                         <div className="text-xs text-muted-foreground mt-1">
                           <div><strong>Reason:</strong> { (s as SpecialSchedule).reason ?? "—" }</div>
@@ -376,8 +416,8 @@ export default function SchedulesTab({ classId }: Props) {
                           try {
                             const full = await schedulesAPI.getScheduleForClass(classId, s.id);
                             setFormType(full.type);
-                            setStartTime(full.start_time);
-                            setEndTime(full.end_time);
+                            setStartTime(formatTimeForInput(full.start_time));
+                            setEndTime(formatTimeForInput(full.end_time));
                             setLocation(full.location || "");
                             setSelectedMode(full.modes && full.modes.length ? full.modes[0] : "");
                             if (full.type === "normal") {

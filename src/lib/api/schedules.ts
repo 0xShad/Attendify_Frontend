@@ -29,26 +29,42 @@ export type SpecialSchedule = ScheduleCommon & {
 export type Schedule = NormalSchedule | SpecialSchedule;
 
 export async function listSchedulesForClass(classId: number): Promise<Schedule[]> {
-  const url = `${API_BASE_URL}/classes/${classId}/schedules`;
+  // When running in the browser prefer the same-origin Next.js proxy so the
+  // HTTP-only auth cookie is forwarded by the server (and backend can
+  // resolve caller via require_current_user). Fall back to direct backend
+  // path for SSR or when the proxy is unavailable.
+  const isBrowser = typeof window !== 'undefined';
+  if (isBrowser) {
+    const requestUrl = `/api/classes/mine/${encodeURIComponent(String(classId))}/schedules`;
+    try {
+      const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(requestUrl, { method: 'GET' }));
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        if (res.status === 404) throw new Error(`NotFound: ${body || 'Class not found'}`);
+        throw new Error(body || res.statusText || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      return Array.isArray(data) ? data as Schedule[] : [];
+    } catch (err) {
+      // If the proxy call failed, fallthrough to direct backend URL below.
+      console.debug('listSchedulesForClass: proxy call failed, falling back to backend URL', err);
+    }
+  }
 
+  const url = `${API_BASE_URL}/classes/${classId}/schedules`;
   try {
     const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } }));
-
     if (res.status === 404) {
-      // class not found
       const body = await res.text().catch(() => "");
       throw new Error(`NotFound: ${body || "Class not found"}`);
     }
-
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       throw new Error(body || res.statusText || `HTTP ${res.status}`);
     }
-
     const data = await res.json();
     return data as Schedule[];
   } catch (err) {
-    // Re-throw so callers can handle
     throw err;
   }
 }
