@@ -15,7 +15,6 @@ import {
   MoreVertical,
   Eye,
   Edit,
-  UserPlus,
   Play,
   Trash2,
   Users,
@@ -61,7 +60,6 @@ interface Props {
   classItem: ClassItem;
   onView: (c: ClassItem) => void;
   onEdit: (c: ClassItem) => void;
-  onEnroll: (c: ClassItem) => void;
   onStartSession: (classId: string) => void;
   onDelete?: (c: ClassItem) => void;
 }
@@ -70,7 +68,6 @@ export default function ClassCard({
   classItem,
   onView,
   onEdit,
-  onEnroll,
   onStartSession,
   onDelete,
 }: Props) {
@@ -189,10 +186,7 @@ export default function ClassCard({
                     <Edit className="w-4 h-4 mr-2" />
                     Edit Class
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onEnroll(classItem)}>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Enroll Student
-                  </DropdownMenuItem>
+                  {/* Enroll removed */}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-red-600" onClick={() => onDelete && onDelete(classItem)}>
                     <Trash2 className="w-4 h-4 mr-2" />

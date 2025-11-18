@@ -31,7 +31,6 @@ interface Props {
   setSelectedClass: (c: ClassItem | null) => void;
   setViewClassOpen: (open: boolean) => void;
   setEditClassOpen: (open: boolean) => void;
-  setEnrollStudentOpen: (open: boolean) => void;
   handleStartSession: (classId: string) => void;
   onDelete?: (c: ClassItem) => void;
 }
@@ -42,7 +41,6 @@ export default function MyClasses({
   setSelectedClass,
   setViewClassOpen,
   setEditClassOpen,
-  setEnrollStudentOpen,
   handleStartSession,
   onDelete,
 }: Props) {
@@ -76,10 +74,7 @@ export default function MyClasses({
               setSelectedClass(c);
               setEditClassOpen(true);
             }}
-            onEnroll={(c) => {
-              setSelectedClass(c);
-              setEnrollStudentOpen(true);
-            }}
+            // enroll feature removed
             onStartSession={handleStartSession}
             onDelete={(c) => onDelete?.(c)}
           />

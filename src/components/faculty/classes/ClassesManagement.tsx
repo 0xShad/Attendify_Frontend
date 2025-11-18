@@ -10,7 +10,6 @@ import type { ClassItem } from "./ClassCard";
 import CreateClassDrawer from "./CreateClassDrawer";
 import ViewClassDrawer from "./ViewClassDrawer";
 import EditClassDrawer from "./EditClassDrawer";
-import EnrollStudentDrawer from "./EnrollStudentDrawer";
 import SearchBar from "./SearchBar";
 import ClassesFilters from "./ClassesFilters";
 import DeleteClassDialog from "./DeleteClassDialog";
@@ -38,7 +37,7 @@ export default function ClassesManagement() {
   const [addClassOpen, setAddClassOpen] = useState(false);
   const [viewClassOpen, setViewClassOpen] = useState(false);
   const [editClassOpen, setEditClassOpen] = useState(false);
-  const [enrollOpen, setEnrollOpen] = useState(false);
+  // enroll drawer removed
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [classToDelete, setClassToDelete] = useState<ClassItem | null>(null);
@@ -441,7 +440,6 @@ export default function ClassesManagement() {
         setSelectedClass={(c) => setSelectedClass(c)}
         setViewClassOpen={setViewClassOpen}
         setEditClassOpen={setEditClassOpen}
-        setEnrollStudentOpen={setEnrollOpen}
         handleStartSession={(classId: string) => { /* noop for now */ }}
         onDelete={(c) => {
           setClassToDelete(c);
@@ -498,8 +496,6 @@ export default function ClassesManagement() {
         open={viewClassOpen}
         onOpenChange={setViewClassOpen}
         selectedClass={selectedClass}
-        onOpenEnroll={() => setEnrollOpen(true)}
-        onViewStudent={() => {}}
       />
 
       <EditClassDrawer
@@ -513,12 +509,7 @@ export default function ClassesManagement() {
         }}
       />
 
-      <EnrollStudentDrawer
-        open={enrollOpen}
-        onOpenChange={setEnrollOpen}
-        onEnrollStudent={() => { void refresh(); setEnrollOpen(false); }}
-        onManualEnroll={() => { void refresh(); setEnrollOpen(false); }}
-      />
+      {/* Enroll drawer removed */}
 
       <DeleteClassDialog
         open={deleteOpen}

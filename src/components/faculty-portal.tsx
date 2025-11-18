@@ -72,7 +72,6 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import ClassesManagement from "@/components/faculty/classes/ClassesManagement";
-import ManualAttendanceDrawer from "@/components/faculty/classes/ManualAttendanceDrawer";
 import ActiveSessions from "@/components/faculty/classes/ActiveSessions";
 import { classesAPI } from "@/lib/api";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -1668,51 +1667,7 @@ export function FacultyPortal() {
         </Drawer>
 
         
-        <ManualAttendanceDrawer
-          open={manualAttendanceOpen}
-          onOpenChange={setManualAttendanceOpen}
-          selectedSession={selectedSession}
-          onSave={(sessionId, presentIndexes) => {
-            // Update activeSessions presentCount and selectedSession copy
-            setActiveSessions((prev) =>
-              prev.map((s) =>
-                s.id === sessionId ? { ...s, presentCount: presentIndexes.length } : s
-              )
-            );
-
-            setSelectedSession((prev) =>
-              prev && prev.id === sessionId ? { ...prev, presentCount: presentIndexes.length } : prev
-            );
-
-            // Update per-student attendance counts for students in this class
-            const session = activeSessions.find((s) => s.id === sessionId) || selectedSession;
-            const classId = session?.classId;
-            if (classId) {
-              setStudents((prev) => {
-                // get students in the class in current order
-                const classStudents = prev.filter((st) => st.classId === classId);
-                return prev.map((st) => {
-                  if (st.classId !== classId) return st;
-                  const idx = classStudents.findIndex((cs) => cs.id === st.id);
-                  if (idx === -1) return st;
-                  const wasPresent = presentIndexes.includes(idx);
-                  const newTotal = (st.totalSessions ?? 0) + 1;
-                  const newPresent = (st.presentSessions ?? 0) + (wasPresent ? 1 : 0);
-                  const newRate = newTotal > 0 ? Math.round((newPresent / newTotal) * 1000) / 10 : 0;
-                  return {
-                    ...st,
-                    totalSessions: newTotal,
-                    presentSessions: newPresent,
-                    attendanceRate: newRate,
-                  };
-                });
-              });
-            }
-
-            setManualAttendanceOpen(false);
-            toast({ title: "Success", description: "Attendance saved" });
-          }}
-        />
+        {/* Manual attendance drawer removed. Attendance edits handled inline or via dedicated flow. */}
       </div>
     </SidebarProvider>
   );
