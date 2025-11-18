@@ -11,13 +11,17 @@ function parseCookie(header: string | null, name: string) {
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
+  // Resolve params in case it's a thenable in this runtime
+  let resolvedParams: any = params;
+  try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
+  const id = resolvedParams?.id;
   const cookieHeader = request.headers.get('cookie') || '';
   const ACCESS_COOKIE_NAME = 'access_token';
   const accessToken = parseCookie(cookieHeader, ACCESS_COOKIE_NAME);
 
   const backendBase = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_USER_API_URL || 'http://localhost:8082/api/v1';
   // Forward admin updates to the backend admin users endpoint
-  const backendUrl = `${backendBase}/admin/users/${params.id}`;
+  const backendUrl = `${backendBase}/admin/users/${encodeURIComponent(String(id))}`;
 
   // Preserve incoming content-type (may be multipart/form-data)
   const contentType = request.headers.get('content-type') || undefined;
@@ -53,13 +57,17 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
 // Support PATCH as well (backend may expose PATCH for partial updates).
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  // Resolve params
+  let resolvedParams: any = params;
+  try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
+  const id = resolvedParams?.id;
   const cookieHeader = request.headers.get('cookie') || '';
   const ACCESS_COOKIE_NAME = 'access_token';
   const accessToken = parseCookie(cookieHeader, ACCESS_COOKIE_NAME);
 
   const backendBase = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_USER_API_URL || 'http://localhost:8082/api/v1';
   // Forward admin updates to the backend admin users endpoint
-  const backendUrl = `${backendBase}/admin/users/${params.id}`;
+  const backendUrl = `${backendBase}/admin/users/${encodeURIComponent(String(id))}`;
 
   // Preserve incoming content-type (may be multipart/form-data)
   const contentType = request.headers.get('content-type') || undefined;
@@ -91,6 +99,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
 // Support DELETE for admin user soft/hard delete. Forwards query string (e.g. ?hard=true)
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  // Resolve params
+  let resolvedParams: any = params;
+  try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
+  const id = resolvedParams?.id;
   const cookieHeader = request.headers.get('cookie') || '';
   const ACCESS_COOKIE_NAME = 'access_token';
   const accessToken = parseCookie(cookieHeader, ACCESS_COOKIE_NAME);
@@ -99,7 +111,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   // Preserve incoming search params (e.g. ?hard=true)
   const incoming = new URL(request.url);
   const search = incoming.search || '';
-  const backendUrl = `${backendBase}/admin/users/${params.id}${search}`;
+  const backendUrl = `${backendBase}/admin/users/${encodeURIComponent(String(id))}${search}`;
 
   const headers: Record<string, string> = {};
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;

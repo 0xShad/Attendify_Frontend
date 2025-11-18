@@ -13,7 +13,9 @@ function parseCookie(header: string | null, name: string) {
 export const runtime = 'nodejs';
 
 export async function DELETE(request: Request, { params }: { params: { classId: string; enrolleeId: string } }) {
-  const { classId, enrolleeId } = params;
+  let resolvedParams: any = params;
+  try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
+  const { classId, enrolleeId } = resolvedParams || {};
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8082/api/v1';
   const target = `${API_BASE}/classes/mine/${encodeURIComponent(classId)}/enrollees/${encodeURIComponent(enrolleeId)}`;
 

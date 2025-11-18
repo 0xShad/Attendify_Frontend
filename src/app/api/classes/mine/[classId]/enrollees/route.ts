@@ -13,7 +13,10 @@ function parseCookie(header: string | null, name: string) {
 export const runtime = 'nodejs';
 
 export async function GET(request: Request, { params }: { params: { classId: string } }) {
-  const { classId } = params;
+  // Some Next.js runtimes provide `params` as a thenable; await if necessary.
+  let resolvedParams: any = params;
+  try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
+  const { classId } = resolvedParams || {};
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8082/api/v1';
   const target = `${API_BASE}/classes/mine/${encodeURIComponent(classId)}/enrollees`;
 
@@ -41,7 +44,9 @@ export async function GET(request: Request, { params }: { params: { classId: str
 }
 
 export async function POST(request: Request, { params }: { params: { classId: string } }) {
-  const { classId } = params;
+  let resolvedParams: any = params;
+  try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
+  const { classId } = resolvedParams || {};
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8082/api/v1';
   const target = `${API_BASE}/classes/mine/${encodeURIComponent(classId)}/enrollees`;
 

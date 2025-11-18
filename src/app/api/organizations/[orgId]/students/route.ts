@@ -15,10 +15,15 @@ export const runtime = 'nodejs';
 export async function GET(request: Request, { params }: { params: { orgId: string } }) {
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8082/api/v1';
 
+  // Resolve params in case the runtime provides a thenable.
+  let resolvedParams: any = params;
+  try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
+  const orgId = resolvedParams?.orgId;
+
   const incoming = new URL(request.url);
   const p = incoming.searchParams;
 
-  const allowed = new URL(`${API_BASE}/organizations/${encodeURIComponent(String(params.orgId))}/students`);
+  const allowed = new URL(`${API_BASE}/organizations/${encodeURIComponent(String(orgId))}/students`);
   const qRaw = p.get('q');
   const skipRaw = p.get('skip');
   const limitRaw = p.get('limit');
@@ -54,7 +59,7 @@ export async function GET(request: Request, { params }: { params: { orgId: strin
     const contentType = res.headers.get('content-type') || 'application/json';
     return new NextResponse(text, { status: res.status, headers: { 'content-type': contentType } });
   } catch (err) {
-    console.error(`Proxy to backend GET /organizations/${params.orgId}/students failed:`, err);
+    console.error(`Proxy to backend GET /organizations/${orgId}/students failed:`, err);
     return NextResponse.json({ detail: 'Proxy error' }, { status: 502 });
   }
 }

@@ -134,6 +134,9 @@ export async function getClass(id: number): Promise<any> {
 export async function getMyClass(id: number): Promise<any> {
   const url = `/api/classes/mine/${id}`;
   try {
+    console.debug('classesAPI.getMyClass: calling', { id, url });
+  } catch (_) {}
+  try {
     const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'GET' }));
     if (res.status === 404) {
       const body = await res.text().catch(() => 'Not found');

@@ -62,8 +62,50 @@ export default function ViewClassDrawer({ open, classId, selectedClass: selClass
         // @ts-ignore
         schedules: selClass.schedules ?? undefined,
       };
-      setData(mapped as Partial<Class>);
-      return () => { mounted = false; };
+        setData(mapped as Partial<Class>);
+
+        // If a selectedClass was provided, still attempt to fetch the
+        // faculty-scoped full object in the background so enriched fields
+        // like `assigned_secretary_name`, `schedules`, and rates are present.
+        (async () => {
+          try {
+            if (!mounted) return;
+            // Only fetch if we have an id to query
+            const sid = mapped.id;
+            if (sid != null) {
+              console.debug('ViewClassDrawer: selClass provided — fetching faculty-scoped class', { sid });
+              const full = await classesAPI.getMyClass(Number(sid)).catch(() => null);
+              if (!mounted || !full) return;
+              const normalized: any = {
+                id: Number(full.id),
+                class_code: full.class_code ?? null,
+                course_id: full.course_id != null ? Number(full.course_id) : null,
+                course_code: full.course_code ?? null,
+                course_name: full.course_name ?? null,
+                description: full.description ?? null,
+                room: full.room ?? null,
+                assigned_faculty_id: full.assigned_faculty_id != null ? Number(full.assigned_faculty_id) : full.assigned_faculty?.id != null ? Number(full.assigned_faculty.id) : null,
+                assigned_faculty_name: full.assigned_faculty_name ?? full.assigned_faculty?.name ?? null,
+                academic_year: full.academic_year ?? null,
+                semester: full.semester ?? null,
+                students_count: full.students_count ?? mapped.students_count ?? undefined,
+                program_id: full.program_id != null ? Number(full.program_id) : null,
+                program_name: full.program_name ?? null,
+                organization_id: full.organization_id != null ? Number(full.organization_id) : mapped.organization_id ?? null,
+                organization_name: full.organization_name ?? null,
+                assigned_secretary: full.assigned_secretary != null ? Number(full.assigned_secretary) : full.secretary_id != null ? Number(full.secretary_id) : full.secretary?.id != null ? Number(full.secretary.id) : mapped.assigned_secretary ?? null,
+                assigned_secretary_name: full.assigned_secretary_name ?? full.secretary_name ?? full.secretary?.name ?? mapped.assigned_secretary_name ?? null,
+                schedules: full.schedules ?? mapped.schedules ?? undefined,
+              };
+              setData(normalized as Partial<Class>);
+            }
+          } catch (err) {
+            // ignore background fetch failures — retain mapped data
+            console.debug('ViewClassDrawer: background getMyClass failed', err);
+          }
+        })();
+
+        return () => { mounted = false; };
     }
 
     if (!classId) {
@@ -74,7 +116,28 @@ export default function ViewClassDrawer({ open, classId, selectedClass: selClass
     setLoading(true);
     (async () => {
       try {
-        const d = await classesAPI.getClass(Number(classId));
+        // Prefer the faculty-scoped endpoint which enriches faculty-owned
+        // class objects (includes `assigned_secretary_name`) so try that
+        // first and fall back to the public `getClass` when not available.
+        let d: any = null;
+        // Temporary debug: confirm we're executing the fetch branch
+        try {
+          console.debug('ViewClassDrawer: attempting to load class via faculty-scoped endpoint', { classId, selClassProvided: !!selClass });
+        } catch (__) {}
+        try {
+          console.debug('ViewClassDrawer: calling classesAPI.getMyClass', Number(classId));
+          d = await classesAPI.getMyClass(Number(classId));
+          console.debug('ViewClassDrawer: classesAPI.getMyClass returned', d && d.id ? { id: d.id } : d);
+        } catch (e) {
+          // not accessible via `mine` or errored — fall back to public endpoint
+          try {
+            console.debug('ViewClassDrawer: getMyClass failed, falling back to classesAPI.getClass', { err: e });
+            d = await classesAPI.getClass(Number(classId));
+            console.debug('ViewClassDrawer: classesAPI.getClass returned', d && d.id ? { id: d.id } : d);
+          } catch (e2) {
+            throw e2;
+          }
+        }
         if (!mounted) return;
         // normalize similar to list normalization
         const normalized: any = {

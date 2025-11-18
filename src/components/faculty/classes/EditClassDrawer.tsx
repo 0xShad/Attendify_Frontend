@@ -437,7 +437,10 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
                     </div>
                     <div className="flex items-center gap-2">
                       {String(assignedSecretary) === String(s.profile_id) ? (
-                        <span className="text-sm text-green-600">Selected</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-green-600">Selected</span>
+                          <Button size="sm" variant="ghost" onClick={() => setAssignedSecretary("")}>Clear</Button>
+                        </div>
                       ) : (
                         <Button size="sm" variant="outline" onClick={() => setAssignedSecretary(String(s.profile_id))}>
                           Select
