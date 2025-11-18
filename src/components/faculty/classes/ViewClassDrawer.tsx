@@ -38,7 +38,7 @@ export default function ViewClassDrawer({ open, classId, selectedClass: selClass
 
     if (selClass) {
       // Map selectedClass (CardClassItem) to Partial<Class>
-      const mapped: Partial<Class> = {
+      const mapped: any = {
         id: selClass.id ? Number(selClass.id) : undefined,
         class_code: selClass.class_code ?? selClass.code ?? null,
         course_id: selClass.course_id != null ? Number(selClass.course_id) : null,
@@ -55,11 +55,14 @@ export default function ViewClassDrawer({ open, classId, selectedClass: selClass
         program_name: selClass.program_name ?? null,
         organization_id: selClass.organization_id ?? null,
         organization_name: selClass.organization_name ?? null,
+        // assigned secretary info (faculty-local card shape may include secretary or secretary_name)
+        assigned_secretary: selClass.assigned_secretary ?? selClass.secretary_id ?? selClass.secretary?.id ?? null,
+        assigned_secretary_name: selClass.assigned_secretary_name ?? selClass.secretary_name ?? selClass.secretary?.name ?? null,
         // pass through schedules if present
         // @ts-ignore
         schedules: selClass.schedules ?? undefined,
       };
-      setData(mapped);
+      setData(mapped as Partial<Class>);
       return () => { mounted = false; };
     }
 
@@ -74,7 +77,7 @@ export default function ViewClassDrawer({ open, classId, selectedClass: selClass
         const d = await classesAPI.getClass(Number(classId));
         if (!mounted) return;
         // normalize similar to list normalization
-        const normalized: Partial<Class> = {
+        const normalized: any = {
           id: Number(d.id),
           class_code: d.class_code ?? null,
           course_id: d.course_id != null ? Number(d.course_id) : null,
@@ -96,8 +99,11 @@ export default function ViewClassDrawer({ open, classId, selectedClass: selClass
           program_name: d.program_name ?? null,
           organization_id: d.organization_id != null ? Number(d.organization_id) : null,
           organization_name: d.organization_name ?? null,
+          // assigned secretary (when provided by backend)
+          assigned_secretary: d.assigned_secretary != null ? Number(d.assigned_secretary) : d.secretary_id != null ? Number(d.secretary_id) : d.secretary?.id != null ? Number(d.secretary.id) : null,
+          assigned_secretary_name: d.assigned_secretary_name ?? d.secretary_name ?? d.secretary?.name ?? null,
         };
-        setData(normalized);
+        setData(normalized as Partial<Class>);
       } catch (err) {
         console.error("Failed to load class", err);
         setData(null);
@@ -160,9 +166,18 @@ export default function ViewClassDrawer({ open, classId, selectedClass: selClass
                 </div>
               </div>
 
-              <div className="mb-3">
-                <Label>Instructor</Label>
-                <Input readOnly value={data.assigned_faculty_name ?? (data.assigned_faculty_id ? `Faculty #${data.assigned_faculty_id}` : "")} />
+              <div className="mb-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Instructor</Label>
+                  <Input readOnly value={data.assigned_faculty_name ?? (data.assigned_faculty_id ? `Faculty #${data.assigned_faculty_id}` : "")} />
+                </div>
+                <div>
+                  <Label>Secretary</Label>
+                  <Input
+                    readOnly
+                    value={(data as any).assigned_secretary_name ?? ((data as any).assigned_secretary != null ? `Secretary #${(data as any).assigned_secretary}` : "Not Assigned Yet")}
+                  />
+                </div>
               </div>
 
               <div className="mb-3">

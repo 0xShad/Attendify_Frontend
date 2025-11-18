@@ -3,41 +3,70 @@
 import React, { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { IconTrash } from "@tabler/icons-react";
 import { useToast } from "@/hooks/use-toast";
 import AddStudentDialog from "@/components/faculty/classes/AddStudentDialog";
+import DeleteEnrolleeDialog from "@/components/faculty/classes/DeleteEnrolleeDialog";
+import { classesAPI } from "@/lib/api/classes";
 
 type Props = { classId?: number | null };
 
-type Student = { id: string; name: string; email: string };
+type Enrollee = {
+  id: number;
+  profile_id?: number | null;
+  user_id?: number | null;
+  full_name?: string | null;
+  email?: string | null;
+  avatar_url?: string | null;
+  enrollment_date?: string | null;
+};
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  try {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleDateString();
+  } catch (e) {
+    return String(value);
+  }
+}
 
 export default function StudentsTab({ classId }: Props) {
   const { toast } = useToast();
-  const [students, setStudents] = useState<Student[]>([]);
+  const [enrollees, setEnrollees] = useState<Enrollee[]>([]);
   const [loading, setLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [enrolleeToDelete, setEnrolleeToDelete] = useState<Enrollee | null>(null);
 
   useEffect(() => {
-    // Placeholder: load mock students when classId changes
-    setLoading(true);
-    setTimeout(() => {
+    let cancelled = false;
+    async function load() {
       if (!classId) {
-        setStudents([]);
-      } else {
-        setStudents([
-          { id: `${classId}-s1`, name: "Alice Cooper", email: "alice.cooper@student.edu" },
-          { id: `${classId}-s2`, name: "Bob Wilson", email: "bob.wilson@student.edu" },
-        ]);
+        setEnrollees([]);
+        return;
       }
-      setLoading(false);
-    }, 250);
-  }, [classId]);
+      setLoading(true);
+      try {
+        const data = await classesAPI.getMyClassEnrollees(Number(classId));
+        if (cancelled) return;
+        setEnrollees(Array.isArray(data) ? data : []);
+      } catch (err: any) {
+        console.error('Failed to load enrollees:', err);
+        if (!cancelled) toast({ title: 'Error', description: 'Unable to load students.' });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [classId, toast]);
 
-  const handleRemove = (id: string) => {
-    if (!confirm("Remove student from class?")) return;
-    setStudents((s) => s.filter((x) => x.id !== id));
-    toast({ title: "Removed", description: "Student removed (local placeholder)" });
+  const handleRemoveClick = (e: Enrollee) => {
+    setEnrolleeToDelete(e);
+    setDeleteOpen(true);
   };
 
   return (
@@ -52,15 +81,24 @@ export default function StudentsTab({ classId }: Props) {
       </div>
 
       {/* Use the faculty AddStudentDialog when Add Student is clicked */}
-      <AddStudentDialog
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        classId={classId}
-        onAdded={() => {
-          // Simple local update to show a newly added placeholder student
-          setStudents((s) => [{ id: `added-${Date.now()}`, name: "New Student", email: "new.student@example.com" }, ...s]);
-        }}
-      />
+      <DeleteEnrolleeDialog open={deleteOpen} onOpenChange={setDeleteOpen} classId={classId} enrollee={enrolleeToDelete ? { id: enrolleeToDelete.id, full_name: enrolleeToDelete.full_name } : null} onDeleted={(id) => {
+        // remove from local list after successful delete
+        setEnrollees((p) => p.filter((x) => x.id !== id));
+        setEnrolleeToDelete(null);
+      }} />
+
+      <AddStudentDialog open={addOpen} onOpenChange={setAddOpen} classId={classId} onAdded={async () => {
+        // refresh list after adding
+        try {
+          setLoading(true);
+          const data = await classesAPI.getMyClassEnrollees(Number(classId));
+          setEnrollees(Array.isArray(data) ? data : []);
+        } catch (err: any) {
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      }} />
 
       <div className="overflow-x-auto">
         <div className="max-h-[40vh] overflow-auto">
@@ -79,12 +117,12 @@ export default function StudentsTab({ classId }: Props) {
                   <TableCell colSpan={4} className="text-muted-foreground">Loading students…</TableCell>
                 </TableRow>
               )}
-              {!loading && students.length === 0 && (
+              {!loading && enrollees.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-muted-foreground">No students found for this class.</TableCell>
                 </TableRow>
               )}
-              {!loading && students.map((e, idx) => (
+              {!loading && enrollees.map((e, idx) => (
                 <TableRow key={e.id}>
                   <TableCell className="w-12">
                     <div className="w-8 h-8">
@@ -93,10 +131,10 @@ export default function StudentsTab({ classId }: Props) {
                       </Avatar>
                     </div>
                   </TableCell>
-                  <TableCell>{e.name}</TableCell>
-                  <TableCell className="font-mono">—</TableCell>
+                  <TableCell>{e.full_name ?? "—"}</TableCell>
+                  <TableCell className="font-mono">{formatDate(e.enrollment_date ?? null)}</TableCell>
                   <TableCell className="text-right">
-                    <button title="Remove" className="p-1 rounded hover:bg-gray-100 text-rose-600" onClick={() => handleRemove(e.id)}>
+                    <button title="Remove" className="p-1 rounded hover:bg-gray-100 text-rose-600" onClick={() => handleRemoveClick(e)}>
                       <IconTrash className="w-4 h-4" />
                     </button>
                   </TableCell>

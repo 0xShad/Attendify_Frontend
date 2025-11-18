@@ -420,14 +420,18 @@ export async function listAvailableStudentsForClass(
   skip: number = 0,
   limit: number = 100
 ): Promise<any[]> {
-  // Fetch the class to determine its organization, then list students for that organization.
+  // Determine the organization for the provided class, then ask the backend
+  // for students under that organization. The backend expects a numeric
+  // organization id in the path (e.g. `/organizations/{id}/students`). Some
+  // deployments do not implement a `/organizations/mine/students` shortcut,
+  // so avoid forwarding the literal string "mine" which causes integer
+  // parsing errors on the backend.
   try {
+    // Fetch the class to determine its organization id. If we can't determine
+    // the organization, return an empty list so the UI can handle gracefully.
     const cls = await getClass(classId).catch(() => null);
     const orgId = cls?.organization_id ?? cls?.organization?.id ?? null;
-    if (!orgId) {
-      // If we can't determine organization, return empty list instead of throwing so UI can handle gracefully
-      return [];
-    }
+    if (!orgId) return [];
 
     const url = new URL(`${API_BASE_URL}/organizations/${orgId}/students`);
     url.searchParams.append('skip', String(skip));
@@ -450,13 +454,68 @@ export async function listAvailableStudentsForClass(
   }
 }
 
+// Faculty-scoped candidate listing for a class. Prefer the same-origin
+// `/api/organizations/mine/students` proxy so the backend can resolve the
+// caller via HTTP-only cookies / auth and enforce organization scoping.
+// If the mine proxy is not available, fall back to the compatibility
+// path that determines the class' organization id and calls
+// `/organizations/{id}/students` on the backend.
+export async function listAvailableStudentsForMyClass(
+  classId: number,
+  q?: string | null,
+  skip: number = 0,
+  limit: number = 100
+): Promise<any[]> {
+  // Try the same-origin mine proxy first
+  try {
+    const mineUrl = `/api/organizations/mine/students?skip=${encodeURIComponent(String(skip))}&limit=${encodeURIComponent(String(limit))}${q ? `&q=${encodeURIComponent(String(q))}` : ''}`;
+    const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(mineUrl, { method: 'GET' }));
+    if (res.ok) {
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    }
+    // If mine endpoint explicitly not found, fall back to compatibility path
+    if (res.status !== 404) {
+      try {
+        const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+        console.debug('listAvailableStudentsForMyClass: /api/organizations/mine/students returned non-ok', res.status, body);
+      } catch (e) {
+        // ignore
+      }
+    }
+  } catch (err) {
+    console.debug('listAvailableStudentsForMyClass: failed to call mine proxy, falling back', err);
+  }
+
+  // Compatibility fallback: determine org id from class and call numeric path
+  const cls = await getClass(classId).catch(() => null);
+  const orgId = cls?.organization_id ?? cls?.organization?.id ?? null;
+  if (!orgId) return [];
+
+  const url = new URL(`${API_BASE_URL}/organizations/${orgId}/students`);
+  url.searchParams.append('skip', String(skip));
+  url.searchParams.append('limit', String(limit));
+  if (q) url.searchParams.append('q', String(q));
+
+  const res2 = await import("./fetchClient").then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
+  if (res2.status === 404) return [];
+  if (!res2.ok) {
+    const body = await res2.text().catch(() => res2.statusText || `HTTP ${res2.status}`);
+    throw new Error(String(body));
+  }
+  const data2 = await res2.json();
+  return Array.isArray(data2) ? data2 : [];
+}
+
 // Add an enrollee (associate a profile/user to the class)
 export async function addEnrolleeToClass(
   classId: number,
   payload: { profile_id?: number | null; user_id?: number | null } | Array<{ profile_id?: number | null; user_id?: number | null }>
 ): Promise<any> {
-  // The backend now accepts either a single enrollee object or a list of them
-  const url = `${API_BASE_URL}/classes/${classId}/enrollees`;
+  // Use same-origin proxy for class-owned enrollee creation so HTTP-only
+  // cookies and server-side auth are forwarded. The backend accepts either
+  // a single enrollee object or a list of them and returns the created items.
+  const url = `/api/classes/mine/${encodeURIComponent(String(classId))}/enrollees`;
   try {
     const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(url, {
       method: 'POST',
@@ -475,7 +534,9 @@ export async function addEnrolleeToClass(
 
 // Delete an enrollee from a class by enrollee record id
 export async function deleteEnrolleeFromClass(classId: number, enrolleeId: number): Promise<null> {
-  const url = `${API_BASE_URL}/classes/${classId}/enrollees/${enrolleeId}`;
+  // Use same-origin proxy so faculty-only 'mine' route is used and HTTP-only
+  // cookies / server auth are forwarded by Next.js.
+  const url = `/api/classes/mine/${encodeURIComponent(String(classId))}/enrollees/${encodeURIComponent(String(enrolleeId))}`;
   try {
     const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(url, {
       method: 'DELETE',
@@ -491,6 +552,26 @@ export async function deleteEnrolleeFromClass(classId: number, enrolleeId: numbe
     // server returns 204 on success
     return null;
   } catch (err: any) {
+    // If the proxy failed (for example returned a 502 with {detail: 'Proxy error'})
+    // it's possible the backend actually processed the request but the proxy
+    // experienced a transient error when streaming the response. As a
+    // best-effort fallback, verify whether the enrollee still exists by
+    // fetching the class enrollees directly from the backend API. If the
+    // enrollee is absent, treat the delete as successful.
+    try {
+      // Prefer the same-origin "mine" proxy when verifying deletion so we
+      // exercise the same auth/ownership checks as the delete request.
+      const list = await getMyClassEnrollees(classId).catch(() => null);
+      if (Array.isArray(list)) {
+        const still = list.find((x: any) => Number(x.id) === Number(enrolleeId));
+        if (!still) {
+          // Deletion likely succeeded on the backend despite proxy error.
+          return null;
+        }
+      }
+    } catch (verifyErr) {
+      // ignore verification errors and fall through to rethrow original
+    }
     throw err;
   }
 }
@@ -508,6 +589,7 @@ export const classesAPI = {
   deleteMyClass,
   listEnrolleesForClass,
   listAvailableStudentsForClass,
+  listAvailableStudentsForMyClass,
   addEnrolleeToClass,
   deleteEnrolleeFromClass,
   getMyClassEnrollees,
