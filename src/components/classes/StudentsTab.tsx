@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
 import { IconTrash } from "@tabler/icons-react";
 import DeleteEnrolleeDialog from "./DeleteEnrolleeDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -43,20 +44,11 @@ export default function StudentsTab({ classId }: Props) {
   const [enrolleeToDelete, setEnrolleeToDelete] = useState<Enrollee | null>(null);
   const [failedAvatarIds, setFailedAvatarIds] = useState<Record<number, boolean>>({});
 
+  // use shared resolver for avatar URLs
   const raw = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
-  const BACKEND_ORIGIN = String(raw).replace(/\/api\/(v\d+|v1)\/?$/i, "");
-  // Debug: expose resolved origin for troubleshooting avatar requests
   React.useEffect(() => {
-    console.debug("StudentsTab BACKEND_ORIGIN:", BACKEND_ORIGIN);
-  }, [BACKEND_ORIGIN]);
-
-  function resolveAvatarUrl(u?: string | null) {
-    if (!u) return null;
-    if (/^https?:\/\//i.test(u)) return u;
-    // normalize leading slash
-    if (u.startsWith('/')) return `${BACKEND_ORIGIN}${u}`;
-    return `${BACKEND_ORIGIN}/${u}`;
-  }
+    console.debug("StudentsTab BACKEND_ORIGIN (from env):", raw);
+  }, [raw]);
 
   useEffect(() => {
     let cancelled = false;

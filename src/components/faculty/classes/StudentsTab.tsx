@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
 import { IconTrash } from "@tabler/icons-react";
 import { useToast } from "@/hooks/use-toast";
 import AddStudentDialog from "@/components/faculty/classes/AddStudentDialog";
@@ -40,6 +41,7 @@ export default function StudentsTab({ classId }: Props) {
   const [addOpen, setAddOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [enrolleeToDelete, setEnrolleeToDelete] = useState<Enrollee | null>(null);
+  const [failedAvatarIds, setFailedAvatarIds] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -127,7 +129,11 @@ export default function StudentsTab({ classId }: Props) {
                   <TableCell className="w-12">
                     <div className="w-8 h-8">
                       <Avatar>
-                        <AvatarFallback className="text-xs">{String(idx + 1)}</AvatarFallback>
+                        {e.avatar_url && !failedAvatarIds[e.id] ? (
+                          <AvatarImage src={String(resolveAvatarUrl(e.avatar_url) ?? undefined)} alt={e.full_name ?? 'avatar'} onError={() => setFailedAvatarIds((p) => ({ ...p, [e.id]: true }))} />
+                        ) : (
+                          <AvatarFallback className="text-xs">{String(idx + 1)}</AvatarFallback>
+                        )}
                       </Avatar>
                     </div>
                   </TableCell>

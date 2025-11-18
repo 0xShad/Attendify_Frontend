@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
 import { useToast } from "@/hooks/use-toast";
 import { classesAPI } from "@/lib/api/classes";
 
@@ -41,14 +42,7 @@ export default function AddStudentDialog({ open, onOpenChange, classId, onAdded 
   const [selectedKeys, setSelectedKeys] = useState<Record<string, boolean>>({});
   const [bulkAdding, setBulkAdding] = useState(false);
 
-  function resolveAvatarUrl(u?: string | null) {
-    if (!u) return null;
-    if (/^https?:\/\//i.test(u)) return u;
-    const raw = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
-    const BACKEND_ORIGIN = String(raw).replace(/\/api\/v\d+\/?$/i, "");
-    if (u.startsWith('/')) return `${BACKEND_ORIGIN}${u}`;
-    return `${BACKEND_ORIGIN}/${u}`;
-  }
+  // use shared resolveAvatarUrl helper
 
   function resetState() {
     setSearchTerm("");
