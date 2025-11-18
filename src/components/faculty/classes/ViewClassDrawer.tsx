@@ -1,185 +1,202 @@
 "use client";
 
 import React from "react";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerFooter,
-  DrawerClose,
-} from "@/components/ui/drawer";
-import type { ClassItem as CardClassItem } from "./ClassCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { UserPlus } from "lucide-react";
-import { MoreVertical, Eye, Send, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { classesAPI } from "@/lib/api/classes";
+import type { Class } from "@/components/classes/types";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import StudentsTab from "@/components/faculty/classes/StudentsTab";
+import SchedulesTab from "@/components/faculty/classes/SchedulesTab";
 
-type ClassMode = "Online" | "In-Person" | "Hybrid";
-
-interface ViewClassDrawerProps {
+type Props = {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  selectedClass: CardClassItem | null;
-  onOpenEnroll?: () => void;
-  onViewStudent?: (student: { id: string; name: string; email: string }) => void;
-}
+  classId?: number | null;
+  // for compatibility with callers in `faculty` namespace that pass the selected class object
+  selectedClass?: any;
+  // two closing patterns supported: onClose() or onOpenChange(boolean)
+  onClose?: () => void;
+  onOpenChange?: (open: boolean) => void;
+};
 
-const ViewClassDrawer: React.FC<ViewClassDrawerProps> = ({
-  open,
-  onOpenChange,
-  selectedClass,
-  onOpenEnroll,
-  onViewStudent,
-}) => {
+export default function ViewClassDrawer({ open, classId, selectedClass: selClass, onClose, onOpenChange }: Props) {
+  const [loading, setLoading] = React.useState(false);
+  const [data, setData] = React.useState<Partial<Class> | null>(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    // If a selectedClass object was provided (faculty callers), derive data from it and skip backend fetch.
+    if (!open) {
+      setData(null);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    if (selClass) {
+      // Map selectedClass (CardClassItem) to Partial<Class>
+      const mapped: Partial<Class> = {
+        id: selClass.id ? Number(selClass.id) : undefined,
+        class_code: selClass.class_code ?? selClass.code ?? null,
+        course_id: selClass.course_id != null ? Number(selClass.course_id) : null,
+        course_code: selClass.course_code ?? null,
+        course_name: selClass.course_name ?? null,
+        description: selClass.description ?? null,
+        room: selClass.room ?? null,
+        assigned_faculty_id: selClass.assigned_faculty_id ?? null,
+        assigned_faculty_name: selClass.assigned_faculty_name ?? null,
+        academic_year: selClass.academic_year ?? null,
+        semester: selClass.semester ?? null,
+        students_count: selClass.enrolledStudents ?? selClass.students_count ?? undefined,
+        program_id: selClass.program_id ?? null,
+        program_name: selClass.program_name ?? null,
+        organization_id: selClass.organization_id ?? null,
+        organization_name: selClass.organization_name ?? null,
+        // pass through schedules if present
+        // @ts-ignore
+        schedules: selClass.schedules ?? undefined,
+      };
+      setData(mapped);
+      return () => { mounted = false; };
+    }
+
+    if (!classId) {
+      setData(null);
+      return () => { mounted = false; };
+    }
+
+    setLoading(true);
+    (async () => {
+      try {
+        const d = await classesAPI.getClass(Number(classId));
+        if (!mounted) return;
+        // normalize similar to list normalization
+        const normalized: Partial<Class> = {
+          id: Number(d.id),
+          class_code: d.class_code ?? null,
+          course_id: d.course_id != null ? Number(d.course_id) : null,
+          course_code: d.course_code ?? null,
+          course_name: d.course_name ?? null,
+          description: d.description ?? null,
+          room: d.room ?? null,
+          assigned_faculty_id:
+            d.assigned_faculty_id != null
+              ? Number(d.assigned_faculty_id)
+              : d.assigned_faculty?.id != null
+              ? Number(d.assigned_faculty.id)
+              : null,
+          assigned_faculty_name: d.assigned_faculty_name ?? d.assigned_faculty?.name ?? null,
+          academic_year: d.academic_year ?? null,
+          semester: d.semester ?? null,
+          students_count: d.students_count ?? undefined,
+          program_id: d.program_id != null ? Number(d.program_id) : null,
+          program_name: d.program_name ?? null,
+          organization_id: d.organization_id != null ? Number(d.organization_id) : null,
+          organization_name: d.organization_name ?? null,
+        };
+        setData(normalized);
+      } catch (err) {
+        console.error("Failed to load class", err);
+        setData(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [open, classId, selClass]);
+
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[90vh]">
-        <DrawerHeader>
-          <DrawerTitle>{selectedClass ? (selectedClass.class_code ?? selectedClass.course_name ?? `Class ${selectedClass.id}`) : "Class Details"}</DrawerTitle>
-        </DrawerHeader>
-
-        <div className="px-4 pb-4 space-y-6 overflow-y-auto">
-          {selectedClass && (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { if (onOpenChange) onOpenChange(false); if (onClose) onClose(); } }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>View Class</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 overflow-y-auto max-h-[70vh] sm:max-h-[60vh]">
+          {loading ? (
+            <div>Loading…</div>
+          ) : data ? (
             <>
-              {/* Class Information */}
-              <div className="space-y-4">
-                <h3 className="font-medium text-sm text-muted-foreground">Class Information</h3>
-                <div className="grid grid-cols-1 gap-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Class Code:</span>
-                    <span className="font-medium">{selectedClass?.class_code ?? '-'}</span>
+              {/* Header summary */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                <div className="space-y-2">
+                  <div>
+                    <Label>Class code</Label>
+                    <Input readOnly value={data.class_code ?? ""} />
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Schedule:</span>
-                    <span className="font-medium">
-                      {selectedClass?.schedules && selectedClass.schedules.length > 0
-                        ? (selectedClass.schedules[0].type === 'normal'
-                            ? `${selectedClass.schedules[0].day_of_week ?? ''} ${selectedClass.schedules[0].start_time?.slice(0,5) || ''}-${selectedClass.schedules[0].end_time?.slice(0,5) || ''}`
-                            : `${selectedClass.schedules[0].date ?? ''} ${selectedClass.schedules[0].start_time?.slice(0,5) || ''}-${selectedClass.schedules[0].end_time?.slice(0,5) || ''}`)
-                        : (selectedClass?.room ?? 'Not specified')}
-                    </span>
+                  <div>
+                    <Label>Course</Label>
+                    <Input readOnly value={(data.course_code ? `${data.course_code} — ` : "") + (data.course_name ?? "")} />
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Mode:</span>
-                    <Badge variant="outline">{selectedClass && (selectedClass.schedules && selectedClass.schedules.some(s => (s.modes ?? []).includes('online')) ? 'Online' : 'In-Person')}</Badge>
+                  <div>
+                    <Label>Program</Label>
+                    <Input readOnly value={data.program_name ?? ""} />
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Location:</span>
-                    <span className="font-medium">{selectedClass?.room || "Not specified"}</span>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <Label>Organization</Label>
+                    <Input readOnly value={data.organization_name ?? ""} />
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status:</span>
-                    <Badge variant={selectedClass?.status === "Active" ? "default" : "secondary"}>{selectedClass?.status ?? 'Active'}</Badge>
+                  <div>
+                    <Label>Room</Label>
+                    <Input readOnly value={data.room ?? ""} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label>Academic year</Label>
+                      <Input readOnly value={data.academic_year ?? ""} />
+                    </div>
+                    <div>
+                      <Label>Semester</Label>
+                      <Input readOnly value={data.semester ?? ""} />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Enrolled Students Table */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-sm text-muted-foreground">Enrolled Students ({selectedClass.enrolledStudents})</h3>
-                  <Button size="sm" variant="outline" onClick={() => onOpenEnroll?.() }>
-                    <UserPlus className="w-3 h-3 mr-1" />
-                    Enroll
-                  </Button>
-                </div>
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[50px]">#</TableHead>
-                        <TableHead>Student</TableHead>
-                        <TableHead className="text-right">Attendance</TableHead>
-                        <TableHead className="w-[70px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {Array.from({ length: selectedClass.enrolledStudents }, (_, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="font-mono text-xs">{String(i + 1).padStart(2, "0")}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="w-7 h-7">
-                                <AvatarFallback className="text-xs">{`S${i + 1}`}</AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-medium text-sm">Student {i + 1}</div>
-                                <div className="text-xs text-muted-foreground">student{i + 1}@university.edu</div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="text-sm font-medium">{Math.floor(Math.random() * 20) + 80}%</div>
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreVertical className="w-3 h-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => onViewStudent?.({ id: `student-${i}`, name: `Student ${i + 1}`, email: `student${i + 1}@university.edu` })}>
-                                  <Eye className="w-3 h-3 mr-2" />
-                                  View Profile
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <Send className="w-3 h-3 mr-2" />
-                                  Send Message
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600">
-                                  <Trash2 className="w-3 h-3 mr-2" />
-                                  Remove
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+              <div className="mb-3">
+                <Label>Instructor</Label>
+                <Input readOnly value={data.assigned_faculty_name ?? (data.assigned_faculty_id ? `Faculty #${data.assigned_faculty_id}` : "")} />
               </div>
 
-              {/* Recent Sessions (show up to 3 schedules if available) */}
-              <div className="space-y-4">
-                <h3 className="font-medium text-sm text-muted-foreground">Recent Sessions</h3>
-                <div className="space-y-3">
-                  {(selectedClass?.schedules && selectedClass.schedules.length > 0) ? (
-                    selectedClass.schedules.slice(0, 3).map((s) => (
-                      <div key={s.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
-                        <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 rounded-full bg-green-500" />
-                          <div>
-                            <div className="text-sm font-medium">{s.type === 'normal' ? `${s.day_of_week ?? ''}` : `${s.date ?? ''}`}</div>
-                            <div className="text-xs text-muted-foreground">{formatTimeRange(s.start_time, s.end_time)}</div>
-                          </div>
-                        </div>
-                        <div className="text-sm font-medium">{Math.floor(Math.random() * 10) + 85}% attended</div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-sm text-muted-foreground">No recent sessions available</div>
-                  )}
-                </div>
+              <div className="mb-3">
+                <Label>Description</Label>
+                <Input readOnly value={data.description ?? ""} />
+              </div>
+
+              {/* Tabs */}
+              <div className="w-full">
+                <Tabs defaultValue="students">
+                <TabsList>
+                  <TabsTrigger value="students">Students</TabsTrigger>
+                  <TabsTrigger value="schedules">Schedules</TabsTrigger>
+                </TabsList>
+                <TabsContent value="students">
+                  <div className="pt-2">
+                    <StudentsTab classId={data.id ?? undefined} />
+                  </div>
+                </TabsContent>
+                <TabsContent value="schedules">
+                  <div className="pt-2">
+                    <SchedulesTab classId={data.id ?? undefined} />
+                  </div>
+                </TabsContent>
+                </Tabs>
               </div>
             </>
+          ) : (
+            <div>No class selected</div>
           )}
         </div>
 
-        <DrawerFooter>
-          <DrawerClose asChild>
-            <Button variant="outline" className="w-full">Close</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+        
+      </DialogContent>
+    </Dialog>
   );
-};
-
-export default ViewClassDrawer;
+}
