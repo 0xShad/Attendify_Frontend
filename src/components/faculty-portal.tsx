@@ -219,6 +219,22 @@ export function FacultyPortal() {
     "dashboard" | "classes" | "attendance" | "reports" | "announcements"
   >(initialTab);
 
+  // Persist the active tab in the URL so a browser refresh returns to the same tab.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      params.set("tab", activeTab);
+      const search = params.toString();
+      const newUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname;
+      // Use replaceState to avoid adding history entries when switching tabs
+      window.history.replaceState(null, "", newUrl);
+    } catch (err) {
+      // non-fatal
+      console.warn("Failed to persist active tab in URL", err);
+    }
+  }, [activeTab]);
+
   // Update tab from URL params
   useEffect(() => {
     const tabParam = searchParams?.get("tab") as
