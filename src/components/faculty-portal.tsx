@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   IconHome,
@@ -74,6 +74,7 @@ import {
 import ClassesManagement from "@/components/faculty/classes/ClassesManagement";
 import ActiveSessions from "@/components/faculty/classes/ActiveSessions";
 import { classesAPI } from "@/lib/api";
+import { checkAuth } from "@/lib/clientAuth";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -206,6 +207,7 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
 export function FacultyPortal() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Navigation - check URL params for initial tab
   const initialTab =
@@ -497,6 +499,21 @@ export function FacultyPortal() {
   );
 
   // Handlers
+  function handleNav(tabId: typeof navigationItems[number]['id']) {
+    // Optimistically switch tabs for snappy UI, then verify auth in background
+    setActiveTab(tabId as any);
+
+    checkAuth()
+      .then((ok) => {
+        if (!ok) {
+          const redirectTo = encodeURIComponent(window.location.pathname || '/');
+          router.push(`/auth/login?redirect=${redirectTo}`);
+        }
+      })
+      .catch(() => {
+        // ignore network errors here; don't block UI
+      });
+  }
   const handleAddClass = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!newCourseId) {
@@ -698,16 +715,7 @@ export function FacultyPortal() {
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         isActive={activeTab === item.id}
-                        onClick={() =>
-                          setActiveTab(
-                            item.id as
-                              | "dashboard"
-                              | "classes"
-                              | "attendance"
-                              | "reports"
-                              | "announcements"
-                          )
-                        }
+                        onClick={() => handleNav(item.id)}
                         className="w-full justify-start"
                         size="lg"
                       >
