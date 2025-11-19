@@ -141,6 +141,10 @@ interface Class {
   description?: string;
   cutoffTime?: number;
   locationRadius?: number;
+  // Active schedule metadata from backend
+  is_active?: boolean;
+  current_schedule_id?: number | null;
+  current_schedule_type?: string | null;
 }
 
 interface Student {
@@ -402,6 +406,10 @@ export function FacultyPortal() {
                 code: c.class_code ?? c.course_code ?? "",
                 schedule: scheduleStr || (c.room ? String(c.room) : ""),
                 mode,
+                // Active-schedule metadata
+                is_active: Boolean(c.is_active),
+                current_schedule_id: c.current_schedule_id ?? null,
+                current_schedule_type: c.current_schedule_type ?? null,
                 enrolledStudents: c.enrolled_students ?? c.students_count ?? 0,
                 totalSessions: c.total_sessions ?? 0,
                 completedSessions: c.completed_sessions ?? 0,

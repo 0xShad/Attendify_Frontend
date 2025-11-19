@@ -10,6 +10,7 @@ import type { ClassItem } from "./ClassCard";
 import CreateClassDrawer from "./CreateClassDrawer";
 import ViewClassDrawer from "./ViewClassDrawer";
 import EditClassDrawer from "./EditClassDrawer";
+import StartSessionDialog from "./StartSessionDialog";
 import SearchBar from "./SearchBar";
 import ClassesFilters from "./ClassesFilters";
 import DeleteClassDialog from "./DeleteClassDialog";
@@ -39,6 +40,8 @@ export default function ClassesManagement() {
   const [editClassOpen, setEditClassOpen] = useState(false);
   // enroll drawer removed
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
+  const [startDialogOpen, setStartDialogOpen] = useState(false);
+  const [startClassId, setStartClassId] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [classToDelete, setClassToDelete] = useState<ClassItem | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -159,6 +162,13 @@ export default function ClassesManagement() {
             academic_year: d.academic_year ?? null,
             semester: d.semester ?? null,
             schedules: Array.isArray(d.schedules) ? d.schedules : [],
+            // Active schedule metadata
+            is_active: Boolean(d.is_active),
+            current_schedule_id: d.current_schedule_id ?? null,
+            current_schedule_type: d.current_schedule_type ?? null,
+            // Active session metadata from backend
+            session_active: Boolean(d.session_active),
+            active_session_id: d.active_session_id ?? null,
             enrolledStudents: d.enrolled_students ?? d.students_count ?? 0,
             attendanceRate: typeof d.attendance_rate === 'number' ? d.attendance_rate : (d.attendance_rate ? Number(d.attendance_rate) : 0),
             status: d.status ?? 'Active',
@@ -307,6 +317,13 @@ export default function ClassesManagement() {
             academic_year: d.academic_year ?? null,
             semester: d.semester ?? null,
             schedules: Array.isArray(d.schedules) ? d.schedules : [],
+            // Active schedule metadata
+            is_active: Boolean(d.is_active),
+            current_schedule_id: d.current_schedule_id ?? null,
+            current_schedule_type: d.current_schedule_type ?? null,
+            // Active session metadata from backend
+            session_active: Boolean(d.session_active),
+            active_session_id: d.active_session_id ?? null,
             enrolledStudents: d.enrolled_students ?? d.students_count ?? 0,
             attendanceRate: typeof d.attendance_rate === 'number' ? d.attendance_rate : (d.attendance_rate ? Number(d.attendance_rate) : 0),
             status: d.status ?? 'Active',
@@ -440,11 +457,21 @@ export default function ClassesManagement() {
         setSelectedClass={(c) => setSelectedClass(c)}
         setViewClassOpen={setViewClassOpen}
         setEditClassOpen={setEditClassOpen}
-        handleStartSession={(classId: string) => { /* noop for now */ }}
+        handleStartSession={(classId: string) => { setStartClassId(classId); setStartDialogOpen(true); }}
         onDelete={(c) => {
           setClassToDelete(c);
           setDeleteError(null);
           setDeleteOpen(true);
+        }}
+      />
+
+      <StartSessionDialog
+        open={startDialogOpen}
+        onOpenChange={(v) => setStartDialogOpen(v)}
+        classId={startClassId}
+        onCreated={async (session) => {
+          // refresh list to reflect created session / attendance metadata
+          try { await refresh(); } catch (e) {}
         }}
       />
 

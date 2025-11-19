@@ -54,6 +54,13 @@ export interface ClassItem {
   student_count?: number;
   attendance_rate?: number;
   status?: "Active" | "Inactive" | "Scheduled";
+  // Active schedule metadata added by backend (see updated /classes/faculty/{id} response)
+  is_active?: boolean;
+  current_schedule_id?: number | null;
+  current_schedule_type?: string | null;
+  // Active session metadata added by backend
+  session_active?: boolean;
+  active_session_id?: number | null;
 }
 
 interface Props {
@@ -89,6 +96,13 @@ export default function ClassCard({
                     <h3 className="text-base sm:text-lg font-semibold truncate">
                       {classItem.class_code ? `${classItem.class_code}` : `Class ${classItem.id}`}
                     </h3>
+                    {classItem.session_active && (
+                      <div className="mt-1">
+                        <Badge variant="outline" className="text-xs bg-emerald-50 border-emerald-200 text-emerald-800">
+                          Live session{classItem.active_session_id ? ` — #${classItem.active_session_id}` : ''}
+                        </Badge>
+                      </div>
+                    )}
                     <div className="text-sm text-muted-foreground truncate">{classItem.course_name ?? ''}</div>
                   </div>
                 </div>
@@ -109,12 +123,29 @@ export default function ClassCard({
               </div>
             </div>
             {/* Primary action placed bottom-left for easy access */}
-            <div className="mt-auto mb-3">
-              <Button size="sm" className="w-full sm:w-auto flex items-center justify-center" onClick={() => onStartSession(classItem.id)}>
-                <Play className="w-4 h-4" />
-                <span className="hidden sm:inline ml-2">Start Session</span>
-              </Button>
-            </div>
+            {classItem.is_active && (
+              <div className="mt-auto mb-3">
+                {classItem.session_active ? (
+                  <Button
+                    size="sm"
+                    className="w-full sm:w-auto flex items-center justify-center"
+                    disabled
+                  >
+                    <Play className="w-4 h-4" />
+                    <span className="hidden sm:inline ml-2">Session active</span>
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="w-full sm:w-auto flex items-center justify-center"
+                    onClick={() => onStartSession(classItem.id)}
+                  >
+                    <Play className="w-4 h-4" />
+                    <span className="hidden sm:inline ml-2">Start Session</span>
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Middle: schedules and room */}
