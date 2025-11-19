@@ -351,6 +351,23 @@ export function FacultyPortal() {
 
     (async () => {
       try {
+        // Ensure the user session is still valid before calling backend endpoints.
+        // If the session is expired, redirect to login so server-side cookies
+        // and ownership checks behave correctly (mirrors AdminPortal behavior).
+        try {
+          const ok = await checkAuth();
+          if (!ok) {
+            const redirectTo = encodeURIComponent(window.location.pathname || '/');
+            router.push(`/auth/login?redirect=${redirectTo}`);
+            return;
+          }
+        } catch (err) {
+          // On network/auth check error, redirect to login as a safe fallback.
+          const redirectTo = encodeURIComponent(window.location.pathname || '/');
+          router.push(`/auth/login?redirect=${redirectTo}`);
+          return;
+        }
+
         setIsLoading(true);
         const backend = await classesAPI.listClassesForFaculty(Number(user.id));
         if (!mounted) return;
@@ -522,6 +539,19 @@ export function FacultyPortal() {
         description: "Course id is required",
         variant: "destructive",
       });
+      return;
+    }
+    // Verify session before performing create operation.
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
       return;
     }
 
