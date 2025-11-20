@@ -123,8 +123,8 @@ export default function SchoolProgramStep({
             {programsLoading ? (
               <div className="p-3 text-sm text-muted-foreground">Loading programs…</div>
             ) : programOptions && programOptions.length > 0 ? (
-              programOptions.map((p) => (
-                <SelectItem key={p.id} value={p.code}>{p.name ? `${p.code} — ${p.name}` : p.code}</SelectItem>
+                programOptions.map((p) => (
+                  <SelectItem key={p.id} value={String(p.id)}>{p.name ? `${p.code} — ${p.name}` : p.code}</SelectItem>
               ))
             ) : (
               <>
