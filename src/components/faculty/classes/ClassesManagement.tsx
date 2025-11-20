@@ -469,6 +469,8 @@ export default function ClassesManagement({ onClassChanged }: { onClassChanged?:
         open={startDialogOpen}
         onOpenChange={(v) => setStartDialogOpen(v)}
         classId={startClassId}
+        // pass classCode if we have the class in our list so toasts show the proper code
+        classCode={startClassId ? (classes.find(c => c.id === String(startClassId))?.class_code ?? null) : null}
         onCreated={async (session) => {
           // refresh list to reflect created session / attendance metadata
           try { await refresh(); } catch (e) {}

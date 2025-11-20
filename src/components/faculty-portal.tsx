@@ -213,64 +213,85 @@ export function FacultyPortal() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Navigation - initialize active tab.
-  // Prefer reading `window.location` during the initial client render so
-  // a full browser refresh (hard reload) respects the `?tab=` query param.
-  // Fall back to `useSearchParams()` or `dashboard` if unavailable.
+  // Navigation - initialize active tab from server-friendly source.
+  // Use Next's `useSearchParams()` (works during SSR) so the server
+  // render and initial client render match. We will read `window.location`
+  // and `localStorage` later in a mount effect to handle hard reloads.
   const [activeTab, setActiveTab] = useState<
     "dashboard" | "classes" | "attendance" | "reports" | "announcements"
-  >(() => {
-    try {
-      if (typeof window !== "undefined") {
-        // 1) Prefer explicit URL param
-        const params = new URLSearchParams(window.location.search);
-        const t = params.get("tab") as
-          | "dashboard"
-          | "classes"
-          | "attendance"
-          | "reports"
-          | "announcements"
-          | null;
-        if (
-          t &&
-          ["dashboard", "classes", "attendance", "reports", "announcements"].includes(t)
-        ) {
-          return t as any;
-        }
+  >(() => (searchParams?.get("tab") as
+    | "dashboard"
+    | "classes"
+    | "attendance"
+    | "reports"
+    | "announcements") || "dashboard");
 
-        // 2) Fall back to localStorage if present (helps across reloads when URL updates race)
+  // Persist the active tab in the URL so a browser refresh returns to the same tab.
+  // Track whether we've reconciled the URL/localStorage into state on mount.
+  const initialUrlSyncRef = React.useRef(false);
+
+  // Ensure tab is restored on a full browser refresh where Next's
+  // `useSearchParams` may not be populated immediately server-side.
+  // Read from `window.location` on mount and apply the tab if present.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const t = params.get("tab");
+      if (
+        t &&
+        ["dashboard", "classes", "attendance", "reports", "announcements"].includes(t) &&
+        t !== activeTab
+      ) {
+        setActiveTab(t as any);
+      } else if (!t) {
+        // If no explicit tab param, try localStorage fallback.
         try {
           const stored = window.localStorage.getItem("faculty_active_tab");
           if (
             stored &&
-            ["dashboard", "classes", "attendance", "reports", "announcements"].includes(stored)
+            ["dashboard", "classes", "attendance", "reports", "announcements"].includes(stored) &&
+            stored !== activeTab
           ) {
-            return stored as any;
+            setActiveTab(stored as any);
           }
         } catch (e) {
           // ignore localStorage issues
         }
       }
     } catch (err) {
-      // ignore and fallback
+      // non-fatal
+      console.warn("Failed to read tab from window.location", err);
     }
-
-    // 3) Next.js searchParams as last fallback, then default
-    return (
-      (searchParams?.get("tab") as
-        | "dashboard"
-        | "classes"
-        | "attendance"
-        | "reports"
-        | "announcements") || "dashboard"
-    );
-  });
+    initialUrlSyncRef.current = true;
+    // run only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Persist the active tab in the URL so a browser refresh returns to the same tab.
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get("tab");
+
+      // If the URL already has an explicit tab param, prefer it and
+      // apply it to state rather than overwriting the URL. This prevents
+      // a race where the component's initial state (from searchParams)
+      // is `dashboard` and would replace a legitimate `?tab=classes` on
+      // a hard refresh.
+      // If we haven't yet reconciled the real tab from URL/localStorage on mount,
+      // prefer to honor the present URL param (if any) and avoid persisting.
+      if (!initialUrlSyncRef.current) {
+        if (urlTab && ["dashboard", "classes", "attendance", "reports", "announcements"].includes(urlTab)) {
+          if (urlTab !== activeTab) setActiveTab(urlTab as any);
+        }
+        return;
+      }
+
+      // If URL already matches desired tab, do nothing.
+      if (urlTab === activeTab) return;
+
       params.set("tab", activeTab);
       const search = params.toString();
       const newUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname;

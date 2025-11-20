@@ -96,13 +96,7 @@ export default function ClassCard({
                     <h3 className="text-base sm:text-lg font-semibold truncate">
                       {classItem.class_code ? `${classItem.class_code}` : `Class ${classItem.id}`}
                     </h3>
-                    {classItem.session_active && (
-                      <div className="mt-1">
-                        <Badge variant="outline" className="text-xs bg-emerald-50 border-emerald-200 text-emerald-800">
-                          Live session{classItem.active_session_id ? ` — #${classItem.active_session_id}` : ''}
-                        </Badge>
-                      </div>
-                    )}
+                    {/* live session indicator removed per UX request */}
                     <div className="text-sm text-muted-foreground truncate">{classItem.course_name ?? ''}</div>
                   </div>
                 </div>

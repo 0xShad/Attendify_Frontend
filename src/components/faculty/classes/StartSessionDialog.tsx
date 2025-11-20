@@ -11,10 +11,11 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   classId: string | number | null;
+  classCode?: string | null;
   onCreated?: (session: any) => void;
 }
 
-export default function StartSessionDialog({ open, onOpenChange, classId, onCreated }: Props) {
+export default function StartSessionDialog({ open, onOpenChange, classId, classCode, onCreated }: Props) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [initialChecked, setInitialChecked] = useState(false);
@@ -25,6 +26,7 @@ export default function StartSessionDialog({ open, onOpenChange, classId, onCrea
   const [geoStatus, setGeoStatus] = useState<"idle" | "requesting" | "granted" | "denied" | "error">("idle");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [setupDone, setSetupDone] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -71,20 +73,40 @@ export default function StartSessionDialog({ open, onOpenChange, classId, onCrea
     });
   }
 
-  const handleSetup = async () => {
+  const handleSetup = async (): Promise<boolean> => {
     if (!classId) return;
     setLoading(true);
     try {
       const payload: StartSessionIn = { class_id: Number(classId), phase: "setup" };
       if (overrideMode) payload.override_mode = overrideMode as any;
       const res = await startSession(payload);
-      toast({ title: "Setup confirmed", description: "Schedule setup confirmed" });
+      // Prefer explicit `classCode` prop if provided, otherwise use matchedInfo
+      const resolvedCode =
+        (classCode as string) ||
+        (matchedInfo?.class_code as string) ||
+        (matchedInfo?.class?.code as string) ||
+        (matchedInfo?.class?.class_code as string) ||
+        `Class ${classId}`;
+      toast({ title: `Session for ${resolvedCode} has started` });
       setMatchedInfo(res ?? matchedInfo);
+      setSetupDone(true);
+      return true;
     } catch (err: any) {
       toast({ title: "Setup failed", description: String(err?.message ?? err), variant: "destructive" });
+      return false;
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleNext = async () => {
+    // Run setup first; only proceed to start if setup succeeded
+    if (!setupDone) {
+      const ok = await handleSetup();
+      if (!ok) return;
+    }
+
+    await handleStart();
   };
 
   const handleStart = async () => {
@@ -131,10 +153,15 @@ export default function StartSessionDialog({ open, onOpenChange, classId, onCrea
 
       const res = await startSession(payload);
       // creation success -> return session object
-      toast({ title: "Session started", description: `Session created (id: ${res?.id ?? 'unknown'})` });
-      setCreatedSession(res);
+      // Do not show toast for the second phase (face_recognition) per UX change.
       if (onCreated) onCreated(res);
-      // keep dialog open and show inline confirmation for better UX
+      // Close the dialog on success
+      try {
+        onOpenChange(false);
+      } catch (e) {
+        // ignore if parent handler throws; ensure createdSession isn't left set
+      }
+      setCreatedSession(null);
     } catch (err: any) {
       toast({ title: "Start failed", description: String(err?.message ?? err), variant: "destructive" });
     } finally {
@@ -241,8 +268,7 @@ export default function StartSessionDialog({ open, onOpenChange, classId, onCrea
                 ) : null}
                 {matched && (
                   <>
-                    <Button onClick={handleSetup} disabled={loading}>Confirm Setup</Button>
-                    <Button onClick={handleStart} disabled={loading || (effectiveMode === 'hybrid' && !coords)}>Start Session</Button>
+                    <Button onClick={handleNext} disabled={loading || (setupDone && effectiveMode === 'hybrid' && !coords)}>Start</Button>
                   </>
                 )}
               </>
