@@ -46,13 +46,13 @@ import {
   Send,
 } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,13 +72,6 @@ import {
   DrawerClose,
   DrawerFooter,
 } from "@/components/ui/drawer";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -113,6 +106,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import SidebarNav from '@/components/student-portal/SidebarNav';
+import TopHeader from '@/components/student-portal/TopHeader';
 import {
   Bar,
   BarChart,
@@ -208,7 +203,7 @@ function NotificationMenu() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64 bg-stone-50/70 supports-[backdrop-filter]:backdrop-blur-md border shadow-lg">
+      <DropdownMenuContent className="w-64 bg-stone-50/70 supports-backdrop-filter:backdrop-blur-md border shadow-lg">
         <div className="p-2">
           <div className="text-sm font-medium mb-2">Notifications</div>
           <div className="space-y-2">
@@ -303,11 +298,7 @@ function SidebarUserMenu({
   );
 }
 
-export default function StudentPortal({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function StudentPortal({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const pathname = usePathname();
 
@@ -499,6 +490,11 @@ export default function StudentPortal({
     [enrolledClasses, announcements]
   );
 
+  // Update tab based on pathname changes
+  useEffect(() => {
+    setActiveTab(getCurrentTab());
+  }, [pathname]);
+
   // Handlers
   const handleJoinClass = async (classCode: string) => {
     setIsLoading(true);
@@ -521,7 +517,6 @@ export default function StudentPortal({
     if (mode === "face") {
       setFaceRecognitionOpen(true);
     } else {
-      // Simulate online attendance
       setIsLoading(true);
       await new Promise((resolve) => setTimeout(resolve, 2000));
       setIsLoading(false);
@@ -538,13 +533,11 @@ export default function StudentPortal({
     if (!selectedSession) return;
 
     setIsLoading(true);
-    // Simulate face recognition processing
     await new Promise((resolve) => setTimeout(resolve, 3000));
     setIsLoading(false);
     setFaceRecognitionOpen(false);
     setSelectedSession(null);
 
-    // Simulate different outcomes
     const outcomes = ["success", "invalid", "duplicate"];
     const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
 
@@ -552,15 +545,14 @@ export default function StudentPortal({
       case "success":
         toast({
           title: "Attendance Recorded ✓",
-          description: `Successfully recorded attendance for ${selectedSession.className}`,
+          description: `Successfully recorded attendance for ${selectedSession?.className}`,
           variant: "default",
         });
         break;
       case "invalid":
         toast({
           title: "Recognition Failed ✗",
-          description:
-            "Face not recognized. Please try again or contact support.",
+          description: "Face not recognized. Please try again or contact support.",
           variant: "destructive",
         });
         break;
@@ -574,29 +566,18 @@ export default function StudentPortal({
     }
   };
 
-  // Update tab based on pathname changes
-  useEffect(() => {
-    setActiveTab(getCurrentTab());
-  }, [pathname]);
-
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         {/* Student Sidebar */}
         <Sidebar
           variant="sidebar"
-          className="border-r border-border bg-stone-50/60 supports-[backdrop-filter]:backdrop-blur-md shadow-lg flex flex-col min-h-screen relative z-50"
+          className="border-r border-border bg-stone-50/60 supports-backdrop-filter:backdrop-blur-md shadow-lg flex flex-col min-h-screen relative z-50"
         >
           {/* Sidebar Header */}
           <SidebarHeader className="px-4 py-6 border-b">
             <div className="flex items-center gap-3">
-              <Image
-                src="/logo_blue.png"
-                alt="Attendify Logo"
-                width={48}
-                height={48}
-                className="flex-shrink-0"
-              />
+                    <Image src="/logo_blue.png" alt="Attendify Logo" width={24} height={24} className="shrink-0" />
               <div className="group-data-[collapsible=icon]:hidden">
                 <span className="font-bold text-lg block">Attendify</span>
                 <span className="text-xs text-muted-foreground">
@@ -612,19 +593,19 @@ export default function StudentPortal({
               <SidebarGroupContent>
                 <SidebarMenu className="space-y-2">
                   {navigationItems.map((item) => (
-                    <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={activeTab === item.id}
-                        className="w-full justify-start"
-                        size="lg"
-                      >
-                        <Link href={item.href}>
-                          <item.icon className="w-5 h-5" />
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                      <SidebarMenuItem key={item.id}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={activeTab === item.id}
+                          className="w-full justify-start"
+                          size="lg"
+                        >
+                          <Link href={item.href}>
+                            <item.icon className="w-5 h-5" />
+                            <span>{item.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
               </SidebarGroupContent>
@@ -640,43 +621,26 @@ export default function StudentPortal({
         {/* Main Content Area */}
         <SidebarInset className="flex-1 overflow-x-hidden">
           {/* Top Header */}
-          <header className="sticky top-0 z-40 border-b bg-stone-50/98 backdrop-blur-xl supports-[backdrop-filter]:bg-stone-50/95 shadow-lg transition-all duration-300">
+          <header className="sticky top-0 z-40 border-b bg-stone-50/98 backdrop-blur-xl supports-backdrop-filter:bg-stone-50/95 shadow-lg transition-all duration-300">
             <div className="flex h-16 items-center justify-between px-6">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="md:hidden" />
                 <div className="flex items-center gap-2 md:hidden">
-                  <Image
-                    src="/logo_blue.png"
-                    alt="Attendify Logo"
-                    width={24}
-                    height={24}
-                    className="flex-shrink-0"
-                  />
+                  <Image src="/logo_blue.png" alt="Attendify Logo" width={24} height={24} className="shrink-0" />
                   <span className="font-semibold">Attendify</span>
                 </div>
 
                 <div className="hidden md:flex md:items-center md:gap-4">
                   <div className="flex items-center gap-3">
-                    <Image
-                      src="/logo_blue.png"
-                      alt="Attendify Logo"
-                      width={40}
-                      height={40}
-                      className="flex-shrink-0"
-                    />
+                    <Image src="/logo_blue.png" alt="Attendify Logo" width={40} height={40} className="shrink-0" />
                     <div>
-                      <h2 className="text-2xl font-bold capitalize">
-                        {activeTab}
-                      </h2>
+                      <h2 className="text-2xl font-bold capitalize">{activeTab}</h2>
                       <p className="text-sm text-muted-foreground">
                         {activeTab === "dashboard" && "Your academic overview"}
-                        {activeTab === "classes" &&
-                          "Manage your enrolled classes"}
+                        {activeTab === "classes" && "Manage your enrolled classes"}
                         {activeTab === "attendance" && "Record your attendance"}
-                        {activeTab === "profile" &&
-                          "Update your profile and preferences"}
-                        {activeTab === "announcements" &&
-                          "View class announcements"}
+                        {activeTab === "profile" && "Update your profile and preferences"}
+                        {activeTab === "announcements" && "View class announcements"}
                       </p>
                     </div>
                   </div>
