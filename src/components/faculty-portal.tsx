@@ -213,17 +213,58 @@ export function FacultyPortal() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Navigation - check URL params for initial tab
-  const initialTab =
-    (searchParams?.get("tab") as
-      | "dashboard"
-      | "classes"
-      | "attendance"
-      | "reports"
-      | "announcements") || "dashboard";
+  // Navigation - initialize active tab.
+  // Prefer reading `window.location` during the initial client render so
+  // a full browser refresh (hard reload) respects the `?tab=` query param.
+  // Fall back to `useSearchParams()` or `dashboard` if unavailable.
   const [activeTab, setActiveTab] = useState<
     "dashboard" | "classes" | "attendance" | "reports" | "announcements"
-  >(initialTab);
+  >(() => {
+    try {
+      if (typeof window !== "undefined") {
+        // 1) Prefer explicit URL param
+        const params = new URLSearchParams(window.location.search);
+        const t = params.get("tab") as
+          | "dashboard"
+          | "classes"
+          | "attendance"
+          | "reports"
+          | "announcements"
+          | null;
+        if (
+          t &&
+          ["dashboard", "classes", "attendance", "reports", "announcements"].includes(t)
+        ) {
+          return t as any;
+        }
+
+        // 2) Fall back to localStorage if present (helps across reloads when URL updates race)
+        try {
+          const stored = window.localStorage.getItem("faculty_active_tab");
+          if (
+            stored &&
+            ["dashboard", "classes", "attendance", "reports", "announcements"].includes(stored)
+          ) {
+            return stored as any;
+          }
+        } catch (e) {
+          // ignore localStorage issues
+        }
+      }
+    } catch (err) {
+      // ignore and fallback
+    }
+
+    // 3) Next.js searchParams as last fallback, then default
+    return (
+      (searchParams?.get("tab") as
+        | "dashboard"
+        | "classes"
+        | "attendance"
+        | "reports"
+        | "announcements") || "dashboard"
+    );
+  });
 
   // Persist the active tab in the URL so a browser refresh returns to the same tab.
   useEffect(() => {
@@ -233,8 +274,19 @@ export function FacultyPortal() {
       params.set("tab", activeTab);
       const search = params.toString();
       const newUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname;
-      // Use replaceState to avoid adding history entries when switching tabs
-      window.history.replaceState(null, "", newUrl);
+      // Use Next router replace so `useSearchParams()` and the App Router
+      // internals stay in sync with the updated URL.
+      try {
+        if (router && typeof router.replace === "function") {
+          // router.replace is async but we don't need to await it here.
+          router.replace(newUrl as any);
+        } else {
+          window.history.replaceState(null, "", newUrl);
+        }
+      } catch (err) {
+        // Fallback to history API if router.replace fails for any reason
+        window.history.replaceState(null, "", newUrl);
+      }
     } catch (err) {
       // non-fatal
       console.warn("Failed to persist active tab in URL", err);
@@ -251,17 +303,47 @@ export function FacultyPortal() {
       | "announcements";
     if (
       tabParam &&
-      [
-        "dashboard",
-        "classes",
-        "attendance",
-        "reports",
-        "announcements",
-      ].includes(tabParam)
+      ["dashboard", "classes", "attendance", "reports", "announcements"].includes(tabParam)
     ) {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
+
+  // Ensure tab is restored on a full browser refresh where Next's
+  // `useSearchParams` may not be populated immediately server-side.
+  // Read from `window.location` on mount and apply the tab if present.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const t = params.get("tab");
+      if (
+        t &&
+        ["dashboard", "classes", "attendance", "reports", "announcements"].includes(t) &&
+        t !== activeTab
+      ) {
+        setActiveTab(t as any);
+      }
+    } catch (err) {
+      // non-fatal
+      console.warn("Failed to read tab from window.location", err);
+    }
+    // run only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  
+
+  // Persist activeTab to localStorage as a resilient fallback for reloads
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.setItem("faculty_active_tab", activeTab);
+      }
+    } catch (err) {
+      // ignore storage errors
+    }
+  }, [activeTab]);
 
   // Sheet and Drawer states
   const [addClassOpen, setAddClassOpen] = useState(false);
@@ -432,6 +514,61 @@ export function FacultyPortal() {
 
     return () => { mounted = false; };
   }, [user]);
+
+  // Refresh a single class record and update local `classes` state.
+  const refreshClassInState = async (classId: number) => {
+    try {
+      const d = await classesAPI.getMyClass(Number(classId));
+      if (!d) return;
+      const schedules: any[] = Array.isArray(d.schedules) ? d.schedules : [];
+      const scheduleStr = schedules
+        .map((s) => {
+          if (s.type === "normal") {
+            return `${s.day_of_week} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`.trim();
+          }
+          if (s.type === "special") {
+            return `${s.date} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`.trim();
+          }
+          return "";
+        })
+        .filter(Boolean)
+        .join(", ");
+
+      const modes = schedules.flatMap((s) => Array.isArray(s.modes) ? s.modes : []);
+      const hasOnline = modes.some((m: string) => m.toLowerCase().includes("online"));
+      const hasF2f = modes.some((m: string) => m.toLowerCase().includes("face") || m.toLowerCase().includes("f2f") || m.toLowerCase().includes("face_to_face"));
+      const mode: Class["mode"] = hasOnline && hasF2f ? "Hybrid" : hasOnline ? "Online" : "In-Person";
+
+      const mapped: Class = {
+        id: String(d.id),
+        name: d.course_name ?? d.class_code ?? d.course_code ?? `Class ${d.id}`,
+        code: d.class_code ?? d.course_code ?? "",
+        schedule: scheduleStr || (d.room ? String(d.room) : ""),
+        mode,
+        is_active: Boolean(d.is_active),
+        current_schedule_id: d.current_schedule_id ?? null,
+        current_schedule_type: d.current_schedule_type ?? null,
+        enrolledStudents: d.enrolled_students ?? d.students_count ?? 0,
+        totalSessions: d.total_sessions ?? 0,
+        completedSessions: d.completed_sessions ?? 0,
+        attendanceRate: typeof d.attendance_rate === 'number' ? d.attendance_rate : (d.attendance_rate ? Number(d.attendance_rate) : 0),
+        status: "Active",
+        location: d.room ?? d.location ?? d.organization_name ?? undefined,
+        description: d.description ?? undefined,
+      } as Class;
+
+      setClasses((prev) => {
+        const found = prev.find((c) => c.id === String(classId));
+        if (found) {
+          return prev.map((c) => (c.id === String(classId) ? mapped : c));
+        }
+        // if not found, prepend
+        return [mapped, ...prev];
+      });
+    } catch (err) {
+      console.error('Failed to refresh class', err);
+    }
+  };
 
   const [activeSessions, setActiveSessions] = useState<AttendanceSession[]>([
     {
@@ -984,7 +1121,7 @@ export function FacultyPortal() {
             )}
 
             {activeTab === "classes" && (
-              <ClassesManagement />
+              <ClassesManagement onClassChanged={refreshClassInState} />
             )}
 
             {/* Attendance Management */}

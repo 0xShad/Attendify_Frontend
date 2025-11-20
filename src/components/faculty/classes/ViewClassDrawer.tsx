@@ -19,9 +19,11 @@ type Props = {
   // two closing patterns supported: onClose() or onOpenChange(boolean)
   onClose?: () => void;
   onOpenChange?: (open: boolean) => void;
+  // Optional: notify parent when class data changed (e.g. schedules updated)
+  onClassChanged?: (classId: number) => void;
 };
 
-export default function ViewClassDrawer({ open, classId, selectedClass: selClass, onClose, onOpenChange }: Props) {
+export default function ViewClassDrawer({ open, classId, selectedClass: selClass, onClose, onOpenChange, onClassChanged }: Props) {
   const [loading, setLoading] = React.useState(false);
   const [data, setData] = React.useState<Partial<Class> | null>(null);
 
@@ -262,7 +264,7 @@ export default function ViewClassDrawer({ open, classId, selectedClass: selClass
                 </TabsContent>
                 <TabsContent value="schedules">
                   <div className="pt-2">
-                    <SchedulesTab classId={data.id ?? undefined} />
+                    <SchedulesTab classId={data.id ?? undefined} onClassChanged={onClassChanged} />
                   </div>
                 </TabsContent>
                 </Tabs>

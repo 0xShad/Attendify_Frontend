@@ -15,7 +15,7 @@ import SearchBar from "./SearchBar";
 import ClassesFilters from "./ClassesFilters";
 import DeleteClassDialog from "./DeleteClassDialog";
 
-export default function ClassesManagement() {
+export default function ClassesManagement({ onClassChanged }: { onClassChanged?: (classId: number) => void } = {}) {
   const { toast } = useToast();
   const { user } = useAuthContext();
 
@@ -523,6 +523,7 @@ export default function ClassesManagement() {
         open={viewClassOpen}
         onOpenChange={setViewClassOpen}
         selectedClass={selectedClass}
+        onClassChanged={onClassChanged}
       />
 
       <EditClassDrawer

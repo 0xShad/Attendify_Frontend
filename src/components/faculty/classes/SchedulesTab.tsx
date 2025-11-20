@@ -6,10 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { IconPencil, IconTrash } from "@tabler/icons-react";
 import { schedulesAPI } from "@/lib/api/schedules";
+import { classesAPI } from "@/lib/api/classes";
 import { useToast } from "@/hooks/use-toast";
 import DeleteScheduleDialog from "@/components/classes/DeleteScheduleDialog";
 
 type Props = { classId?: number | null };
+// Optional callback invoked when a schedule change affects the class record.
+// Parent can use this to refresh its local classes cache.
+type SchedulesTabProps = { classId?: number | null; onClassChanged?: (classId: number) => void };
 
 type Schedule = {
   id: string;
@@ -24,7 +28,7 @@ type Schedule = {
   notes?: string | null;
 };
 
-export default function SchedulesTab({ classId }: Props) {
+export default function SchedulesTab({ classId, onClassChanged }: SchedulesTabProps) {
   const { toast } = useToast();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -218,6 +222,17 @@ export default function SchedulesTab({ classId }: Props) {
           };
 
           setSchedules((prev) => prev.map((p) => (p.id === editingId ? updated : p)));
+          // Notify parent to refresh this class record (preferred)
+          try {
+            if (classId && typeof onClassChanged === 'function') {
+              onClassChanged(Number(classId));
+            } else {
+              // fallback: refresh top-level class list
+              await classesAPI.listMyClasses();
+            }
+          } catch (err) {
+            console.error('Failed to refresh class list after schedule update:', err);
+          }
           toast({ title: "Updated", description: "Schedule updated" });
           setIsEditing(false);
           setEditingId(null);
@@ -249,6 +264,15 @@ export default function SchedulesTab({ classId }: Props) {
             notes: (createdData as any).notes ?? null,
           };
           setSchedules((prev) => prev.map((p) => (p.id === editingId ? updated : p)));
+          try {
+            if (classId && typeof onClassChanged === 'function') {
+              onClassChanged(Number(classId));
+            } else {
+              await classesAPI.listMyClasses();
+            }
+          } catch (err) {
+            console.error('Failed to refresh class list after schedule update (SSR):', err);
+          }
           toast({ title: "Updated", description: "Schedule updated" });
           setIsEditing(false);
           setEditingId(null);
@@ -364,6 +388,15 @@ export default function SchedulesTab({ classId }: Props) {
               notes: data.notes ?? null,
             };
             setSchedules((s) => [created, ...s]);
+            try {
+              if (classId && typeof onClassChanged === 'function') {
+                onClassChanged(Number(classId));
+              } else {
+                await classesAPI.listMyClasses();
+              }
+            } catch (err) {
+              console.error('Failed to refresh class list after schedule create:', err);
+            }
             toast({ title: "Created", description: "Schedule added" });
             setOpenCreate(false);
             setStartTime("");
@@ -393,6 +426,15 @@ export default function SchedulesTab({ classId }: Props) {
               notes: (createdData as any).notes ?? null,
             };
             setSchedules((s) => [created, ...s]);
+            try {
+              if (classId && typeof onClassChanged === 'function') {
+                onClassChanged(Number(classId));
+              } else {
+                await classesAPI.listMyClasses();
+              }
+            } catch (err) {
+              console.error('Failed to refresh class list after schedule create (SSR):', err);
+            }
             toast({ title: "Created", description: "Schedule added" });
             setOpenCreate(false);
             setStartTime("");
@@ -531,10 +573,25 @@ export default function SchedulesTab({ classId }: Props) {
           )}
         </div>
       </div>
-      <DeleteScheduleDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} classId={classId} schedule={scheduleToDelete ? { id: Number(scheduleToDelete.id), type: scheduleToDelete.type, start_time: scheduleToDelete.start_time, end_time: scheduleToDelete.end_time, location: scheduleToDelete.location ?? null } : null} onDeleted={(id) => {
-        setSchedules((prev) => prev.filter((p) => p.id !== String(id)));
-        setScheduleToDelete(null);
-      }} />
+      <DeleteScheduleDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        classId={classId}
+        schedule={
+          scheduleToDelete
+            ? { id: Number(scheduleToDelete.id), type: scheduleToDelete.type, start_time: scheduleToDelete.start_time, end_time: scheduleToDelete.end_time, location: scheduleToDelete.location ?? null }
+            : null
+        }
+        onDeleted={async (id) => {
+          setSchedules((prev) => prev.filter((p) => p.id !== String(id)));
+          setScheduleToDelete(null);
+          try {
+            await classesAPI.listMyClasses();
+          } catch (err) {
+            console.error('Failed to refresh class list after schedule delete:', err);
+          }
+        }}
+      />
     </div>
   );
 }
