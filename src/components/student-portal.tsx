@@ -108,6 +108,7 @@ import {
 } from "@/components/ui/chart";
 import SidebarNav from '@/components/student-portal/SidebarNav';
 import TopHeader from '@/components/student-portal/TopHeader';
+import StudentClasses from '@/components/student-portal/classes';
 import {
   Bar,
   BarChart,
@@ -314,7 +315,6 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
 
   const [activeTab, setActiveTab] = useState(getCurrentTab());
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [joinClassOpen, setJoinClassOpen] = useState(false);
   const [faceRecognitionOpen, setFaceRecognitionOpen] = useState(false);
   const [selectedSession, setSelectedSession] =
     useState<AttendanceSession | null>(null);
@@ -496,17 +496,6 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
   }, [pathname]);
 
   // Handlers
-  const handleJoinClass = async (classCode: string) => {
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    setJoinClassOpen(false);
-
-    toast({
-      title: "Join Request Sent",
-      description: `Your request to join ${classCode} has been sent to the instructor.`,
-    });
-  };
 
   const handleStartAttendance = async (
     session: AttendanceSession,
@@ -659,93 +648,7 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
           </div>
         </SidebarInset>
 
-        {/* Join Class Drawer */}
-        <Drawer open={joinClassOpen} onOpenChange={setJoinClassOpen}>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>Join a Class</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4 space-y-4 overflow-y-auto">
-              <Tabs defaultValue="code" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="code">Class Code</TabsTrigger>
-                  <TabsTrigger value="browse">Browse Classes</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="code" className="space-y-4">
-                  <div>
-                    <Label htmlFor="class-code">Enter Class Code</Label>
-                    <Input
-                      id="class-code"
-                      placeholder="e.g., CS101-001"
-                      className="mt-1"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Get the class code from your instructor
-                    </p>
-                  </div>
-                  <Button
-                    className="w-full"
-                    onClick={() => handleJoinClass("CS101-001")}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Plus className="w-4 h-4 mr-2" />
-                    )}
-                    Request to Join
-                  </Button>
-                </TabsContent>
-
-                <TabsContent value="browse" className="space-y-4">
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {/* Mock available classes */}
-                    <div className="p-3 border rounded-lg">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-medium">Physics 101</h4>
-                          <p className="text-sm text-muted-foreground">
-                            PHY101 • Dr. Smith
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Mon, Wed, Fri 10:00 AM
-                          </p>
-                        </div>
-                        <Button size="sm" variant="outline">
-                          Join
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="p-3 border rounded-lg">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-medium">Chemistry Lab</h4>
-                          <p className="text-sm text-muted-foreground">
-                            CHEM102 • Dr. Wilson
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Tue, Thu 2:00 PM
-                          </p>
-                        </div>
-                        <Button size="sm" variant="outline">
-                          Join
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-            <DrawerFooter>
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Cancel
-                </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
+        {/* Join Class Drawer moved to `src/components/student-portal/classes` */}
 
         {/* Face Recognition Dialog */}
         <Dialog
