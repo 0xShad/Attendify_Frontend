@@ -353,6 +353,59 @@ export default function ClassesManagement({ onClassChanged }: { onClassChanged?:
     }
   };
 
+  // When a child (e.g. SchedulesTab) notifies that a class changed,
+  // refresh that single class record and update local `classes` state.
+  // Also forward the notification to the parent `onClassChanged` if provided.
+  const handleClassChanged = async (classId: number) => {
+    try {
+      const d = await classesAPI.getMyClass(Number(classId));
+      if (!d) return;
+      const mapped: ClassItem = {
+        id: String(d.id),
+        course_id: d.course_id ?? undefined,
+        class_code: d.class_code ?? null,
+        course_code: d.course_code ?? null,
+        course_name: d.course_name ?? null,
+        program_id: d.program_id ?? null,
+        program_name: d.program_name ?? null,
+        organization_id: d.organization_id ?? null,
+        organization_name: d.organization_name ?? null,
+        description: d.description ?? null,
+        room: d.room ?? null,
+        assigned_faculty_id: d.assigned_faculty_id ?? null,
+        assigned_faculty_name: d.assigned_faculty_name ?? null,
+        academic_year: d.academic_year ?? null,
+        semester: d.semester ?? null,
+        schedules: Array.isArray(d.schedules) ? d.schedules : [],
+        is_active: Boolean(d.is_active),
+        current_schedule_id: d.current_schedule_id ?? null,
+        current_schedule_type: d.current_schedule_type ?? null,
+        session_active: Boolean(d.session_active),
+        active_session_id: d.active_session_id ?? null,
+        student_count: d.enrolled_students ?? d.students_count ?? 0,
+        attendance_rate: typeof d.attendance_rate === 'number' ? d.attendance_rate : (d.attendance_rate ? Number(d.attendance_rate) : 0),
+        status: d.status ?? 'Active',
+      };
+
+      setClasses((prev) => {
+        const found = prev.find((c) => c.id === String(classId));
+        if (found) {
+          return prev.map((c) => (c.id === String(classId) ? { ...c, ...mapped } : c));
+        }
+        return [mapped, ...prev];
+      });
+
+      // forward to parent if provided
+      try {
+        if (typeof onClassChanged === 'function') onClassChanged(classId);
+      } catch (err) {
+        // ignore
+      }
+    } catch (err) {
+      console.error('Failed to refresh single class in ClassesManagement:', err);
+    }
+  };
+
   // Debounce effect: wait 1.5s after typing stops to call backend search
   useEffect(() => {
     // skip the very first render (initial load already fetches)
@@ -525,7 +578,7 @@ export default function ClassesManagement({ onClassChanged }: { onClassChanged?:
         open={viewClassOpen}
         onOpenChange={setViewClassOpen}
         selectedClass={selectedClass}
-        onClassChanged={onClassChanged}
+        onClassChanged={handleClassChanged}
       />
 
       <EditClassDrawer

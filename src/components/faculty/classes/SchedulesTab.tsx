@@ -586,7 +586,12 @@ export default function SchedulesTab({ classId, onClassChanged }: SchedulesTabPr
           setSchedules((prev) => prev.filter((p) => p.id !== String(id)));
           setScheduleToDelete(null);
           try {
-            await classesAPI.listMyClasses();
+            if (classId && typeof onClassChanged === 'function') {
+              onClassChanged(Number(classId));
+            } else {
+              // fallback: trigger a full class list refresh
+              await classesAPI.listMyClasses();
+            }
           } catch (err) {
             console.error('Failed to refresh class list after schedule delete:', err);
           }
