@@ -90,7 +90,8 @@ export async function listSchools(
   const hasAnyParam = Object.keys(params).some((k) => (params as any)[k] !== undefined);
   let response: Response;
   if (!hasAnyParam) {
-    response = await import('./fetchClient').then(m => m.fetchRawWithAuth(SCHOOLS_ENDPOINTS.LIST, { method: 'GET' }));
+    // Prefer same-origin proxy so cookies / http-only tokens are forwarded by the server
+    response = await import('./fetchClient').then(m => m.fetchRawWithAuth('/api/organizations', { method: 'GET' }));
   } else {
     const { 
       skip = 0, 
@@ -120,7 +121,9 @@ export async function listSchools(
     if (min_faculty !== undefined) url.searchParams.append('min_faculty', min_faculty.toString());
     if (max_faculty !== undefined) url.searchParams.append('max_faculty', max_faculty.toString());
 
-    response = await import('./fetchClient').then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
+    // Forward via same-origin proxy to ensure auth is handled server-side
+    const proxyUrl = '/api/organizations?' + url.searchParams.toString();
+    response = await import('./fetchClient').then(m => m.fetchRawWithAuth(proxyUrl, { method: 'GET' }));
   }
 
   if (!response.ok) {

@@ -197,14 +197,54 @@ function NotificationMenu() {
 
 // Minimal Sidebar user menu used in faculty portal
 function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean) => void }) {
+  const router = useRouter();
+  const { user } = useAuthContext();
+
+  const displayName = (user && (user.firstName || user.username || user.email)) || 'User';
+  const initial = String(displayName).charAt(0).toUpperCase() || 'U';
+
   return (
-    <div>
-      <Button size="lg" onClick={() => setSettingsOpen(true)}>
-        <Avatar className="h-8 w-8 rounded-lg">
-          <AvatarFallback className="rounded-lg bg-green-500 text-white">U</AvatarFallback>
-        </Avatar>
-      </Button>
-    </div>
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+              <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarFallback className="rounded-lg bg-green-500 text-white">{initial}</AvatarFallback>
+              </Avatar>
+              <div className="grid flex-1 text-left text-sm leading-tight ml-2">
+                <span className="truncate font-medium">{displayName}</span>
+                <span className="text-muted-foreground truncate text-xs">{user?.email ?? ''}</span>
+              </div>
+              <IconDots className="ml-auto" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel className="p-0 font-normal">
+              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarFallback className="rounded-lg bg-green-500 text-white">{initial}</AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">{displayName}</span>
+                  <span className="text-muted-foreground truncate text-xs">{user?.email ?? ''}</span>
+                </div>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+              <IconSettings className="w-4 h-4 mr-2" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push('/auth/logout')}>
+              <IconLogout className="w-4 h-4 mr-2" />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
   );
 }
 
@@ -455,7 +495,8 @@ export function FacultyPortal() {
     if (!user || !user.id) return;
 
     let mounted = true;
-
+      const displayName = (user && (user.firstName || user.username || user.email)) || 'User';
+      const initial = String(displayName).charAt(0).toUpperCase() || 'U';
     (async () => {
       try {
         // Ensure the user session is still valid before calling backend endpoints.
@@ -463,11 +504,11 @@ export function FacultyPortal() {
         // and ownership checks behave correctly (mirrors AdminPortal behavior).
         try {
           const ok = await checkAuth();
-          if (!ok) {
+                    <AvatarFallback className="rounded-lg bg-green-500 text-white">{initial}</AvatarFallback>
             const redirectTo = encodeURIComponent(window.location.pathname || '/');
             router.push(`/auth/login?redirect=${redirectTo}`);
             return;
-          }
+                    <span className="truncate font-medium">{displayName}</span>
         } catch (err) {
           // On network/auth check error, redirect to login as a safe fallback.
           const redirectTo = encodeURIComponent(window.location.pathname || '/');
@@ -478,11 +519,11 @@ export function FacultyPortal() {
         setIsLoading(true);
         const backend = await classesAPI.listClassesForFaculty(Number(user.id));
         if (!mounted) return;
-
+                      <AvatarFallback className="rounded-lg bg-green-500 text-white">{initial}</AvatarFallback>
         const mapped: Class[] = Array.isArray(backend)
           ? backend.map((c: any) => {
               const schedules: any[] = Array.isArray(c.schedules) ? c.schedules : [];
-
+                      <span className="truncate font-medium">{displayName}</span>
               // Build a human-friendly schedule string
               const scheduleStr = schedules
                 .map((s) => {

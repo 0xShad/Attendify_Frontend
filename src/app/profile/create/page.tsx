@@ -16,88 +16,45 @@ import FaceSubmissionStep from "./steps/FaceSubmissionStep";
 
 
 
-import Papa from "papaparse";
-
-type SchoolRow = {
-  region: string;
-  name: string;
-  type: string;
-  province: string;
-  city: string;
-  website: string;
-  contact: string;
-};
+import { programsAPI } from "@/lib/api/programs";
 
 export default function ProfileCreatePage() {
   // Search state for dropdowns
-  const [regionSearch, setRegionSearch] = useState("");
-  const [provinceSearch, setProvinceSearch] = useState("");
   const [schoolSearch, setSchoolSearch] = useState("");
-  // State for parsed school data
-  const [schoolOptions, setSchoolOptions] = useState<SchoolRow[]>([]);
-  const [regionOptions, setRegionOptions] = useState<string[]>([]);
-  const [csvLoading, setCsvLoading] = useState(true);
-  const [csvError, setCsvError] = useState<string | null>(null);
+  const [schools, setSchools] = useState<Array<{ id: number; name: string }>>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(true);
+  const [schoolsError, setSchoolsError] = useState<string | null>(null);
   const router = useRouter();
   const [step, setStep] = useState(0);
-  // Load and parse CSV on mount
+  // Load organization options from the programs API (public options endpoint)
   useEffect(() => {
-    setCsvLoading(true);
-    setCsvError(null);
-    fetch("/LIST_OF_HEI.csv")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch CSV");
-        return res.text();
-      })
-      .then((csvText) => {
-  // Remove BOM and trim whitespace
-  let cleanCsv = csvText.replace(/^\uFEFF/, '').trim();
-  // Normalize line endings to \n
-  cleanCsv = cleanCsv.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  // Remove trailing commas from each line
-  cleanCsv = cleanCsv.split('\n').map(line => line.replace(/,(\s*)$/, '')).join('\n');
-        Papa.parse(cleanCsv, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            // Build a map of trimmed header -> original header
-            const headerMap: Record<string, string> = {};
-            if (results.meta.fields) {
-              for (const h of results.meta.fields) {
-                headerMap[h.trim()] = h;
-              }
-            }
-            // Map CSV headers to our SchoolRow type using trimmed keys
-            const rows: SchoolRow[] = (results.data as any[]).map((row) => ({
-              region: row[headerMap["REGION"]]?.trim() || "",
-              name: row[headerMap["INSTITUTION NAME"]]?.trim() || "",
-              type: row[headerMap["INSTITUTION TYPE"]]?.trim() || "",
-              province: row[headerMap["PROVINCE"]]?.trim() || "",
-              city: row[headerMap["MUNICIPALITY/CITY"]]?.trim() || "",
-              website: row[headerMap["WEBSITE ADDRESS"]]?.trim() || "",
-              contact: row[headerMap["FAX/TELEPHONE NO."]] ?.trim() || "",
-            })).filter(r => r.region && r.name && r.province);
-            setSchoolOptions(rows);
-            setRegionOptions(Array.from(new Set(rows.map(r => r.region))).sort());
-            setCsvLoading(false);
-            setCsvError(null);
-          },
-          error: (err) => {
-            setCsvError("CSV parse error: " + err.message);
-            setCsvLoading(false);
-          },
-        });
-      })
-      .catch((err) => {
-        setCsvError("CSV fetch error: " + err.message);
-        setCsvLoading(false);
-      });
+    let mounted = true;
+    setSchoolsLoading(true);
+    setSchoolsError(null);
+    (async () => {
+      try {
+        const opts = await programsAPI.getOrganizationOptions();
+        if (!mounted) return;
+        // Map to minimal shape expected by the step
+        const mapped = Array.isArray(opts) ? opts.map((o: any) => ({ id: Number(o.id), name: String(o.name) })) : [];
+        setSchools(mapped);
+      } catch (err: any) {
+        console.debug('Failed to load organization options', err);
+        if (!mounted) return;
+        // Prefer readable error message
+        const msg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+        setSchoolsError(msg);
+        setSchools([]);
+      } finally {
+        if (mounted) setSchoolsLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
   }, []);
   const [form, setForm] = useState({
     bio: "",
     face_image: "",
-    region: "",
-    province: "",
+    organization: "",
     school: "",
     program: "",
     degreeType: "",
@@ -149,23 +106,13 @@ export default function ProfileCreatePage() {
     }
   };
 
-  const handleSelectRegion = (value: string) => {
-    setForm(f => ({ ...f, region: value, province: "", school: "" }));
-  };
-  const handleSelectProvince = (value: string) => {
-    setForm(f => ({ ...f, province: value, school: "" }));
-  };
   const handleSelectSchool = (value: string) => {
     setForm(f => ({ ...f, school: value }));
   };
 
-  function getProvinceOptions(region: string) {
-    return Array.from(new Set(schoolOptions.filter(s => s.region === region).map(s => s.province))).sort();
-  }
-
-  function getSchoolOptions(region: string, province: string) {
-    return schoolOptions.filter(s => s.region === region && s.province === province);
-  }
+  const handleSelectOrganization = (value: string) => {
+    setForm(f => ({ ...f, organization: value }));
+  };
 
   const handleNext = () => setStep((s) => Math.min(s + 1, 2));
   const handleBack = () => setStep((s) => Math.max(s - 1, 0));
@@ -264,20 +211,13 @@ export default function ProfileCreatePage() {
           {step === 1 && (
             <SchoolProgramStep
               form={form}
-              regionOptions={regionOptions}
-              csvLoading={csvLoading}
-              csvError={csvError}
-              getProvinceOptions={getProvinceOptions}
-              getSchoolOptions={getSchoolOptions}
-              regionSearch={regionSearch}
-              setRegionSearch={setRegionSearch}
-              provinceSearch={provinceSearch}
-              setProvinceSearch={setProvinceSearch}
+              schools={schools}
+              schoolsLoading={schoolsLoading}
+              schoolsError={schoolsError}
               schoolSearch={schoolSearch}
               setSchoolSearch={setSchoolSearch}
-              handleSelectRegion={handleSelectRegion}
-              handleSelectProvince={handleSelectProvince}
               handleSelectSchool={handleSelectSchool}
+              handleSelectOrganization={handleSelectOrganization}
               onProgramChange={val => setForm(f => ({ ...f, program: val }))}
               onBack={handleBack}
               onNext={handleNext}

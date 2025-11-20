@@ -1,34 +1,23 @@
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { programsAPI } from "@/lib/api/programs";
 
-interface SchoolRow {
-  region: string;
+interface SchoolOption {
+  id: number;
   name: string;
-  type: string;
-  province: string;
-  city: string;
-  website: string;
-  contact: string;
 }
 
 interface SchoolProgramStepProps {
   form: any;
-  regionOptions: string[];
-  csvLoading: boolean;
-  csvError: string | null;
-  getProvinceOptions: (region: string) => string[];
-  getSchoolOptions: (region: string, province: string) => SchoolRow[];
-  regionSearch: string;
-  setRegionSearch: (s: string) => void;
-  provinceSearch: string;
-  setProvinceSearch: (s: string) => void;
+  schools: SchoolOption[];
+  schoolsLoading: boolean;
+  schoolsError: string | null;
   schoolSearch: string;
   setSchoolSearch: (s: string) => void;
-  handleSelectRegion: (val: string) => void;
-  handleSelectProvince: (val: string) => void;
   handleSelectSchool: (val: string) => void;
+  handleSelectOrganization?: (val: string) => void;
   onProgramChange: (val: string) => void;
   onBack: () => void;
   onNext: () => void;
@@ -36,113 +25,108 @@ interface SchoolProgramStepProps {
 
 export default function SchoolProgramStep({
   form,
-  regionOptions,
-  csvLoading,
-  csvError,
-  getProvinceOptions,
-  getSchoolOptions,
-  regionSearch,
-  setRegionSearch,
-  provinceSearch,
-  setProvinceSearch,
+  schools,
+  schoolsLoading,
+  schoolsError,
   schoolSearch,
   setSchoolSearch,
-  handleSelectRegion,
-  handleSelectProvince,
   handleSelectSchool,
+  handleSelectOrganization,
   onProgramChange,
   onBack,
   onNext,
 }: SchoolProgramStepProps) {
+  const [orgOptions, setOrgOptions] = useState<Array<{ id: number; name: string }>>([]);
+  const [orgsLoading, setOrgsLoading] = useState(false);
+  const [programOptions, setProgramOptions] = useState<Array<{ id: number; code: string; name?: string }>>([]);
+  const [programsLoading, setProgramsLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setProgramsLoading(true);
+      try {
+        const opts = await programsAPI.getMyProgramOptions();
+        if (!mounted) return;
+        if (Array.isArray(opts)) {
+          setProgramOptions(opts.map((o: any) => ({ id: Number(o.id), code: String(o.code), name: o.name ?? undefined })));
+        }
+      } catch (err) {
+        console.debug('Failed to load program options', err);
+        setProgramOptions([]);
+      } finally {
+        if (mounted) setProgramsLoading(false);
+      }
+    })();
+
+    // load organization options for the school selector
+    (async () => {
+      setOrgsLoading(true);
+      try {
+        const orgs = await programsAPI.getOrganizationOptions();
+        if (!mounted) return;
+        if (Array.isArray(orgs)) setOrgOptions(orgs.map((o: any) => ({ id: Number(o.id), name: String(o.name) })));
+      } catch (err) {
+        console.debug('Failed to load organization options', err);
+        setOrgOptions([]);
+      } finally {
+        if (mounted) setOrgsLoading(false);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, []);
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <Label htmlFor="region" className="font-semibold">Region</Label>
-        {csvLoading ? (
-          <div className="mt-2 text-sm text-muted-foreground">Loading regions...</div>
-        ) : csvError ? (
-          <div className="mt-2 text-sm text-red-600">{csvError}</div>
-        ) : regionOptions.length === 0 ? (
-          <div className="mt-2 text-sm text-red-600">No regions found. Check CSV data.</div>
+        <Label htmlFor="school" className="font-semibold">School</Label>
+        {schoolsLoading ? (
+          <div className="mt-2 text-sm text-muted-foreground">Loading schools...</div>
+        ) : schoolsError ? (
+          <div className="mt-2 text-sm text-red-600">{schoolsError}</div>
+        ) : schools.length === 0 ? (
+          <div className="mt-2 text-sm text-red-600">No schools found.</div>
         ) : (
-          <Select value={form.region} onValueChange={(val) => { handleSelectRegion(val); setRegionSearch(""); }}>
+          <Select value={form.school} onValueChange={(val) => { handleSelectSchool(val); setSchoolSearch(""); }}>
             <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200">
-              <SelectValue placeholder="Select your region" />
+              <SelectValue placeholder="Select your school" />
             </SelectTrigger>
             <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
               <div className="px-2 py-1">
                 <input
                   type="text"
-                  value={regionSearch}
-                  onChange={e => setRegionSearch(e.target.value)}
-                  placeholder="Search region..."
+                  value={schoolSearch}
+                  onChange={e => setSchoolSearch(e.target.value)}
+                  placeholder="Search school..."
                   className="w-full px-2 py-1 rounded border border-gray-200 text-sm mb-1"
                   autoFocus
                 />
               </div>
-              {regionOptions
-                .filter(region => region.replace(/^\d+\s*-\s*/, '').toLowerCase().includes(regionSearch.toLowerCase()))
-                .map(region => {
-                  const displayRegion = region.replace(/^\d+\s*-\s*/, '');
-                  return (
-                    <SelectItem key={region} value={region}>{displayRegion}</SelectItem>
-                  );
-                })}
+                <Label htmlFor="organization" className="font-semibold">Organization</Label>
+                {orgsLoading ? (
+                  <div className="mt-2 text-sm text-muted-foreground">Loading organizations...</div>
+                ) : orgOptions.length === 0 ? (
+                  <div className="mt-2 text-sm text-muted-foreground">No organizations available.</div>
+                ) : (
+                  <Select value={form.organization} onValueChange={(val) => { if (handleSelectOrganization) handleSelectOrganization(val); }}>
+                    <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200">
+                      <SelectValue placeholder="Select your organization (optional)" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
+                      {orgOptions.map(org => (
+                        <SelectItem key={org.id} value={org.name}>{org.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              {schools
+                .filter(s => s.name.toLowerCase().includes(schoolSearch.toLowerCase()))
+                .map(school => (
+                  <SelectItem key={school.id} value={school.name}>{school.name}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
         )}
-      </div>
-      <div>
-        <Label htmlFor="province" className="font-semibold">Province</Label>
-        <Select value={form.province} onValueChange={(val) => { handleSelectProvince(val); setProvinceSearch(""); }} disabled={!form.region}>
-          <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200" disabled={!form.region}>
-            <SelectValue placeholder="Select your province" />
-          </SelectTrigger>
-          <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
-            <div className="px-2 py-1">
-              <input
-                type="text"
-                value={provinceSearch}
-                onChange={e => setProvinceSearch(e.target.value)}
-                placeholder="Search province..."
-                className="w-full px-2 py-1 rounded border border-gray-200 text-sm mb-1"
-                autoFocus
-                disabled={!form.region}
-              />
-            </div>
-            {getProvinceOptions(form.region)
-              .filter(province => province.toLowerCase().includes(provinceSearch.toLowerCase()))
-              .map(province => (
-                <SelectItem key={province} value={province}>{province}</SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <Label htmlFor="school" className="font-semibold">School</Label>
-        <Select value={form.school} onValueChange={(val) => { handleSelectSchool(val); setSchoolSearch(""); }} disabled={!form.region || !form.province}>
-          <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200" disabled={!form.region || !form.province}>
-            <SelectValue placeholder="Select your school" />
-          </SelectTrigger>
-          <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
-            <div className="px-2 py-1">
-              <input
-                type="text"
-                value={schoolSearch}
-                onChange={e => setSchoolSearch(e.target.value)}
-                placeholder="Search school..."
-                className="w-full px-2 py-1 rounded border border-gray-200 text-sm mb-1"
-                autoFocus
-                disabled={!form.region || !form.province}
-              />
-            </div>
-            {getSchoolOptions(form.region, form.province)
-              .filter(school => school.name.toLowerCase().includes(schoolSearch.toLowerCase()))
-              .map(school => (
-                <SelectItem key={school.name} value={school.name}>{school.name}</SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
       </div>
       <div>
         <Label htmlFor="program" className="font-semibold">Program / Department</Label>
@@ -155,15 +139,25 @@ export default function SchoolProgramStep({
             <SelectValue placeholder={form.school ? "Select your program/department" : "Select a school first"} />
           </SelectTrigger>
           <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
-            <SelectItem value="BS Computer Science">BS Computer Science</SelectItem>
-            <SelectItem value="BS Information Technology">BS Information Technology</SelectItem>
-            <SelectItem value="BS Accountancy">BS Accountancy</SelectItem>
-            <SelectItem value="BS Psychology">BS Psychology</SelectItem>
-            <SelectItem value="BA Communication">BA Communication</SelectItem>
-            <SelectItem value="BS Civil Engineering">BS Civil Engineering</SelectItem>
-            <SelectItem value="BS Nursing">BS Nursing</SelectItem>
-            <SelectItem value="BS Business Administration">BS Business Administration</SelectItem>
-            <SelectItem value="Other">Other</SelectItem>
+            {programsLoading ? (
+              <div className="p-3 text-sm text-muted-foreground">Loading programs…</div>
+            ) : programOptions && programOptions.length > 0 ? (
+              programOptions.map((p) => (
+                <SelectItem key={p.id} value={p.code}>{p.name ? `${p.code} — ${p.name}` : p.code}</SelectItem>
+              ))
+            ) : (
+              <>
+                <SelectItem value="BS Computer Science">BS Computer Science</SelectItem>
+                <SelectItem value="BS Information Technology">BS Information Technology</SelectItem>
+                <SelectItem value="BS Accountancy">BS Accountancy</SelectItem>
+                <SelectItem value="BS Psychology">BS Psychology</SelectItem>
+                <SelectItem value="BA Communication">BA Communication</SelectItem>
+                <SelectItem value="BS Civil Engineering">BS Civil Engineering</SelectItem>
+                <SelectItem value="BS Nursing">BS Nursing</SelectItem>
+                <SelectItem value="BS Business Administration">BS Business Administration</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </>
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -171,7 +165,7 @@ export default function SchoolProgramStep({
         <Button type="button" variant="outline" onClick={onBack} className="rounded-xl px-8 py-2 text-base font-semibold">
           Back
         </Button>
-        <Button type="button" onClick={onNext} disabled={!form.region || !form.province || !form.school || !form.program} className="rounded-xl px-8 py-2 text-base font-semibold bg-blue-600 hover:bg-blue-700">
+        <Button type="button" onClick={onNext} disabled={!form.school || !form.program} className="rounded-xl px-8 py-2 text-base font-semibold bg-blue-600 hover:bg-blue-700">
           Next
         </Button>
       </div>

@@ -8,6 +8,12 @@ import { COOKIE_CONFIG, REDIRECT_URLS, VALIDATION_CONFIG } from "@/config/auth";
  * Key: token, Value: { isValid: boolean, expiresAt: number }
  */
 const tokenCache = new Map<string, { isValid: boolean; expiresAt: number; userId?: number }>();
+// Extended cache entries may include an `onboardAttemptedAt` timestamp (ms since epoch)
+type TokenCacheEntry = { isValid: boolean; expiresAt: number; userId?: number; onboardAttemptedAt?: number };
+// Track per-user onboarding attempt timestamps so we can reset attempts on logout/login.
+const userOnboardAttempt = new Map<number, number>(); // userId -> timestamp (ms)
+// Track last seen token per user to detect a new login (token changed)
+const lastTokenByUser = new Map<number, string>(); // userId -> accessToken
 
 /**
  * Decode JWT payload without verification (client-side check only)
@@ -146,25 +152,119 @@ export async function middleware(request: NextRequest) {
     const result = await verifyTokenAndGetUser(accessToken);
     isAuthenticated = result.isValid;
     userId = result.userId;
+    // Detect token change per-user to reset onboarding attempt state on login
+    try {
+      if (isAuthenticated && userId) {
+        const last = lastTokenByUser.get(userId);
+        if (!last || last !== accessToken) {
+          // new token for this user -> treat as fresh login, clear previous onboard attempts
+          userOnboardAttempt.delete(userId);
+          lastTokenByUser.set(userId, accessToken);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
     // If authenticated, fetch profile for role
     if (isAuthenticated && userId) {
       try {
-        const profileRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/profiles/${userId}`, {
+        // First ask backend whether user is onboarded locally
+        const onboardUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/profiles/onboarded`;
+        const onboardRes = await fetch(onboardUrl, {
+          headers: { Authorization: `Bearer ${accessToken}` },
           signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
         });
-        if (profileRes.ok) {
-          const profile = await profileRes.json();
-          userRole = profile.role;
-        } else if (profileRes.status === 404) {
-          // Profile not found - user needs to create profile
-          userRole = undefined;
+
+        if (onboardRes.ok) {
+          const onboardData = await onboardRes.json();
+          if (onboardData && onboardData.onboarded) {
+            // If onboarded, fetch the full profile to get role and other metadata
+            const profileRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/profiles/${userId}`, {
+              headers: { Authorization: `Bearer ${accessToken}` },
+              signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
+            });
+            if (profileRes.ok) {
+              const profile = await profileRes.json();
+              userRole = profile.role;
+            } else if (profileRes.status === 404) {
+              // Unexpected: onboarding said true but profile not found
+              userRole = undefined;
+            } else {
+              console.error("Profile fetch failed with status:", profileRes.status);
+              profileFetchError = true;
+            }
+          } else {
+            // Not onboarded.
+            // Avoid repeatedly POSTing to /profiles/onboard if we've tried recently for this user.
+            const now = Date.now();
+            const attemptTtl = Number(VALIDATION_CONFIG.ONBOARD_ATTEMPT_TTL_MS || 5 * 60 * 1000);
+            const lastAttempt = userId ? (userOnboardAttempt.get(userId) || 0) : 0;
+            if (now - lastAttempt < attemptTtl) {
+              // recently attempted; skip POST and treat as not onboarded so the normal redirect will occur
+            } else {
+              // Record attempt preemptively to avoid race conditions from parallel requests
+              if (userId) userOnboardAttempt.set(userId, now);
+
+              // Attempt to create a minimal profile once
+              const createUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/profiles/onboard`;
+              try {
+                const createRes = await fetch(createUrl, {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: '{}',
+                  signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
+                });
+
+                if (createRes.ok) {
+                  const profile = await createRes.json();
+                  // Ensure the newly-created profile actually meets the "onboarded" criteria
+                  const hasOrg = profile && profile.organization_id != null;
+                  let qualifiesAsAdmin = false;
+                  try {
+                    if (profile && profile.role) {
+                      const roleStr = String(profile.role).toLowerCase();
+                      if (roleStr === "admin") {
+                        const adminData = profile.admin_data;
+                        if (adminData && adminData.admin_level != null && adminData.permissions && (Array.isArray(adminData.permissions) ? adminData.permissions.length > 0 : Boolean(adminData.permissions))) {
+                          qualifiesAsAdmin = true;
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    // ignore and treat as not qualifying
+                  }
+
+                  if (hasOrg || qualifiesAsAdmin) {
+                    userRole = profile.role;
+                  } else {
+                    // Created profile doesn't satisfy onboard rules — leave userRole undefined
+                    userRole = undefined;
+                  }
+                  } else if (createRes.status === 401) {
+                  // Token invalid / expired
+                  isAuthenticated = false;
+                } else {
+                  console.error('Profile creation failed with status:', createRes.status);
+                  profileFetchError = true;
+                }
+              } catch (e) {
+                console.error('Profile creation request failed:', e);
+                profileFetchError = true;
+              }
+            }
+          }
+        } else if (onboardRes.status === 401) {
+          // Token invalid
+          isAuthenticated = false;
         } else {
-          // Other error (500, 503, etc.) - API connection issue
-          console.error("Profile fetch failed with status:", profileRes.status);
+          console.error('Onboard check failed with status:', onboardRes.status);
           profileFetchError = true;
         }
       } catch (err) {
-        console.error("Profile fetch failed:", err);
+        console.error("Profile/onboard request failed:", err);
         profileFetchError = true;
       }
     }
