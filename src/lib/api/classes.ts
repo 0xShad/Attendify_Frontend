@@ -383,6 +383,56 @@ export async function listEnrolleesForClass(classId: number): Promise<any[]> {
 }
 
 /**
+ * Join a class using a class code as the current authenticated student.
+ * Calls same-origin proxy: POST /api/classes/mine/join
+ * Expects 201 Created with an Enrollee object on success.
+ */
+export async function joinMyClass(classCode: string): Promise<any> {
+  const url = `/api/classes/mine/join`;
+  try {
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ class_code: String(classCode) }),
+    }));
+
+    if (res.status === 201) {
+      const data = await res.json().catch(() => null);
+      // Normalize enrollee to frontend shape
+      const item = data ?? {};
+      return {
+        id: typeof item?.id === 'number' ? item.id : (item?.id ? Number(item.id) : null),
+        profile_id: item?.profile_id !== undefined && item?.profile_id !== null ? Number(item.profile_id) : null,
+        user_id: item?.user_id !== undefined && item?.user_id !== null ? Number(item.user_id) : null,
+        full_name: item?.full_name ?? item?.name ?? null,
+        avatar_url: item?.avatar_url ?? item?.avatar ?? null,
+        enrollment_date: item?.enrollment_date ?? null,
+      } as any;
+    }
+
+    // Map common error statuses to helpful messages
+    if (res.status === 400) {
+      const body = await res.json().catch(() => null);
+      const msg = body?.detail ?? body?.message ?? JSON.stringify(body) || 'Bad Request';
+      throw Object.assign(new Error(String(msg)), { status: 400, body });
+    }
+    if (res.status === 401) throw Object.assign(new Error('Unauthorized'), { status: 401 });
+    if (res.status === 403) throw Object.assign(new Error('Forbidden'), { status: 403 });
+    if (res.status === 404) {
+      const body = await res.json().catch(() => null);
+      const msg = body?.detail ?? JSON.stringify(body) ?? 'Not Found';
+      throw Object.assign(new Error(String(msg)), { status: 404, body });
+    }
+
+    // Generic fallback
+    const text = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+    throw Object.assign(new Error(String(text)), { status: res.status });
+  } catch (err: any) {
+    throw err;
+  }
+}
+
+/**
  * Fetch enrollees for a class scoped to the currently authenticated faculty user.
  * Calls same-origin proxy: GET /api/classes/mine/{class_id}/enrollees
  */
@@ -596,4 +646,5 @@ export const classesAPI = {
   addEnrolleeToClass,
   deleteEnrolleeFromClass,
   getMyClassEnrollees,
+  joinMyClass,
 };

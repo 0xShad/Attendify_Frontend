@@ -14,7 +14,6 @@ import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 import { getModeIcon, getModeColor, getNextSessionTime } from "@/components/student-portal/utils";
 import ClassCard from "./ClassCard";
-import JoinClassDrawer from "./JoinClassDrawer";
 
 export default function StudentClasses({
   children,
@@ -67,8 +66,6 @@ export default function StudentClasses({
       </div>
 
       {children}
-
-      <JoinClassDrawer open={joinClassOpen} onOpenChange={setJoinClassOpen} />
     </div>
   );
 }

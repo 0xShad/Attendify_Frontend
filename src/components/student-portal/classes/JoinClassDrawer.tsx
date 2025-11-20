@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
+import { classesAPI } from "@/lib/api/classes";
 
 export default function JoinClassDrawer({
   open,
@@ -33,29 +34,29 @@ export default function JoinClassDrawer({
     }
 
     setIsJoining(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsJoining(false);
-
-    // simulate outcomes
-    const outcomes = ["success", "not-found", "full", "pending"];
-    const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
-
-    switch (outcome) {
-      case "success":
-        toast({ title: "Successfully Joined! ✓", description: `You've been enrolled in ${classCode}` });
-        onOpenChange(false);
-        onJoinSuccess && onJoinSuccess();
-        router.push("/student/classes");
-        break;
-      case "not-found":
-        toast({ title: "Class Not Found", description: "The class code you entered doesn't exist or is inactive", variant: "destructive" });
-        break;
-      case "full":
-        toast({ title: "Class Full", description: "This class has reached its maximum capacity. You've been added to the waitlist." });
-        break;
-      case "pending":
-        toast({ title: "Request Sent", description: "Your join request has been sent to the instructor for approval" });
-        break;
+    try {
+      const enrollee = await classesAPI.joinMyClass(classCode.trim());
+      toast({ title: "Successfully Joined! ✓", description: `You've been enrolled in ${classCode}` });
+      onOpenChange(false);
+      onJoinSuccess && onJoinSuccess();
+      router.push("/student/classes");
+    } catch (err: any) {
+      // Map known statuses to user-friendly messages
+      const status = err?.status ?? null;
+      const msg = err?.message ?? String(err);
+      if (status === 401) {
+        toast({ title: "Unauthorized", description: "Please sign in to join classes.", variant: "destructive" });
+      } else if (status === 403) {
+        toast({ title: "Forbidden", description: "Only students may join classes via this form.", variant: "destructive" });
+      } else if (status === 400) {
+        toast({ title: "Unable to Join", description: msg || "Invalid class code or already enrolled", variant: "destructive" });
+      } else if (status === 404) {
+        toast({ title: "Class Not Found", description: msg || "The class code you entered doesn't exist", variant: "destructive" });
+      } else {
+        toast({ title: "Failed to Join", description: msg || "An unexpected error occurred", variant: "destructive" });
+      }
+    } finally {
+      setIsJoining(false);
     }
   };
 

@@ -45,6 +45,7 @@ import StudentClasses from ".";
 import ClassDetailsDrawer from "./ClassDetailsDrawer";
 import ClassFilterDrawer from "./ClassFilterDrawer";
 import AttendanceHistoryDrawer from "./AttendanceHistoryDrawer";
+import JoinClassDrawer from "./JoinClassDrawer";
 import {
   Select,
   SelectContent,
@@ -115,7 +116,8 @@ export default function ClassManagement() {
   const [modeFilter, setModeFilter] = useState("all");
 
   // Data & helpers now come from the shared hook
-  const { enrolledClasses, activeSessions, generateAttendanceHistory, recentActivity } = useStudentClasses();
+  const { enrolledClasses, activeSessions, generateAttendanceHistory, recentActivity, reload } = useStudentClasses();
+  const [joinClassOpen, setJoinClassOpen] = useState(false);
 
   // Debug: log enrolledClasses to verify data is flowing
   if (typeof window !== "undefined") {
@@ -197,14 +199,20 @@ export default function ClassManagement() {
               className="pl-9"
             />
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setFilterDrawerOpen(true)}
-          >
-            <Filter className="w-4 h-4 mr-2" />
-            Filter
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilterDrawerOpen(true)}
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Filter
+            </Button>
+            <Button size="sm" onClick={() => setJoinClassOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Join Class
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -275,6 +283,19 @@ export default function ClassManagement() {
         onOpenChange={setAttendanceHistoryOpen}
         selectedAttendanceClass={selectedAttendanceClass}
         attendanceHistory={attendanceHistory}
+      />
+      <JoinClassDrawer
+        open={joinClassOpen}
+        onOpenChange={setJoinClassOpen}
+        onJoinSuccess={() => {
+          // reload classes after successful join and show toast
+          try {
+            reload && reload();
+          } catch (e) {
+            // ignore
+          }
+          toast({ title: 'Joined', description: 'Class joined successfully.' });
+        }}
       />
     </div>
   );
