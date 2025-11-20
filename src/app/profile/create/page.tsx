@@ -17,6 +17,7 @@ import FaceSubmissionStep from "./steps/FaceSubmissionStep";
 
 
 import { programsAPI } from "@/lib/api/programs";
+import { REDIRECT_URLS } from '@/config/auth';
 
 export default function ProfileCreatePage() {
   // Search state for dropdowns
@@ -54,7 +55,6 @@ export default function ProfileCreatePage() {
   const [form, setForm] = useState({
     bio: "",
     face_image: "",
-    organization: "",
     school: "",
     program: "",
     degreeType: "",
@@ -110,9 +110,7 @@ export default function ProfileCreatePage() {
     setForm(f => ({ ...f, school: value }));
   };
 
-  const handleSelectOrganization = (value: string) => {
-    setForm(f => ({ ...f, organization: value }));
-  };
+  
 
   const handleNext = () => setStep((s) => Math.min(s + 1, 2));
   const handleBack = () => setStep((s) => Math.max(s - 1, 0));
@@ -121,11 +119,54 @@ export default function ProfileCreatePage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // TODO: Replace with actual API call to create profile
-      await new Promise((res) => setTimeout(res, 1000));
-      router.push("/profile");
+      // Build multipart/form-data payload and PATCH to /api/profiles/mine (proxy)
+      const formData = new FormData();
+
+      // organization (school) id
+      if (form.school) {
+        const orgId = Number(form.school);
+        if (Number.isFinite(orgId)) formData.append('organization_id', String(orgId));
+      }
+
+      // program: prefer numeric program_id if user picked one, else send program_code
+      if (form.program) {
+        const pid = Number(form.program);
+        if (Number.isFinite(pid)) {
+          formData.append('program_id', String(pid));
+        } else {
+          formData.append('program_code', String(form.program));
+        }
+      }
+
+      if (form.bio) formData.append('bio', String(form.bio));
+
+      // Attach avatar file if user uploaded one
+      if (avatarFile) {
+        formData.append('avatar_file', avatarFile, avatarFile.name);
+      }
+
+      // If face_image is a data URL, convert to Blob and attach as face_file
+      if (form.face_image && typeof form.face_image === 'string' && form.face_image.startsWith('data:')) {
+        const res = await fetch(form.face_image);
+        const blob = await res.blob();
+        formData.append('face_file', blob, 'face.png');
+      }
+
+      const resp = await fetch('/api/profiles/mine', {
+        method: 'PATCH',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!resp.ok) {
+        const errBody = await resp.json().catch(() => ({ detail: resp.statusText }));
+        throw new Error(errBody?.detail || resp.statusText || `HTTP ${resp.status}`);
+      }
+
+      // on success, backend returns updated profile; navigate to student dashboard
+      router.push(REDIRECT_URLS.STUDENT_DASHBOARD);
     } catch (err) {
-      // Handle error
+      console.error('Failed to create/update profile', err);
     } finally {
       setLoading(false);
     }
@@ -217,7 +258,6 @@ export default function ProfileCreatePage() {
               schoolSearch={schoolSearch}
               setSchoolSearch={setSchoolSearch}
               handleSelectSchool={handleSelectSchool}
-              handleSelectOrganization={handleSelectOrganization}
               onProgramChange={val => setForm(f => ({ ...f, program: val }))}
               onBack={handleBack}
               onNext={handleNext}

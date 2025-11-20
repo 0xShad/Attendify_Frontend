@@ -17,7 +17,6 @@ interface SchoolProgramStepProps {
   schoolSearch: string;
   setSchoolSearch: (s: string) => void;
   handleSelectSchool: (val: string) => void;
-  handleSelectOrganization?: (val: string) => void;
   onProgramChange: (val: string) => void;
   onBack: () => void;
   onNext: () => void;
@@ -31,51 +30,50 @@ export default function SchoolProgramStep({
   schoolSearch,
   setSchoolSearch,
   handleSelectSchool,
-  handleSelectOrganization,
   onProgramChange,
   onBack,
   onNext,
 }: SchoolProgramStepProps) {
-  const [orgOptions, setOrgOptions] = useState<Array<{ id: number; name: string }>>([]);
-  const [orgsLoading, setOrgsLoading] = useState(false);
+  // Do not call `getMyProgramOptions` here: endpoint logic is incorrect.
+  // Use the static fallback program list below until API is fixed.
   const [programOptions, setProgramOptions] = useState<Array<{ id: number; code: string; name?: string }>>([]);
   const [programsLoading, setProgramsLoading] = useState(false);
 
+  // Load program codes when a school (organization) is selected
   useEffect(() => {
     let mounted = true;
-    (async () => {
+    async function loadProgramsForOrg(orgIdStr?: string) {
+      if (!orgIdStr) {
+        setProgramOptions([]);
+        return;
+      }
+      const orgId = Number(orgIdStr);
+      if (!Number.isFinite(orgId) || orgId <= 0) {
+        setProgramOptions([]);
+        return;
+      }
       setProgramsLoading(true);
       try {
-        const opts = await programsAPI.getMyProgramOptions();
+        const opts = await programsAPI.getProgramCodesByOrganization(orgId);
         if (!mounted) return;
         if (Array.isArray(opts)) {
           setProgramOptions(opts.map((o: any) => ({ id: Number(o.id), code: String(o.code), name: o.name ?? undefined })));
+        } else {
+          setProgramOptions([]);
         }
       } catch (err) {
-        console.debug('Failed to load program options', err);
+        console.debug('Failed to load programs for organization', err);
+        if (!mounted) return;
         setProgramOptions([]);
       } finally {
         if (mounted) setProgramsLoading(false);
       }
-    })();
+    }
 
-    // load organization options for the school selector
-    (async () => {
-      setOrgsLoading(true);
-      try {
-        const orgs = await programsAPI.getOrganizationOptions();
-        if (!mounted) return;
-        if (Array.isArray(orgs)) setOrgOptions(orgs.map((o: any) => ({ id: Number(o.id), name: String(o.name) })));
-      } catch (err) {
-        console.debug('Failed to load organization options', err);
-        setOrgOptions([]);
-      } finally {
-        if (mounted) setOrgsLoading(false);
-      }
-    })();
+    loadProgramsForOrg(form?.school);
 
     return () => { mounted = false; };
-  }, []);
+  }, [form?.school]);
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -102,27 +100,10 @@ export default function SchoolProgramStep({
                   autoFocus
                 />
               </div>
-                <Label htmlFor="organization" className="font-semibold">Organization</Label>
-                {orgsLoading ? (
-                  <div className="mt-2 text-sm text-muted-foreground">Loading organizations...</div>
-                ) : orgOptions.length === 0 ? (
-                  <div className="mt-2 text-sm text-muted-foreground">No organizations available.</div>
-                ) : (
-                  <Select value={form.organization} onValueChange={(val) => { if (handleSelectOrganization) handleSelectOrganization(val); }}>
-                    <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200">
-                      <SelectValue placeholder="Select your organization (optional)" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
-                      {orgOptions.map(org => (
-                        <SelectItem key={org.id} value={org.name}>{org.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
               {schools
                 .filter(s => s.name.toLowerCase().includes(schoolSearch.toLowerCase()))
                 .map(school => (
-                  <SelectItem key={school.id} value={school.name}>{school.name}</SelectItem>
+                  <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>
                 ))}
             </SelectContent>
           </Select>
