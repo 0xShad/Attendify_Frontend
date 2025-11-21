@@ -464,17 +464,26 @@ export default function ClassCard({
                     // The endpoint returns top-level fields including `is_active` and
                     // `current_schedule` (object) or `current_schedule_id` and schedule lists.
                     const isActive = !!resp?.is_active;
+                    const sessionActive = !!resp?.session_active;
                     const modesRaw = (Array.isArray(resp?.current_schedule_modes) && resp.current_schedule_modes.length > 0)
                       ? resp.current_schedule_modes
-                      : (resp?.current_schedule?.modes ?? resp?.current_schedule?.modes ?? []);
+                      : resp?.current_schedule?.modes ?? [];
                     const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
-                    const allowed = isActive && modes.some((m: string) => m === 'online' || m === 'hybrid');
-                      if (allowed) {
-                        // preserve the server-provided session payload for the modal
-                        setSessionInfo(resp ?? null);
-                        setTakeOpen(true);
+                    const allowed = isActive && sessionActive && modes.some((m: string) => m === 'online' || m === 'hybrid');
+                    if (allowed) {
+                      // preserve the server-provided session payload for the modal
+                      setSessionInfo(resp ?? null);
+                      setTakeOpen(true);
+                    } else {
+                      // Provide clearer feedback depending on why access is denied
+                      if (!sessionActive) {
+                        const msg = resp?.session_message ?? 'There is no open session for this class schedule right now.';
+                        toast({ title: 'No active session', description: msg, variant: 'destructive' });
+                      } else if (!isActive) {
+                        toast({ title: 'Class not active', description: 'This class is not currently active.', variant: 'destructive' });
                       } else {
-                      toast({ title: 'Attendance unavailable', description: 'This class is not currently available for online attendance.', variant: 'destructive' });
+                        toast({ title: 'Attendance unavailable', description: 'This class is not currently available for online attendance.', variant: 'destructive' });
+                      }
                     }
                   } catch (err: any) {
                     const msg = err?.message ? String(err.message) : String(err);

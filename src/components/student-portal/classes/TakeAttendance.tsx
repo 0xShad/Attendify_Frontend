@@ -95,30 +95,38 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
                   </div>
                 </div>
               )}
-              {/* Only use the online camera when the active schedule/mode is explicitly 'online'.
-                  In other cases (face_to_face, hybrid) show a placeholder until other variants are implemented. */}
-              {(() => {
-                const modesRaw = Array.isArray(sessionInfo?.current_schedule_modes) && sessionInfo.current_schedule_modes.length > 0
-                  ? sessionInfo.current_schedule_modes
-                  : sessionInfo?.current_schedule?.modes ?? null;
-                const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
-                const isOnline = modes.includes('online');
-                if (isOnline) {
-                  return <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={true} />;
-                }
-                return (
-                  <div className="p-6 text-center text-sm text-muted-foreground">
-                    Attendance for this class is not yet supported for the selected mode.
-                    <div className="mt-2">Mode: {modes.length ? modes.join(', ') : 'unknown'}</div>
-                  </div>
-                );
-              })()}
+              {/* If the session is inactive, show the session_message (if provided) and hide the camera. */}
+              {sessionInfo && sessionInfo.session_active === false ? (
+                <div className="w-full p-6 rounded-md border bg-yellow-50 text-sm text-amber-800">
+                  <div className="font-medium">Session not active</div>
+                  <div className="mt-2">{sessionInfo.session_message ?? 'Session has not started yet for this class. Please inform your professor or secretary.'}</div>
+                </div>
+              ) : (
+                /* Only use the online camera when the active schedule/mode is explicitly 'online'.
+                   In other cases (face_to_face, hybrid) show a placeholder until other variants are implemented. */
+                (() => {
+                  const modesRaw = Array.isArray(sessionInfo?.current_schedule_modes) && sessionInfo.current_schedule_modes.length > 0
+                    ? sessionInfo.current_schedule_modes
+                    : sessionInfo?.current_schedule?.modes ?? null;
+                  const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
+                  const isOnline = modes.includes('online');
+                  if (isOnline) {
+                    return <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={true} />;
+                  }
+                  return (
+                    <div className="p-6 text-center text-sm text-muted-foreground">
+                      Attendance for this class is not yet supported for the selected mode.
+                      <div className="mt-2">Mode: {modes.length ? modes.join(', ') : 'unknown'}</div>
+                    </div>
+                  );
+                })()
+              )}
             </div>
           </Card>
 
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => onOpenChange(false)}>Close</Button>
-            <Button onClick={handleRecord} disabled={!faceValidated}>Record Attendance</Button>
+            <Button onClick={handleRecord} disabled={!faceValidated || (sessionInfo && sessionInfo.session_active === false)}>Record Attendance</Button>
           </div>
         </div>
 
