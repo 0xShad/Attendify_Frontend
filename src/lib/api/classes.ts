@@ -105,7 +105,32 @@ export async function listMyClasses(params: Partial<ListClassesParams> = {}): Pr
 
   try {
     console.debug('Fetching my classes:', url.toString());
+    const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
+    const duration = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - start);
+
+    // Development-only debug: log status, timing, and a safe preview of the response body.
+    // Use Response.clone() to avoid consuming the original body that we still need to parse.
+    try {
+      if (process.env.NODE_ENV !== 'production') {
+        const clone = res.clone();
+        const text = await clone.text().catch(() => '');
+        let bodyPreview: any = text;
+        try {
+          bodyPreview = JSON.parse(text);
+        } catch (_) {
+          // keep raw text
+        }
+        console.debug(`[classes.listMyClasses] GET ${url.toString()} ${res.status} in ${duration}ms`, {
+          status: res.status,
+          durationMs: duration,
+          body: bodyPreview,
+        });
+      }
+    } catch (logErr) {
+      console.debug('[classes.listMyClasses] Failed to log response preview', String(logErr));
+    }
+
     if (!res.ok) {
       const err = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
       throw new Error(String(err));
@@ -142,6 +167,27 @@ export async function getMyClass(id: number): Promise<any> {
       const body = await res.text().catch(() => 'Not found');
       throw new Error(`NotFound: ${body}`);
     }
+    if (!res.ok) {
+      const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(body));
+    }
+    return res.json();
+  } catch (err: any) {
+    throw err;
+  }
+}
+
+/**
+ * Fetch class session and active schedule info for the current caller.
+ * Calls same-origin proxy: GET /api/classes/mine/{id}/session
+ */
+export async function getMyClassSession(id: number): Promise<any> {
+  const url = `/api/classes/mine/${encodeURIComponent(String(id))}/session`;
+  try {
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'GET' }));
+    if (res.status === 401) throw new Error('Unauthorized');
+    if (res.status === 403) throw new Error('Forbidden');
+    if (res.status === 404) throw new Error('Not Found');
     if (!res.ok) {
       const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
       throw new Error(String(body));

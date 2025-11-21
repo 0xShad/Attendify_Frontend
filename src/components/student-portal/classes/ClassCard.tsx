@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { MoreVertical, Eye, UserCheck, Trash2, Clock, Calendar, MapPin } from "lucide-react";
+import TakeAttendance from "./TakeAttendance";
+import { getMyClassSession } from "@/lib/api/classes";
+import { useToast } from "@/hooks/use-toast";
 import { normalizeAttendanceRate, parseDateOnly, formatTime } from "@/lib/utils/format";
 import type { EnrolledClass, ClassWithSchedules } from "./types";
 
@@ -20,6 +23,9 @@ export default function ClassCard({
   onViewAttendanceHistory?: (c: EnrolledClass | ClassWithSchedules) => void;
   onDropClass?: (id: string | number) => void;
 }) {
+  const [takeOpen, setTakeOpen] = React.useState(false);
+  const [checkingSession, setCheckingSession] = React.useState(false);
+  const { toast } = useToast();
   // Safe helpers
   const studentsText = typeof classItem.students_count === "number" ? `${classItem.students_count} students` : "-";
   // Prefer normalized attendance_pct injected by the hook; fallback to backend fields
@@ -293,8 +299,54 @@ export default function ClassCard({
     return null;
   })()) || null;
 
+  // Only show Attendance when the class is active and the active schedule's modes
+  // include either "online" or "hybrid" (case-insensitive). If `current_schedule_modes`
+  // is missing or not an array, do not show the button.
+  // Derive active schedule modes from the server-provided `current_schedule_modes` if present.
+  // If empty, attempt to find the schedule matching `current_schedule_id` across available
+  // schedule arrays (`normal_schedules`, `special_schedules`, `schedules`) and use its `modes`.
+  const activeScheduleModes: string[] = (() => {
+    try {
+      if (Array.isArray(classItem?.current_schedule_modes) && classItem.current_schedule_modes.length > 0) {
+        return classItem.current_schedule_modes.map((m: any) => String(m ?? '').toLowerCase()).filter(Boolean);
+      }
+
+      const allSchedules = [
+        ...(Array.isArray(classItem?.normal_schedules) ? classItem.normal_schedules : []),
+        ...(Array.isArray(classItem?.special_schedules) ? classItem.special_schedules : []),
+        ...(Array.isArray(classItem?.schedules) ? classItem.schedules : []),
+      ];
+
+      const cid = classItem?.current_schedule_id;
+      if (cid != null) {
+        const found = allSchedules.find((s: any) => s && (s.id === cid || String(s.id) === String(cid)));
+        if (found && Array.isArray(found.modes) && found.modes.length) {
+          return found.modes.map((m: any) => String(m ?? '').toLowerCase()).filter(Boolean);
+        }
+      }
+
+      // Fallback: pick the first schedule that has modes defined
+      for (const s of allSchedules) {
+        if (s && Array.isArray(s.modes) && s.modes.length) {
+          return s.modes.map((m: any) => String(m ?? '').toLowerCase()).filter(Boolean);
+        }
+      }
+
+      return [];
+    } catch (e) {
+      return [];
+    }
+  })();
+
+  const showAttendanceButton = Boolean(
+    classItem?.is_active &&
+    Array.isArray(activeScheduleModes) &&
+    activeScheduleModes.some((mode) => mode === 'online' || mode === 'hybrid')
+  );
+
   return (
-    <Card key={classItem.id} className="hover:shadow-md transition-shadow">
+    <>
+      <Card key={classItem.id} className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -400,15 +452,48 @@ export default function ClassCard({
           </div>
 
           <div>
-            <Button onClick={() => onViewAttendanceHistory && onViewAttendanceHistory(classItem)} className="w-full">
-              <UserCheck className="w-4 h-4 mr-2" />
-              Attendance
-            </Button>
+            {showAttendanceButton ? (
+              <Button
+                onClick={async () => {
+                  // Prevent double clicks
+                  if (checkingSession) return;
+                  setCheckingSession(true);
+                  try {
+                    const resp = await getMyClassSession(Number(classItem.id));
+                    // The endpoint returns top-level fields including `is_active` and
+                    // `current_schedule` (object) or `current_schedule_id` and schedule lists.
+                    const isActive = !!resp?.is_active;
+                    const modesRaw = (Array.isArray(resp?.current_schedule_modes) && resp.current_schedule_modes.length > 0)
+                      ? resp.current_schedule_modes
+                      : (resp?.current_schedule?.modes ?? resp?.current_schedule?.modes ?? []);
+                    const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
+                    const allowed = isActive && modes.some((m: string) => m === 'online' || m === 'hybrid');
+                    if (allowed) {
+                      setTakeOpen(true);
+                    } else {
+                      toast({ title: 'Attendance unavailable', description: 'This class is not currently available for online attendance.', variant: 'destructive' });
+                    }
+                  } catch (err: any) {
+                    const msg = err?.message ? String(err.message) : String(err);
+                    toast({ title: 'Unable to check session', description: msg, variant: 'destructive' });
+                  } finally {
+                    setCheckingSession(false);
+                  }
+                }}
+                className="w-full"
+                disabled={checkingSession}
+              >
+                <UserCheck className="w-4 h-4 mr-2" />
+                {checkingSession ? 'Checking...' : 'Attendance'}
+              </Button>
+            ) : null}
           </div>
         </div>
       </CardFooter>
     </Card>
 
+      <TakeAttendance open={takeOpen} onOpenChange={setTakeOpen} classItem={classItem} />
+    </>
   );
 }
 

@@ -13,6 +13,8 @@ interface FaceCameraProps {
     processedImage?: string; // Optional: return a processed/boxed image
     metadata?: any; // Optional: return additional data (face coordinates, confidence, etc.)
   }>;
+  /** When true, skip the additional /api/vision-face-detect call after validation */
+  skipFaceDetect?: boolean;
   skipLivenessCheck?: boolean;
   width?: number;
   height?: number;
@@ -23,6 +25,7 @@ export default function FaceCamera({
   onCapture, 
   onRetake, 
   onValidate,
+  skipFaceDetect = false,
   skipLivenessCheck = false,
   width = 320, 
   height = 240, 
@@ -139,7 +142,14 @@ export default function FaceCamera({
                 setLivenessResult({ success: validationResult.passed, message: validationResult.passed ? "Validation passed." : (validationResult.message || "Validation failed.") });
                 setLivenessPassed(!!validationResult.passed);
                 if (validationResult.passed) {
-                  console.log('[FaceCamera] Validation passed, closing modal and calling onCapture');
+                  console.log('[FaceCamera] Validation passed');
+                  // If caller requested skipping the face-detect step, treat it as a successful detection
+                  if (skipFaceDetect) {
+                    console.log('[FaceCamera] skipFaceDetect=true — skipping face-detect and marking as success');
+                    setPendingDetection({ success: true, message: 'Face detection skipped', faces: [{ detectionConfidence: 1 }] });
+                    setPendingBoxed(validationResult.processedImage || dataUrl);
+                  }
+                  console.log('[FaceCamera] Closing modal and calling onCapture');
                   setOpen(false);
                   // Pass the processed image if returned, otherwise pass original
                   const imageToReturn = validationResult.processedImage || dataUrl;
@@ -154,7 +164,7 @@ export default function FaceCamera({
                   // setPendingDetection(null);
                 }
                 // Optionally, you can also send to face detection API if validation passed
-                if (validationResult.passed) {
+                if (validationResult.passed && !skipFaceDetect) {
                   const base64 = dataUrl.replace(/^data:image\/(png|jpeg);base64,/, "");
                   console.log('[FaceCamera] Sending image to /api/vision-face-detect');
                   const response2 = await fetch("/api/vision-face-detect", {
