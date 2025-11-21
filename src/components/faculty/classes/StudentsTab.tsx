@@ -21,6 +21,7 @@ type Enrollee = {
   email?: string | null;
   avatar_url?: string | null;
   enrollment_date?: string | null;
+  attendance_rate?: number | null;
 };
 
 function formatDate(value?: string | null) {
@@ -107,21 +108,22 @@ export default function StudentsTab({ classId }: Props) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead></TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Enrollment</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
+                  <TableHead></TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Attendance</TableHead>
+                  <TableHead>Enrollment</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
             </TableHeader>
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">Loading students…</TableCell>
+                  <TableCell colSpan={5} className="text-muted-foreground">Loading students…</TableCell>
                 </TableRow>
               )}
               {!loading && enrollees.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">No students found for this class.</TableCell>
+                  <TableCell colSpan={5} className="text-muted-foreground">No students found for this class.</TableCell>
                 </TableRow>
               )}
               {!loading && enrollees.map((e, idx) => (
@@ -138,6 +140,7 @@ export default function StudentsTab({ classId }: Props) {
                     </div>
                   </TableCell>
                   <TableCell>{e.full_name ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{`${Number(e.attendance_rate ?? 0).toFixed(2)}%`}</TableCell>
                   <TableCell className="font-mono">{formatDate(e.enrollment_date ?? null)}</TableCell>
                   <TableCell className="text-right">
                     <button title="Remove" className="p-1 rounded hover:bg-gray-100 text-rose-600" onClick={() => handleRemoveClick(e)}>
