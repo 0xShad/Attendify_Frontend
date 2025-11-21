@@ -17,11 +17,13 @@ export default function ClassCard({
   onViewDetails,
   onViewAttendanceHistory,
   onDropClass,
+  onAttendanceRecorded,
 }: {
   classItem: EnrolledClass | ClassWithSchedules;
   onViewDetails?: (c: EnrolledClass | ClassWithSchedules) => void;
   onViewAttendanceHistory?: (c: EnrolledClass | ClassWithSchedules) => void;
   onDropClass?: (id: string | number) => void;
+  onAttendanceRecorded?: (record?: any) => void;
 }) {
   const [takeOpen, setTakeOpen] = React.useState(false);
   const [checkingSession, setCheckingSession] = React.useState(false);
@@ -35,6 +37,14 @@ export default function ClassCard({
     : (typeof classItem.own_attendance_rate === "number" ? classItem.own_attendance_rate : classItem.attendance_rate ?? 0);
   const ratePct = normalizeAttendanceRate(rawRate);
   const rateRounded = Math.round(ratePct * 100) / 100;
+
+  // Normalize session counters from possible backend field names
+  const sessionCompleted = Number(
+    classItem.session_completed ?? classItem.sessionCompleted ?? classItem.attendedSessions ?? classItem.attended_sessions ?? 0
+  );
+  const sessionTotal = Number(
+    classItem.session_total ?? classItem.sessionTotal ?? classItem.totalSessions ?? classItem.total_sessions ?? 0
+  );
 
   // Derive a compact schedule-days string like "Mon, Wed, Fri" from available schedule fields
   // Prefer normal_schedules, then schedules, but also include special_schedules if present
@@ -438,7 +448,7 @@ export default function ClassCard({
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <div className="flex items-center gap-3">
                 <span className="font-medium">Sessions</span>
-                <span className="text-xs text-muted-foreground">{`${classItem.session_completed ?? 0}/${classItem.session_total ?? 0}`}</span>
+                <span className="text-xs text-muted-foreground">{`${sessionCompleted}/${sessionTotal}`}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Badge>
@@ -465,6 +475,13 @@ export default function ClassCard({
                     // `current_schedule` (object) or `current_schedule_id` and schedule lists.
                     const isActive = !!resp?.is_active;
                     const sessionActive = !!resp?.session_active;
+                    const sessionMessage = typeof resp?.session_message === 'string' ? String(resp.session_message) : null;
+
+                    // If backend reports the user already submitted attendance, surface that and don't open the modal.
+                    if (sessionMessage && sessionMessage.toLowerCase().includes('already submitted')) {
+                      toast({ title: 'Attendance submitted', description: sessionMessage, variant: 'default' });
+                      return;
+                    }
                     const modesRaw = (Array.isArray(resp?.current_schedule_modes) && resp.current_schedule_modes.length > 0)
                       ? resp.current_schedule_modes
                       : resp?.current_schedule?.modes ?? [];
@@ -512,6 +529,7 @@ export default function ClassCard({
         }}
         classItem={classItem}
         sessionInfo={sessionInfo}
+        onRecorded={onAttendanceRecorded}
       />
     </>
   );

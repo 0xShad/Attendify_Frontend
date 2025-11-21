@@ -11,11 +11,20 @@ export async function fetchWithAuth(input: RequestInfo, init: RequestInit = {}) 
   // Ensure credentials are included by default (cookies)
   if (!finalInit.credentials) finalInit.credentials = 'include';
 
-  // Normalize headers
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(finalInit.headers || {} as Record<string, string>),
-  } as Record<string, string>;
+  // Normalize headers. Respect caller-provided headers and avoid forcing
+  // `Content-Type` for multipart/form-data or other non-JSON bodies.
+  const providedHeaders = (finalInit.headers || {}) as Record<string, string>;
+  const headers: Record<string, string> = { ...providedHeaders } as Record<string, string>;
+
+  const hasContentType = Object.keys(headers).some(k => k.toLowerCase() === 'content-type');
+  const body = finalInit.body as any;
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  const isBlob = typeof Blob !== 'undefined' && body instanceof Blob;
+  const isURLSearchParams = typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams;
+
+  if (!hasContentType && !isFormData && !isBlob && !isURLSearchParams) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   // Best-effort: include any locally stored token under common keys
   try {

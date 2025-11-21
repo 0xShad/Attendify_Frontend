@@ -226,6 +226,7 @@ export default function ClassManagement() {
             onViewDetails={handleViewDetails}
             onViewAttendanceHistory={handleViewAttendanceHistory}
             onDropClass={handleDropClass}
+            onAttendanceRecorded={() => { try { reload && reload(); } catch (e) { /* ignore */ } }}
           />
         </TabsContent>
 

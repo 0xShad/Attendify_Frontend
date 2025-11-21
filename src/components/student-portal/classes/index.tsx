@@ -24,6 +24,7 @@ export default function StudentClasses({
   onViewDetails,
   onViewAttendanceHistory,
   onDropClass,
+  onAttendanceRecorded,
 }: {
   children?: React.ReactNode;
   enrolledClasses?: (EnrolledClass | ClassWithSchedules)[];
@@ -32,6 +33,7 @@ export default function StudentClasses({
   onViewDetails?: (cls: EnrolledClass | ClassWithSchedules) => void;
   onViewAttendanceHistory?: (cls: EnrolledClass | ClassWithSchedules) => void;
   onDropClass?: (id: string | number) => void;
+  onAttendanceRecorded?: (record?: any) => void;
 }) {
   const [joinClassOpen, setJoinClassOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +60,7 @@ export default function StudentClasses({
             onViewDetails={(c) => onViewDetails && onViewDetails(c)}
             onViewAttendanceHistory={(c) => onViewAttendanceHistory && onViewAttendanceHistory(c)}
             onDropClass={(id) => onDropClass && onDropClass(id)}
+            onAttendanceRecorded={(rec) => onAttendanceRecorded && onAttendanceRecorded(rec)}
           />
         ))}
       </div>

@@ -36,3 +36,40 @@ export async function startSession(payload: StartSessionIn): Promise<any> {
 }
 
 export default { startSession };
+
+export interface MarkPresentIn {
+  class_id: number;
+  session_id: number;
+  profile_id?: number | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+  face_file?: Blob | File | null;
+}
+
+export async function markPresent(payload: MarkPresentIn): Promise<any> {
+  const isBrowser = typeof window !== 'undefined';
+  const proxyUrl = `/api/attendance/mine/mark-present`;
+  const url = isBrowser ? proxyUrl : `${API_BASE_URL}/attendance/mine/mark-present`;
+
+  try {
+    const form = new FormData();
+    form.append('class_id', String(payload.class_id));
+    form.append('session_id', String(payload.session_id));
+    if (payload.profile_id != null) form.append('profile_id', String(payload.profile_id));
+    if (payload.latitude != null) form.append('latitude', String(payload.latitude));
+    if (payload.longitude != null) form.append('longitude', String(payload.longitude));
+    if (payload.face_file) {
+      // give a default filename
+      form.append('face_file', payload.face_file, 'face.jpg');
+    }
+
+    const res = await import('./fetchClient').then(m => m.fetchWithAuth(url, {
+      method: 'POST',
+      // Do NOT set Content-Type for multipart; let the browser set the boundary
+      body: form,
+    }));
+    return res;
+  } catch (err) {
+    throw err;
+  }
+}

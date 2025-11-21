@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import FaceCamera from "@/components/online-face-camera";
+import { markPresent } from '@/lib/api/attendance';
 
 type Props = {
   open: boolean;
@@ -14,11 +15,19 @@ type Props = {
   sessionInfo?: any | null;
   onCapture?: (dataUrl: string) => void;
   onRetake?: () => void;
+  onRecorded?: (record?: any) => void;
 };
 
-export default function TakeAttendance({ open, onOpenChange, classItem, sessionInfo = null, onCapture, onRetake }: Props) {
+export default function TakeAttendance({ open, onOpenChange, classItem, sessionInfo = null, onCapture, onRetake, onRecorded }: Props) {
   const [faceValidated, setFaceValidated] = React.useState(false);
   const [lastCaptured, setLastCaptured] = React.useState<string | null>(null);
+  const [lat, setLat] = React.useState<string | null>(null);
+  const [lon, setLon] = React.useState<string | null>(null);
+  const [locating, setLocating] = React.useState(false);
+  const [locationConfirmed, setLocationConfirmed] = React.useState(false);
+  const [locationError, setLocationError] = React.useState<string | null>(null);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
 
   const handleFaceCapture = (dataUrl: string) => {
     setFaceValidated(true);
@@ -33,12 +42,76 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
     }
   };
 
-  const handleRecord = () => {
+  const dataURLtoBlob = (dataurl: string) => {
+    const arr = dataurl.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new Blob([u8arr], { type: mime });
+  };
+
+  const handleRecord = async () => {
     if (!lastCaptured) return;
-    if (typeof onCapture === 'function') {
-      try { onCapture(lastCaptured); } catch (e) { console.warn('onCapture callback threw', e); }
+    setSubmitError(null);
+    setSubmitting(true);
+
+    try {
+      // determine modes
+      const modesRaw = Array.isArray(sessionInfo?.current_schedule_modes) && sessionInfo.current_schedule_modes.length > 0
+        ? sessionInfo.current_schedule_modes
+        : sessionInfo?.current_schedule?.modes ?? null;
+      const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
+
+      const isOnline = modes.includes('online');
+      const isHybrid = modes.includes('hybrid');
+
+      // validations
+      if ((isOnline || isHybrid) && !lastCaptured) {
+        setSubmitError('No face capture available');
+        setSubmitting(false);
+        return;
+      }
+      if (isHybrid && !(lat && lon)) {
+        setSubmitError('Location is required for hybrid mode');
+        setSubmitting(false);
+        return;
+      }
+
+      const classId = sessionInfo?.class?.id ?? classItem?.id ?? null;
+      const sessionId = sessionInfo?.active_session_id ?? sessionInfo?.session_id ?? null;
+      if (!classId || !sessionId) {
+        setSubmitError('Missing class or session id');
+        setSubmitting(false);
+        return;
+      }
+
+      // convert lastCaptured dataURL to blob
+      const blob = dataURLtoBlob(lastCaptured);
+
+      const resp = await markPresent({
+        class_id: Number(classId),
+        session_id: Number(sessionId),
+        latitude: lat ?? undefined,
+        longitude: lon ?? undefined,
+        face_file: blob,
+      });
+
+      // success
+      if (typeof onCapture === 'function') {
+        try { onCapture(lastCaptured); } catch (e) { console.warn('onCapture callback threw', e); }
+      }
+      if (typeof onRecorded === 'function') {
+        try { onRecorded(resp); } catch (e) { console.warn('onRecorded callback threw', e); }
+      }
+      onOpenChange(false);
+    } catch (err: any) {
+      setSubmitError(err?.message ?? String(err));
+    } finally {
+      setSubmitting(false);
     }
-    onOpenChange(false);
   };
 
   return (
@@ -110,9 +183,60 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
                     : sessionInfo?.current_schedule?.modes ?? null;
                   const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
                   const isOnline = modes.includes('online');
+                  const isHybrid = modes.includes('hybrid');
                   if (isOnline) {
                     return <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={true} />;
                   }
+
+                  if (isHybrid) {
+                    return (
+                      <div className="w-full">
+                        <div className="mb-4 text-sm text-muted-foreground">This session requires location confirmation. Please provide your latitude and longitude, or use your device's location.</div>
+                        <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
+                          <div className="flex-1">
+                            <label className="text-xs font-medium">Latitude</label>
+                            <input type="text" value={lat ?? ''} onChange={(e) => { setLat(e.target.value); setLocationConfirmed(false); }} className="w-full border rounded px-2 py-1 mt-1" placeholder="e.g. 14.5995" />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-xs font-medium">Longitude</label>
+                            <input type="text" value={lon ?? ''} onChange={(e) => { setLon(e.target.value); setLocationConfirmed(false); }} className="w-full border rounded px-2 py-1 mt-1" placeholder="e.g. 120.9842" />
+                          </div>
+                          <div className="flex items-center gap-2 mt-2 md:mt-0">
+                            <button className="btn btn-outline px-3 py-1 rounded border" onClick={async () => {
+                              if (!('geolocation' in navigator)) { setLocationError('Geolocation not supported by this browser'); return; }
+                              setLocating(true); setLocationError(null);
+                              navigator.geolocation.getCurrentPosition((pos) => {
+                                setLocating(false);
+                                setLat(String(pos.coords.latitude));
+                                setLon(String(pos.coords.longitude));
+                                setLocationConfirmed(true);
+                              }, (err) => {
+                                setLocating(false);
+                                setLocationError(err.message || 'Unable to get location');
+                              }, { enableHighAccuracy: true, timeout: 10000 });
+                            }} disabled={locating}>
+                              {locating ? 'Locating...' : 'Use my location'}
+                            </button>
+                            <button className="btn btn-primary px-3 py-1 rounded bg-blue-600 text-white" onClick={() => {
+                              // confirm manual coordinates
+                              if (lat && lon) { setLocationConfirmed(true); setLocationError(null); } else { setLocationError('Please enter both latitude and longitude'); }
+                            }}>Confirm</button>
+                          </div>
+                        </div>
+                        {locationError && <div className="text-red-600 text-sm mt-2">{locationError}</div>}
+
+                        {/* Show camera after location confirmed */}
+                        {locationConfirmed ? (
+                          <div className="mt-4">
+                            <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={true} />
+                          </div>
+                        ) : (
+                          <div className="mt-4 text-xs text-muted-foreground">Camera will be available after location is confirmed.</div>
+                        )}
+                      </div>
+                    );
+                  }
+
                   return (
                     <div className="p-6 text-center text-sm text-muted-foreground">
                       Attendance for this class is not yet supported for the selected mode.
@@ -126,8 +250,22 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
 
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => onOpenChange(false)}>Close</Button>
-            <Button onClick={handleRecord} disabled={!faceValidated || (sessionInfo && sessionInfo.session_active === false)}>Record Attendance</Button>
+            <Button onClick={handleRecord} disabled={
+              !faceValidated || 
+              (sessionInfo && sessionInfo.session_active === false) ||
+              // if hybrid mode, require location confirmed
+              ((() => {
+                const modesRaw = Array.isArray(sessionInfo?.current_schedule_modes) && sessionInfo.current_schedule_modes.length > 0
+                  ? sessionInfo.current_schedule_modes
+                  : sessionInfo?.current_schedule?.modes ?? null;
+                const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
+                return modes.includes('hybrid') && !locationConfirmed;
+              })())
+            }>
+              {submitting ? 'Recording...' : 'Record Attendance'}
+            </Button>
           </div>
+          {submitError && <div className="text-sm text-red-600 mt-2">{submitError}</div>}
         </div>
 
         <DialogFooter />
