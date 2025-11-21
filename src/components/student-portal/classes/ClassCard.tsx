@@ -304,16 +304,7 @@ export default function ClassCard({
             </div>
             <CardTitle className="text-lg line-clamp-2 mt-1">{classItem.course_name ?? classItem.class_code ?? `Class ${classItem.id}`}</CardTitle>
             <CardDescription className="mt-1 text-sm">{classItem.description ?? ""}</CardDescription>
-            {typeof window !== "undefined" && process.env.NODE_ENV !== 'production' ? (
-              <div className="mt-2 p-2 rounded bg-yellow-50 text-xs text-yellow-800">
-                <div><strong>DEBUG</strong></div>
-                <div>days: {scheduleDaysStr || '(empty)'}</div>
-                <div>special: {scheduleSpecialStr || '(none)'}</div>
-                <div>next.day_of_week: {String(classItem.next_schedule?.day_of_week ?? '(none)')}</div>
-              </div>
-            ) : null}
           </div>
-
           <div className="flex flex-col items-end gap-2">
             <div className="text-sm font-medium">{studentsText}</div>
             {classItem.session_active ? (
