@@ -26,6 +26,7 @@ export default function ClassCard({
   const [takeOpen, setTakeOpen] = React.useState(false);
   const [checkingSession, setCheckingSession] = React.useState(false);
   const { toast } = useToast();
+  const [sessionInfo, setSessionInfo] = React.useState<any | null>(null);
   // Safe helpers
   const studentsText = typeof classItem.students_count === "number" ? `${classItem.students_count} students` : "-";
   // Prefer normalized attendance_pct injected by the hook; fallback to backend fields
@@ -468,17 +469,19 @@ export default function ClassCard({
                       : (resp?.current_schedule?.modes ?? resp?.current_schedule?.modes ?? []);
                     const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
                     const allowed = isActive && modes.some((m: string) => m === 'online' || m === 'hybrid');
-                    if (allowed) {
-                      setTakeOpen(true);
-                    } else {
+                      if (allowed) {
+                        // preserve the server-provided session payload for the modal
+                        setSessionInfo(resp ?? null);
+                        setTakeOpen(true);
+                      } else {
                       toast({ title: 'Attendance unavailable', description: 'This class is not currently available for online attendance.', variant: 'destructive' });
                     }
                   } catch (err: any) {
                     const msg = err?.message ? String(err.message) : String(err);
                     toast({ title: 'Unable to check session', description: msg, variant: 'destructive' });
                   } finally {
-                    setCheckingSession(false);
-                  }
+                      setCheckingSession(false);
+                    }
                 }}
                 className="w-full"
                 disabled={checkingSession}
@@ -492,7 +495,15 @@ export default function ClassCard({
       </CardFooter>
     </Card>
 
-      <TakeAttendance open={takeOpen} onOpenChange={setTakeOpen} classItem={classItem} />
+      <TakeAttendance
+        open={takeOpen}
+        onOpenChange={(v) => {
+          setTakeOpen(v);
+          if (!v) setSessionInfo(null);
+        }}
+        classItem={classItem}
+        sessionInfo={sessionInfo}
+      />
     </>
   );
 }

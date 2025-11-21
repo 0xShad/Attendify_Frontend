@@ -53,7 +53,66 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
             <div className="flex flex-col items-center">
               <Label className="font-semibold text-lg mb-2">Face Verification</Label>
               <p className="text-sm text-muted-foreground mb-4 text-center max-w-lg">Use the camera to capture a clear photo of the attendee. Blink when asked to prove liveness. The system will validate the capture before recording attendance.</p>
-              <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={true} />
+
+              {/* Class & session details (from sessionInfo) */}
+              {sessionInfo && (
+                <div className="w-full mb-4 rounded-md border p-3 bg-muted/5 text-sm">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium">{sessionInfo?.class?.course_name ?? sessionInfo?.class?.class_code ?? 'Class'}</div>
+                      <div className="text-xs text-muted-foreground">{sessionInfo?.class?.course_code ? `${sessionInfo.class.course_code} • ${sessionInfo.class.program_id ? sessionInfo.class.program_id : ''}` : sessionInfo?.class?.program_name ?? ''}</div>
+                    </div>
+                    <div className="text-right text-xs text-muted-foreground">
+                      <div>Room: {sessionInfo?.class?.room ?? 'TBA'}</div>
+                      <div>Instructor: {sessionInfo?.class?.assigned_faculty_name ?? 'TBA'}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <div className="font-medium">Active Schedule</div>
+                      {sessionInfo?.current_schedule ? (
+                        <div className="text-muted-foreground">
+                          {sessionInfo.current_schedule.date ? (
+                            <div>{new Date(sessionInfo.current_schedule.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' })}</div>
+                          ) : (
+                            <div>{sessionInfo.current_schedule.day_of_week ?? 'TBA'}</div>
+                          )}
+                          <div>{sessionInfo.current_schedule.start_time ? `${sessionInfo.current_schedule.start_time} - ${sessionInfo.current_schedule.end_time ?? ''}` : 'Time TBA'}</div>
+                          <div>Modes: {(Array.isArray(sessionInfo.current_schedule.modes) && sessionInfo.current_schedule.modes.length) ? sessionInfo.current_schedule.modes.join(', ') : (Array.isArray(sessionInfo.current_schedule_modes) && sessionInfo.current_schedule_modes.length) ? sessionInfo.current_schedule_modes.join(', ') : 'unknown'}</div>
+                        </div>
+                      ) : (
+                        <div className="text-muted-foreground">No active schedule</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="font-medium">Session</div>
+                      <div className="text-muted-foreground">Status: {sessionInfo?.session_active ? <span className="text-red-600">Live</span> : <span>Not Active</span>}</div>
+                      <div className="text-muted-foreground">Session ID: {sessionInfo?.active_session_id ?? '—'}</div>
+                      <div className="text-muted-foreground">Schedule ID: {sessionInfo?.current_schedule_id ?? '—'}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Only use the online camera when the active schedule/mode is explicitly 'online'.
+                  In other cases (face_to_face, hybrid) show a placeholder until other variants are implemented. */}
+              {(() => {
+                const modesRaw = Array.isArray(sessionInfo?.current_schedule_modes) && sessionInfo.current_schedule_modes.length > 0
+                  ? sessionInfo.current_schedule_modes
+                  : sessionInfo?.current_schedule?.modes ?? null;
+                const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
+                const isOnline = modes.includes('online');
+                if (isOnline) {
+                  return <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={true} />;
+                }
+                return (
+                  <div className="p-6 text-center text-sm text-muted-foreground">
+                    Attendance for this class is not yet supported for the selected mode.
+                    <div className="mt-2">Mode: {modes.length ? modes.join(', ') : 'unknown'}</div>
+                  </div>
+                );
+              })()}
             </div>
           </Card>
 
