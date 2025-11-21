@@ -119,11 +119,7 @@ export default function ClassManagement() {
   const { enrolledClasses, activeSessions, generateAttendanceHistory, recentActivity, reload } = useStudentClasses();
   const [joinClassOpen, setJoinClassOpen] = useState(false);
 
-  // Debug: log enrolledClasses to verify data is flowing
-  if (typeof window !== "undefined") {
-    // eslint-disable-next-line no-console
-    console.debug("[useStudentClasses] enrolledClasses:", enrolledClasses);
-  }
+  // Debug logging removed
 
   const router = useRouter();
 

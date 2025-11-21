@@ -3,16 +3,8 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { CheckCircle, Megaphone, BookOpen } from "lucide-react";
 import { listMyClasses } from "@/lib/api/classes";
-
-export type EnrolledClass = any;
-
-export type AttendanceRecord = {
-  id: string;
-  sessionDate: Date;
-  status: "Present" | "Absent" | "Late" | "Excused";
-  sessionType: "Regular" | "Lab" | "Review";
-  duration: number;
-};
+import { normalizeAttendanceRate } from "@/lib/utils/format";
+import type { EnrolledClass, AttendanceRecord } from "./types";
 
 type UseStudentClassesOptions = {
   skip?: number;
@@ -61,8 +53,14 @@ export function useStudentClasses(opts?: UseStudentClassesOptions) {
 
       const res = await listMyClasses(params);
       if (!Array.isArray(res)) throw new Error("Unexpected response from listMyClasses");
-      setEnrolledClasses(res as EnrolledClass[]);
-      return res;
+      // Normalize attendance rate into a consistent 0-100 percentage field for UI convenience
+      const normalized = (res as EnrolledClass[]).map((c) => ({
+        ...c,
+        attendance_pct: normalizeAttendanceRate(c.own_attendance_rate ?? c.attendance_rate),
+      }));
+      // Development logs removed
+      setEnrolledClasses(normalized);
+      return normalized;
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error("useStudentClasses fetch error:", err);

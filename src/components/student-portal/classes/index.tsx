@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 import { getModeIcon, getModeColor, getNextSessionTime } from "@/components/student-portal/utils";
 import ClassCard from "./ClassCard";
+import type { EnrolledClass, ClassWithSchedules } from "./types";
 
 export default function StudentClasses({
   children,
@@ -25,21 +26,17 @@ export default function StudentClasses({
   onDropClass,
 }: {
   children?: React.ReactNode;
-  enrolledClasses?: any[];
+  enrolledClasses?: (EnrolledClass | ClassWithSchedules)[];
   activeSessions?: any[];
   onStartAttendance?: (session: any, mode: "face" | "online") => void;
-  onViewDetails?: (cls: any) => void;
-  onViewAttendanceHistory?: (cls: any) => void;
-  onDropClass?: (id: string) => void;
+  onViewDetails?: (cls: EnrolledClass | ClassWithSchedules) => void;
+  onViewAttendanceHistory?: (cls: EnrolledClass | ClassWithSchedules) => void;
+  onDropClass?: (id: string | number) => void;
 }) {
   const [joinClassOpen, setJoinClassOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Debug: log props to ensure data is received from parent
-  if (typeof window !== "undefined") {
-    // eslint-disable-next-line no-console
-    console.debug("[StudentClasses] props enrolledClasses:", enrolledClasses);
-  }
+  // Debug logging removed
 
   const handleJoinClass = async (classCode: string) => {
     setIsLoading(true);
