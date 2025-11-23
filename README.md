@@ -43,94 +43,77 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 ---
 
-## ✨ Key Features
+## 📁 Project Structure (overview)
 
-### 🔒 Security First
-
-- **HTTP-only Cookies** - Tokens cannot be accessed by JavaScript (XSS protection)
-- **CSRF Protection** - SameSite cookie policy prevents cross-site attacks
-- **Server-Side Validation** - Next.js middleware validates before page loads
-- **Secure in Production** - HTTPS-only cookies in production environment
-
-### ⚡ High Performance
-
-- **3-Layer JWT Validation** - Decode (0ms) → Cache (1ms) → Backend (200ms)
-- **90-99% Faster** - In-memory cache handles most requests
-- **Backend Load Reduction** - 90-99% fewer API calls to `/api/v1/users/me`
-- **Smart Caching** - 1-minute TTL with automatic cleanup
-
-### 🏗️ Modern Architecture
-
-- **Modular Design** - Configuration layer for easy maintenance
-- **Type-Safe** - Full TypeScript with strict mode
-- **Centralized Config** - Single source of truth for routes and settings
-- **Clean Separation** - Clear separation of concerns across layers
-
-### 🎨 Developer Experience
-
-- **Shadcn UI** - Beautiful, accessible component library
-- **Comprehensive Docs** - Three detailed guides covering everything
-- **Hot Reload** - Fast refresh with Turbopack
-- **ESLint + TypeScript** - Code quality and type safety
-
----
-
-## 📁 Project Structure
+This project follows a modular Next.js App Router layout with clear separation between pages, API proxies, feature components, and shared utilities. The structure below is an overview of the repository contents and where to look for important code.
 
 ```
 attendify-frontend/
 ├── src/
-│   ├── app/
-│   │   ├── api/auth/          # Cookie management API routes
-│   │   │   ├── set-tokens/    # Set HTTP-only cookies
-│   │   │   └── clear-tokens/  # Clear cookies (logout)
-│   │   ├── auth/              # Authentication pages
-│   │   │   ├── login/         # Login with OTP support
-│   │   │   └── signup/        # Registration with email verification
-│   │   ├── dashboard/         # User dashboard (protected)
-│   │   ├── admin/             # Admin pages (protected)
-│   │   └── layout.tsx         # Root layout with AuthProvider
+│   ├── app/                # Next.js App Router: pages, layouts and server-side app-route proxies (app/api/*)
+│   │   ├── api/            # Same-origin proxy routes and lightweight server APIs
+│   │   ├── auth/           # Authentication pages (login, signup, logout)
+│   │   ├── admin/          # Admin area pages and tools
+│   │   ├── faculty/        # Faculty-facing pages
+│   │   ├── student/        # Student area (classes, attendance, dashboard)
+│   │   └── layout.tsx      # Root layout and top-level providers
 │   │
-│   ├── components/
-│   │   ├── ui/                # Shadcn UI components
-│   │   └── ...                # Custom components
+│   ├── components/        # Reusable UI and feature components (shadcn UI wrappers, portals, camera components)
+│   │   ├── student-portal/ # Student-facing components and sub-features (classes, attendance flow)
+│   │   ├── ui/             # Generic UI building blocks
+│   │   └── ...
 │   │
-│   ├── config/                # 🔧 Configuration Layer
-│   │   ├── auth.ts           # Auth settings (cookies, validation)
-│   │   ├── routes.ts         # Route definitions (protected/public)
-│   │   └── index.ts          # Barrel exports
+│   ├── lib/               # Shared libraries and API clients
+│   │   ├── api/           # Client API helpers (classes, attendance, fetchClient)
+│   │   ├── liveness-tests/ # Liveness detection utilities and helper algorithms
+│   │   └── utils/         # Formatting, avatars, detection helpers
 │   │
-│   ├── contexts/
-│   │   └── AuthContext.tsx    # Global authentication state
+│   ├── hooks/             # Custom React hooks (auth, toast, mobile helpers)
+│   ├── contexts/          # React context providers (AuthContext)
+│   ├── config/            # App configuration (routes, auth settings)
+│   └── styles/            # Global CSS and Tailwind config
+
+├── public/                # Static assets (CSV, images, keys used in dev)
+├── docs/                  # Project documentation and guides
+├── keys/                  # Local developer keys (not for production)
+├── README.md
+├── package.json
+├── next.config.ts
+└── tsconfig.json
+```
+│   │   ├── auth/                     # auth pages (login, signup)
+│   │   ├── admin/                    # admin pages and subroutes
+│   │   ├── student/                  # student area (classes, attendance)
+│   │   ├── faculty/                  # faculty area
+│   │   ├── layout.tsx
+│   │   └── page.tsx
 │   │
-│   ├── hooks/
-│   │   ├── use-auth.ts       # Authentication hook
-│   │   └── use-mobile.ts     # Responsive utilities
+│   ├── components/                   # UI components and feature components
+│   │   ├── ui/                       # shadcn UI wrappers
+│   │   ├── student-portal/           # student portal components (classes, take attendance)
+│   │   ├── face-camera.tsx           # camera + liveness components
+│   │   └── ...
 │   │
-│   ├── lib/
-│   │   ├── api/
-│   │   │   ├── auth.ts       # Auth API client
-│   │   │   └── README.md     # API documentation
-│   │   ├── middleware/
-│   │   │   └── utils.ts      # Route checking helpers
-│   │   └── utils.ts          # General utilities
+│   ├── config/                       # app configuration (routes, auth settings)
+│   ├── contexts/                     # React context providers (AuthContext)
+│   ├── hooks/                        # custom hooks (use-auth, use-toast, use-mobile)
+│   ├── lib/                          # utilities and API clients
+│   │   ├── api/                      # client-side API helpers (classes, attendance, fetchClient)
+│   │   ├── middleware/               # server-side middleware helpers
+│   │   └── utils/                    # misc helpers (date, format, liveness)
 │   │
-│   ├── middleware.ts          # ⚡ Server-side route protection
-│   └── styles/
-│       └── globals.css
+│   └── styles/                       # global CSS
 │
-├── docs/                      # 📚 Documentation
-│   ├── AUTHENTICATION_GUIDE.md   # Complete auth system guide
-│   ├── MIDDLEWARE_GUIDE.md       # Middleware & optimization
-│   ├── ARCHITECTURE_GUIDE.md     # System architecture
-│   └── version_updates/
-│       ├── v1.1.0.md            # Initial release
-│       └── v1.2.0.md            # Latest release
+├── docs/                          # 📚 Documentation and developer guides
+│   ├── AUTHENTICATION_GUIDE.md
+│   ├── MIDDLEWARE_GUIDE.md
+│   └── ARCHITECTURE_GUIDE.md
 │
-├── .env.local.example         # Environment variables template
-├── next.config.ts             # Next.js configuration
-├── tsconfig.json              # TypeScript configuration
-└── package.json               # Dependencies
+├── .env.local.example
+├── next.config.ts
+├── tsconfig.json
+├── package.json
+└── README.md
 ```
 
 ---

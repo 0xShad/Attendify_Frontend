@@ -55,7 +55,31 @@ export async function POST(req: NextRequest) {
     const reflectionPassed = reflection > LIVENESS_THRESHOLDS.reflection;
     const colorSpectrumPassed = colorSpectrum > LIVENESS_THRESHOLDS.colorSpectrum;
     const depthPassed = depth > LIVENESS_THRESHOLDS.depth;
-    const eyesOpenPassed = eyesOpen;
+    // Conservative handling for eyeglasses: some glasses (not sunglasses)
+    // cause reflections/occlusion that break eye-open detectors. We allow
+    // a fallback where eyesOpen is false but other strong liveness signals
+    // indicate a real face and likely eyeglasses (not dark sunglasses).
+    let eyesOpenPassed = eyesOpen;
+    let glassesSuspected = false;
+    if (!eyesOpen) {
+      // Heuristic checks — require other signals to be comfortably above
+      // their thresholds before treating this as glasses (not sunglasses).
+      const colorStrong = colorSpectrum > LIVENESS_THRESHOLDS.colorSpectrum * 0.8;
+      const textureStrong = texture > LIVENESS_THRESHOLDS.texture * 0.8;
+      const depthStrong = depth > LIVENESS_THRESHOLDS.depth * 0.8;
+      const blurStrong = blur > LIVENESS_THRESHOLDS.blur * 0.8;
+
+      // If the image shows good color/texture/depth/blur, it's likely a
+      // real face with eyeglasses (which may confuse eye detectors).
+      // If colorSpectrum is very low, treat as possible sunglasses and do
+      // not attempt the glasses fallback.
+      const colorTooLow = colorSpectrum < LIVENESS_THRESHOLDS.colorSpectrum * 0.35;
+
+      if (!colorTooLow && colorStrong && textureStrong && depthStrong && blurStrong) {
+        glassesSuspected = true;
+        eyesOpenPassed = true;
+      }
+    }
 
     console.log('[LivenessAPI] Individual test results:');
     console.log(`  ✓ Blur: ${blur.toFixed(2)} > ${LIVENESS_THRESHOLDS.blur} = ${blurPassed ? '✅ PASS' : '❌ FAIL'}`);
@@ -63,7 +87,7 @@ export async function POST(req: NextRequest) {
     console.log(`  ✓ Reflection: ${reflection.toFixed(2)} > ${LIVENESS_THRESHOLDS.reflection} = ${reflectionPassed ? '✅ PASS' : '❌ FAIL'}`);
     console.log(`  ✓ Color Spectrum: ${colorSpectrum.toFixed(2)} > ${LIVENESS_THRESHOLDS.colorSpectrum} = ${colorSpectrumPassed ? '✅ PASS' : '❌ FAIL'}`);
     console.log(`  ✓ Depth: ${depth.toFixed(2)} > ${LIVENESS_THRESHOLDS.depth} = ${depthPassed ? '✅ PASS' : '❌ FAIL'}`);
-    console.log(`  ✓ Eyes Open: ${eyesOpen} = ${eyesOpenPassed ? '✅ PASS' : '❌ FAIL'}`);
+    console.log(`  ✓ Eyes Open: ${eyesOpen} = ${eyesOpenPassed ? '✅ PASS' : '❌ FAIL'}${glassesSuspected ? ' (glasses suspected - fallback accepted)' : ''}`);
 
     const passed = blurPassed && texturePassed && reflectionPassed && colorSpectrumPassed && depthPassed && eyesOpenPassed;
     const results = {
@@ -73,14 +97,15 @@ export async function POST(req: NextRequest) {
       colorSpectrum,
       depth,
       eyesOpen,
+      glassesSuspected,
       passed,
     };
     console.log(`[LivenessAPI] Overall Decision: ${passed ? '✅ PASSED' : '❌ FAILED'}`);
     if (passed) {
-      console.log('[LivenessAPI] Liveness/anti-spoofing PASSED');
+      console.log('[LivenessAPI] Liveness/anti-spoofing PASSED', { glassesSuspected });
       return NextResponse.json({ success: true, ...results });
     } else {
-      console.log('[LivenessAPI] Liveness/anti-spoofing FAILED');
+      console.log('[LivenessAPI] Liveness/anti-spoofing FAILED', { glassesSuspected });
       return NextResponse.json({ success: false, ...results, message: 'Liveness/anti-spoofing checks failed.' }, { status: 200 });
     }
   } catch (e) {

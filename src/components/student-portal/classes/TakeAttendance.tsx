@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import FaceCamera from "@/components/online-face-camera";
 import { markPresent } from '@/lib/api/attendance';
+import { useToast } from '@/hooks/use-toast';
 
 type Props = {
   open: boolean;
@@ -28,6 +29,7 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
   const [locationError, setLocationError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleFaceCapture = (dataUrl: string) => {
     setFaceValidated(true);
@@ -98,8 +100,38 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
         longitude: lon ?? undefined,
         face_file: blob,
       });
+      // Parse MATCH_INFO from remarks (if present) and show user feedback
+      try {
+        const remarks: string = resp?.remarks || '';
+        let matchInfo: any = null;
+        const marker = 'MATCH_INFO:';
+        const idx = remarks.indexOf(marker);
+        if (idx >= 0) {
+          const jsonPart = remarks.slice(idx + marker.length).trim();
+          try { matchInfo = JSON.parse(jsonPart); } catch (e) { /* ignore parse errors */ }
+        }
 
-      // success
+        if (matchInfo) {
+          if (matchInfo.matched) {
+            toast({ title: 'Attendance recorded', description: (
+              <div>
+                <div>Face matched (score: {typeof matchInfo.score === 'number' ? matchInfo.score.toFixed(4) : String(matchInfo.score)})</div>
+                <div className="text-xs text-muted-foreground">Model: {matchInfo.model} • Metric: {matchInfo.metric}</div>
+              </div>
+            ) });
+          } else {
+            // backend may return 403 for face recognition failures, but handle defensively
+            toast({ title: 'Face recognition failed', description: 'Face recognition did not match our records.', variant: 'destructive' });
+          }
+        } else {
+          // No match info available — generic success
+          toast({ title: 'Attendance recorded', description: 'Your attendance was recorded successfully.' });
+        }
+      } catch (e) {
+        // If something in the UI parsing fails, still continue with callbacks
+      }
+
+      // success callbacks
       if (typeof onCapture === 'function') {
         try { onCapture(lastCaptured); } catch (e) { console.warn('onCapture callback threw', e); }
       }
@@ -108,7 +140,69 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
       }
       onOpenChange(false);
     } catch (err: any) {
-      setSubmitError(err?.message ?? String(err));
+      // Handle structured hybrid distance errors and other 403 details
+      const status = err?.status;
+      const body = err?.body ?? {};
+      try {
+        if (status === 403 && body && typeof body === 'object' && body.distance_km != null && body.threshold_km != null) {
+          const distanceKm = Number(body.distance_km);
+          const thresholdKm = Number(body.threshold_km);
+          const distanceM = Math.round(distanceKm * 1000);
+          const thresholdM = Math.round(thresholdKm * 1000);
+          const diffM = Math.max(0, distanceM - thresholdM);
+          const msg = body.error || 'You are outside the allowed area for this hybrid session.';
+          toast({ title: 'Location not allowed', description: (
+            <div>
+              <div>{msg}</div>
+              <div className="text-xs text-muted-foreground">Measured: {distanceM} m • Allowed: {thresholdM} m</div>
+              {diffM > 0 && <div className="text-xs">Try moving closer by ~{diffM} m.</div>}
+            </div>
+          ), variant: 'destructive' });
+          setSubmitError(msg);
+        } else if (status === 403) {
+          // Face recognition or generic forbidden detail. Provide more helpful guidance
+          const rawMsg = (body && (body.detail || body.error || body.message)) || err?.message || 'Action forbidden';
+          const lc = String(rawMsg).toLowerCase();
+          if (lc.includes('face recognition failed') || lc.includes('face not matched') || lc.includes('face_match')) {
+            const msg = 'Face recognition failed. Your photo did not match our records.';
+            toast({ title: 'Face recognition failed', description: (
+              <div>
+                <div>{msg}</div>
+                <ul className="text-xs mt-2 list-disc list-inside text-muted-foreground">
+                  <li>Ensure good lighting</li>
+                  <li>Remove sunglasses</li>
+                  <li>Make sure only your face is visible</li>
+                  <li>Look directly in the camera</li>
+                </ul>
+              </div>
+            ), variant: 'destructive' });
+            setSubmitError(msg);
+          } else {
+            const msg = rawMsg || 'Action forbidden';
+            toast({ title: 'Attendance rejected', description: msg, variant: 'destructive' });
+            setSubmitError(msg);
+          }
+        } else {
+          // Fallback: generic error handling. Sanitize sensitive server traces
+          const raw = err?.message ?? err?.body ?? String(err);
+          const rawStr = String(raw || '');
+          const sensitivePatterns = ['psycopg2', 'InvalidTextRepresentation', 'invalid input syntax', 'SQL:', 'Traceback', 'stacktrace'];
+          const containsSensitive = sensitivePatterns.some(p => rawStr.toLowerCase().includes(p.toLowerCase()));
+          const safeMessage = containsSensitive
+            ? 'Failed to record attendance due to a server error. Please try again later or contact support.'
+            : rawStr || 'An unexpected error occurred.';
+
+          // Log full raw error for developers/telemetry, but show safe message to users
+          try { console.error('Attendance submission error (raw):', err); } catch (e) {}
+
+          toast({ title: 'Error', description: safeMessage, variant: 'destructive' });
+          setSubmitError(safeMessage);
+        }
+      } catch (parseErr) {
+        const message = err?.message ?? String(err);
+        toast({ title: 'Error', description: message, variant: 'destructive' });
+        setSubmitError(message);
+      }
     } finally {
       setSubmitting(false);
     }
