@@ -193,38 +193,41 @@ export default function OnlineFaceCamera({
   };
 
   return (
-    <div className={className}>
-      {/* top preview removed - main preview will display the captured/boxed image to avoid duplicate UI */}
-
-      <div className="relative">
+    <div className={`w-full flex flex-col items-center ${className}`}>
+      <div className="relative w-full max-w-[420px]">
         {(pendingBoxed || pendingImage) ? (
-          <img src={pendingBoxed || pendingImage} width={width} height={height} className="rounded-lg border shadow" alt="Captured face" />
+          <img src={pendingBoxed || pendingImage} width={width} height={height} className="w-full h-auto rounded-lg border shadow-sm object-cover" alt="Captured face" />
         ) : (
-          <video ref={videoRef} width={width} height={height} className="rounded-lg border shadow" autoPlay muted playsInline />
+          <video ref={videoRef} width={width} height={height} className="w-full h-auto rounded-lg border shadow-sm object-cover" autoPlay muted playsInline />
         )}
+
         {checkingLiveness && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-lg text-white">
-            <svg className="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 rounded-lg text-white">
+            <svg className="animate-spin h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
             </svg>
-            <div className="text-white font-semibold text-center mt-3">Verifying liveness...</div>
+            <div className="text-white font-semibold text-center mt-3">Verifying liveness…</div>
           </div>
         )}
       </div>
-      {/* pending detection / boxed image message */}
+
       {pendingDetection && (
-        <div className="mt-3">
+        <div className="mt-3 w-full max-w-[420px] text-center">
           <div className={pendingDetection.success ? 'text-green-700 text-sm' : 'text-red-600 text-sm'}>{pendingDetection.message}</div>
         </div>
       )}
+
       <canvas ref={canvasRef} width={width} height={height} style={{ display: 'none' }} />
+
       {!blinkDetected && !livenessPassed && !checkingLiveness && (
-        <div className="text-blue-700 font-semibold text-center mt-2">Please blink your eyes naturally.<br/>We are verifying liveness...</div>
+        <div className="text-center text-blue-700 font-semibold mt-3">Please blink your eyes naturally.<br/><span className="text-sm text-muted-foreground">We are verifying liveness...</span></div>
       )}
-      {livenessLoading && !checkingLiveness && <div className="text-xs text-gray-500 mt-1">Detecting blink...</div>}
+
+      {livenessLoading && !checkingLiveness && <div className="text-xs text-gray-500 mt-2">Detecting blink…</div>}
       {livenessResult && <div className={livenessResult.success ? 'text-green-700 text-sm mt-2' : 'text-red-600 text-sm mt-2'}>{livenessResult.message}</div>}
-      <div className="flex gap-2 mt-3">
+
+      <div className="flex gap-2 mt-4">
         <Button variant="outline" onClick={handleRetake}>Retry</Button>
       </div>
     </div>

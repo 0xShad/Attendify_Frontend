@@ -24,6 +24,31 @@ export async function startSession(payload: StartSessionIn): Promise<any> {
   const url = isBrowser ? proxyUrl : `${API_BASE_URL}/attendance/mine/start-session`;
 
   try {
+    if (isBrowser) {
+      // Use multipart/form-data even for initial/setup phases so the backend
+      // (which expects form fields + file uploads) receives fields consistently.
+      const form = new FormData();
+      form.append('class_id', String(payload.class_id));
+      if (payload.phase) form.append('phase', String(payload.phase));
+      if (payload.schedule_id != null) form.append('schedule_id', String(payload.schedule_id));
+      if (payload.schedule_special_id != null) form.append('schedule_special_id', String(payload.schedule_special_id));
+      if (payload.override_mode) form.append('override_mode', String(payload.override_mode));
+      if (payload.session_date) form.append('session_date', String(payload.session_date));
+      if (payload.start_time) form.append('start_time', String(payload.start_time));
+      if (payload.end_time) form.append('end_time', String(payload.end_time));
+      if (payload.location) form.append('location', String(payload.location));
+      if (payload.latitude != null) form.append('latitude', String(payload.latitude));
+      if (payload.longitude != null) form.append('longitude', String(payload.longitude));
+      if (payload.notes) form.append('notes', String(payload.notes));
+
+      const res = await import('./fetchClient').then(m => m.fetchWithAuth(url, {
+        method: 'POST',
+        body: form,
+      }));
+      return res;
+    }
+
+    // Server-side direct call keeps JSON to backend
     const res = await import('./fetchClient').then(m => m.fetchWithAuth(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -36,6 +61,43 @@ export async function startSession(payload: StartSessionIn): Promise<any> {
 }
 
 export default { startSession };
+
+/**
+ * Multipart variant of startSession for cases where a face file must be uploaded
+ * (secretary face verification). Builds FormData and posts to same proxy.
+ */
+export async function startSessionMultipart(payload: StartSessionIn & { face_file?: Blob | File | null }): Promise<any> {
+  const isBrowser = typeof window !== 'undefined';
+  const proxyUrl = `/api/attendance/mine/start-session`;
+  const url = isBrowser ? proxyUrl : `${API_BASE_URL}/attendance/mine/start-session`;
+
+  try {
+    const form = new FormData();
+    form.append('class_id', String(payload.class_id));
+    if (payload.phase) form.append('phase', String(payload.phase));
+    if (payload.schedule_id != null) form.append('schedule_id', String(payload.schedule_id));
+    if (payload.schedule_special_id != null) form.append('schedule_special_id', String(payload.schedule_special_id));
+    if (payload.override_mode) form.append('override_mode', String(payload.override_mode));
+    if (payload.session_date) form.append('session_date', String(payload.session_date));
+    if (payload.start_time) form.append('start_time', String(payload.start_time));
+    if (payload.end_time) form.append('end_time', String(payload.end_time));
+    if (payload.location) form.append('location', String(payload.location));
+    if (payload.latitude != null) form.append('latitude', String(payload.latitude));
+    if (payload.longitude != null) form.append('longitude', String(payload.longitude));
+    if (payload.notes) form.append('notes', String(payload.notes));
+    if (payload.face_file) {
+      form.append('face_file', payload.face_file, 'face.jpg');
+    }
+
+    const res = await import('./fetchClient').then(m => m.fetchWithAuth(url, {
+      method: 'POST',
+      body: form,
+    }));
+    return res;
+  } catch (err) {
+    throw err;
+  }
+}
 
 export interface MarkPresentIn {
   class_id: number;

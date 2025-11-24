@@ -56,7 +56,10 @@ export function useStudentClasses(opts?: UseStudentClassesOptions) {
       // Normalize attendance rate into a consistent 0-100 percentage field for UI convenience
       const normalized = (res as EnrolledClass[]).map((c) => ({
         ...c,
-        attendance_pct: normalizeAttendanceRate(c.own_attendance_rate ?? c.attendance_rate),
+        // Use session_completed/session_total for the attendance percentage (student-specific attendance)
+        attendance_pct: normalizeAttendanceRate(
+          (c.session_total && c.session_total > 0) ? (Number(c.session_completed ?? 0) / Number(c.session_total)) : 0
+        ),
       }));
       // Development logs removed
       setEnrolledClasses(normalized);
@@ -74,6 +77,18 @@ export function useStudentClasses(opts?: UseStudentClassesOptions) {
   useEffect(() => {
     // initial load
     fetchClasses(opts as UseStudentClassesOptions);
+    // listen for external refresh requests (e.g., after starting a session)
+    const onClassesUpdated = () => {
+      void fetchClasses(opts as UseStudentClassesOptions);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('classes:updated', onClassesUpdated as EventListener);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('classes:updated', onClassesUpdated as EventListener);
+      }
+    };
   }, [fetchClasses, JSON.stringify(opts ?? {})]);
 
   const activeSessions = useMemo(() => {

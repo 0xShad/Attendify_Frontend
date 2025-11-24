@@ -19,8 +19,10 @@ export async function POST(request: Request) {
   const cookie = request.headers.get('cookie') || null;
   const clientAuth = request.headers.get('authorization');
 
+  // Forward the incoming content-type (important for multipart/form-data boundaries)
+  const incomingContentType = request.headers.get('content-type') || 'application/json';
   const forwardedHeaders: Record<string, string> = {
-    'content-type': 'application/json',
+    'content-type': incomingContentType,
   };
 
   if (clientAuth) forwardedHeaders['authorization'] = clientAuth;
@@ -31,8 +33,9 @@ export async function POST(request: Request) {
   if (cookie) forwardedHeaders['cookie'] = cookie;
 
   try {
-    const body = await request.text();
-    const res = await fetch(target, { method: 'POST', headers: forwardedHeaders, body, credentials: 'include' } as any);
+    // Use raw array buffer so multipart bodies (with boundaries) are forwarded correctly
+    const bodyBuffer = await request.arrayBuffer();
+    const res = await fetch(target, { method: 'POST', headers: forwardedHeaders, body: bodyBuffer, credentials: 'include' } as any);
     const text = await res.text();
     const contentType = res.headers.get('content-type') || 'application/json';
     return new NextResponse(text, { status: res.status, headers: { 'content-type': contentType } });

@@ -7,6 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { MoreVertical, Eye, UserCheck, Trash2, Clock, Calendar, MapPin } from "lucide-react";
 import TakeAttendance from "./TakeAttendance";
+import StartSessionDialog from "./StartSessionDialog";
+import { useRouter } from "next/navigation";
 import { getMyClassSession } from "@/lib/api/classes";
 import { useToast } from "@/hooks/use-toast";
 import { normalizeAttendanceRate, parseDateOnly, formatTime } from "@/lib/utils/format";
@@ -27,15 +29,15 @@ export default function ClassCard({
 }) {
   const [takeOpen, setTakeOpen] = React.useState(false);
   const [checkingSession, setCheckingSession] = React.useState(false);
+  const [startDialogOpen, setStartDialogOpen] = React.useState(false);
   const { toast } = useToast();
   const [sessionInfo, setSessionInfo] = React.useState<any | null>(null);
+  const router = useRouter();
   // Safe helpers
   const studentsText = typeof classItem.students_count === "number" ? `${classItem.students_count} students` : "-";
-  // Prefer normalized attendance_pct injected by the hook; fallback to backend fields
-  const rawRate = typeof classItem.attendance_pct === 'number'
-    ? classItem.attendance_pct
-    : (typeof classItem.own_attendance_rate === "number" ? classItem.own_attendance_rate : classItem.attendance_rate ?? 0);
-  const ratePct = normalizeAttendanceRate(rawRate);
+  // Attendance % should be based on the student's sessions: session_completed / session_total
+  const rawFraction = (Number(classItem.session_total ?? 0) > 0) ? (Number(classItem.session_completed ?? 0) / Number(classItem.session_total ?? 1)) : 0;
+  const ratePct = normalizeAttendanceRate(rawFraction);
   const rateRounded = Math.round(ratePct * 100) / 100;
 
   // Normalize session counters from possible backend field names
@@ -385,6 +387,12 @@ export default function ClassCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                  {classItem.is_secretary ? (
+                    <DropdownMenuItem onClick={() => setStartDialogOpen(true)}>
+                      <Clock className="w-4 h-4 mr-2" />
+                      Start Session
+                    </DropdownMenuItem>
+                  ) : null}
                 <DropdownMenuItem onClick={() => onViewDetails && onViewDetails(classItem)}>
                   <Eye className="w-4 h-4 mr-2" />
                   View Details
@@ -530,6 +538,19 @@ export default function ClassCard({
         classItem={classItem}
         sessionInfo={sessionInfo}
         onRecorded={onAttendanceRecorded}
+      />
+      <StartSessionDialog
+        open={startDialogOpen}
+        onOpenChange={(v) => setStartDialogOpen(v)}
+        classId={classItem.id}
+        classCode={classItem.class_code ?? classItem.course_code}
+        isSecretary={classItem.is_secretary}
+        onCreated={(session) => {
+          try { setSessionInfo(session ?? null); } catch (e) {}
+          try { toast({ title: 'Session started', description: 'A new session was created.' }); } catch (e) {}
+          try { router.refresh(); } catch (e) {}
+          try { if (typeof window !== 'undefined') window.dispatchEvent(new Event('classes:updated')); } catch (e) {}
+        }}
       />
     </>
   );
