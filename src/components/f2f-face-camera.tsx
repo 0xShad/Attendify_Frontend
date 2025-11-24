@@ -11,6 +11,24 @@ interface F2FFaceCameraProps {
   className?: string;
   initialDelayMs?: number; // milliseconds to wait after mount before calling onRecognized
   requestIntervalMs?: number; // minimum milliseconds between successive onRecognized calls
+  // stricter detection options
+  minProbability?: number; // 0-1, ignore predictions below this confidence
+  minBoxWidth?: number; // pixels, ignore faces smaller than this
+  minBoxHeight?: number; // pixels, ignore faces smaller than this
+  consecutiveDetections?: number; // require N consecutive stable detections before triggering
+  minBoxAreaRatio?: number; // fraction of frame area (0-1) minimum face area
+  // spatial/shape filters to avoid edge artifacts
+  centerBias?: number; // fraction (0-0.5) inset for required center region (e.g., 0.12)
+  minAspectRatio?: number; // min height/width
+  maxAspectRatio?: number; // max height/width
+  edgeMarginRatio?: number; // fraction of frame to treat as edge margin to reject boxes touching edges
+  modelsUrl?: string; // URL path where face-api models are hosted (e.g. '/models')
+  tinyInputSize?: number; // face-api tiny detector input size (e.g. 224, 320)
+  scoreThreshold?: number; // face-api tiny detector score threshold
+  bypassFilters?: boolean; // if true, skip local filters and call onRecognized for testing
+  cropPaddingRatio?: number; // fraction of box width to pad when cropping
+  cropPaddingMin?: number; // minimum padding in pixels when cropping
+  cropPaddingHeightMultiplier?: number; // multiplier to make vertical padding slightly larger than horizontal
 }
 
 // simple djb2 string hash for small base64 blobs
@@ -20,18 +38,25 @@ function hashString(s: string) {
   return String(h >>> 0);
 }
 
-export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width = 420, height = 320, className = "", initialDelayMs = 0, requestIntervalMs = 0 }: F2FFaceCameraProps) {
+
+export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width = 420, height = 320, className = "", initialDelayMs = 0, requestIntervalMs = 3000, minProbability = 0.75, minBoxWidth = 30, minBoxHeight = 30, consecutiveDetections = 1, minBoxAreaRatio = 0.005, centerBias = 0.04, minAspectRatio = 0.45, maxAspectRatio = 2.2, edgeMarginRatio = 0.02, modelsUrl = '/models', tinyInputSize = 320, scoreThreshold = 0.5, bypassFilters = false, cropPaddingRatio = 0.35, cropPaddingMin = 20, cropPaddingHeightMultiplier = 1.15 }: F2FFaceCameraProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detectedBox, setDetectedBox] = useState<FaceBox | null>(null);
   const [status, setStatus] = useState<'idle' | 'detecting' | 'success'>('idle');
+  const [modelLoading, setModelLoading] = useState(false);
+  const [modelLoaded, setModelLoaded] = useState(false);
+  const [modelError, setModelError] = useState<string | null>(null);
   const recentRef = useRef<Record<string, number>>({}); // faceHash -> timestamp
   const runningRef = useRef(false);
   const mountedAtRef = useRef<number>(Date.now());
   const lastRequestAtRef = useRef<number>(0);
   const successTimeoutRef = useRef<number | null>(null);
+  // stability helpers: require consecutive stable detections before firing
+  const lastPredBoxRef = useRef<FaceBox | null>(null);
+  const consecutiveRef = useRef<number>(0);
 
   useEffect(() => {
     runningRef.current = true;
@@ -67,7 +92,9 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
 
   // detection loop
   useEffect(() => {
-    let detector: any = null;
+    let faceapi: any = null;
+    let modelsLoaded = false;
+    let loadingModels = false;
     let interval: any = null;
 
     const detectLoop = async () => {
@@ -75,44 +102,94 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
       if (!videoRef.current || videoRef.current.readyState < 2) return;
 
       try {
-        if (!detector && 'FaceDetector' in window) {
-          // @ts-ignore
-          detector = new (window as any).FaceDetector();
+        if (!faceapi && !loadingModels) {
+          loadingModels = true;
+          setModelLoading(true);
+          setModelError(null);
+          try {
+            faceapi = await import('@vladmandic/face-api');
+            // load tiny face detector + tiny landmarks (fast)
+            await Promise.all([
+              faceapi.nets.tinyFaceDetector.loadFromUri(modelsUrl),
+              faceapi.nets.faceLandmark68TinyNet.loadFromUri(modelsUrl)
+            ]);
+            modelsLoaded = true;
+            setModelLoaded(true);
+            
+            // face-api models loaded
+          } catch (e) {
+            
+            setModelError(String(e?.message || e));
+            setModelLoaded(false);
+            faceapi = null;
+          } finally {
+            loadingModels = false;
+            setModelLoading(false);
+          }
         }
 
-        // draw current frame to canvas
+        // draw current frame to canvas (map from video's displayed size -> fixed canvas size)
         if (!canvasRef.current) canvasRef.current = document.createElement('canvas');
         const canvas = canvasRef.current;
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-        ctx.drawImage(videoRef.current, 0, 0, width, height);
+
+        // compute displayed video size and scaling so we can map detection boxes into canvas coords
+        const videoEl = videoRef.current as HTMLVideoElement | null;
+        let displayWidth = width;
+        let displayHeight = height;
+        if (videoEl) {
+          try {
+            const rect = videoEl.getBoundingClientRect();
+            displayWidth = rect.width || width;
+            displayHeight = rect.height || height;
+          } catch (e) {
+            displayWidth = videoEl.videoWidth || width;
+            displayHeight = videoEl.videoHeight || height;
+          }
+        }
+        const xScale = width / Math.max(1, displayWidth);
+        const yScale = height / Math.max(1, displayHeight);
+
+        // draw the video into the canvas sized to the video's displayed pixel size
+        const canvasW = Math.max(1, Math.round(displayWidth));
+        const canvasH = Math.max(1, Math.round(displayHeight));
+        canvas.width = canvasW;
+        canvas.height = canvasH;
+        try {
+          ctx.drawImage(videoRef.current as HTMLVideoElement, 0, 0, canvasW, canvasH);
+        } catch (e) {
+          try { ctx.drawImage(videoRef.current as HTMLVideoElement, 0, 0); } catch {}
+        }
 
         let faces: any[] = [];
-        if (detector) {
+        if (faceapi && modelsLoaded) {
           try {
-            faces = await detector.detect(videoRef.current as HTMLVideoElement);
+            const options = new faceapi.TinyFaceDetectorOptions({ inputSize: tinyInputSize, scoreThreshold });
+            // run detection on the canvas we just drew into so coordinates match the canvas/display pixels
+            const results = await faceapi.detectAllFaces(canvas, options).withFaceLandmarks(true);
+            if (!results || results.length === 0) {
+              // no predictions this frame
+            } else {
+            }
+            faces = (results || []).map((r: any) => {
+              const b = r.detection?.box || r.box || { x: 0, y: 0, width: canvasW, height: canvasH };
+              // detection results are in canvas/display pixel coordinates now
+              const bx = Math.max(0, Math.round(b.x || 0));
+              const by = Math.max(0, Math.round(b.y || 0));
+              const bw = Math.max(1, Math.round(b.width || canvasW));
+              const bh = Math.max(1, Math.round(b.height || canvasH));
+              return { boundingBox: { x: bx, y: by, width: bw, height: bh }, probability: r.detection?.score ?? (r.score ?? 1), landmarks: r.landmarks?.positions || [] };
+            });
           } catch (e) {
-            // detection failed, fallback to server detect below
             faces = [];
           }
         }
 
-        // fallback: server-side detect if FaceDetector not available or returned empty
-        if ((!faces || faces.length === 0) && !('FaceDetector' in window)) {
-          try {
-            const dataUrl = canvas.toDataURL('image/png');
-            const base64 = dataUrl.replace(/^data:image\/(png|jpeg);base64,/, '');
-            const resp = await fetch('/api/vision-face-detect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: base64 }) });
-            if (resp.ok) {
-              const j = await resp.json();
-              faces = j.faces || [];
-            }
-          } catch (e) {
-            // ignore
-          }
-        }
+        // Note: No server-side Google Vision fallback for this component.
+        // We rely solely on the in-browser face-api.js model and strict filters above.
 
         if (faces && faces.length > 0) {
           // show detecting state while a face is present
@@ -127,13 +204,11 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
           let box: FaceBox = { x: 0, y: 0, width: width, height: height };
           if (face.boundingBox) {
             const bb = face.boundingBox;
-            // FaceDetector API provides x, y, width, height
             box = { x: bb.x || 0, y: bb.y || 0, width: bb.width || width, height: bb.height || height };
           } else if (face.box) {
             const bb = face.box;
             box = { x: bb.x || 0, y: bb.y || 0, width: bb.width || width, height: bb.height || height };
           } else if (face.bounding_poly || face.boundingPoly || face.boundingBox) {
-            // google/others: try vertices
             const v = face.boundingPoly?.vertices || face.bounding_poly?.vertices || [];
             if (v && v.length >= 4) {
               const xs = v.map((p: any) => p.x || 0);
@@ -146,15 +221,92 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
             }
           }
 
+          // apply stricter filters: probability, minimum size (can be bypassed for testing)
+          const probRaw = Array.isArray((face as any).probability) ? (face as any).probability[0] : (face as any).probability;
+          const prob = typeof probRaw === 'number' ? probRaw : 1;
+          // always apply strict local filters before calling onRecognized
+          if (prob < minProbability) {
+            return;
+          }
+          if (box.width < minBoxWidth || box.height < minBoxHeight) {
+            return;
+          }
+          // require minimum box area relative to the canvas/frame we ran detection on
+          const frameArea = canvasW * canvasH;
+          const boxArea = box.width * box.height;
+          if (boxArea < frameArea * minBoxAreaRatio) {
+            return;
+          }
+          // require a minimum number of landmarks if provided by detector
+          if ((face as any).landmarks && Array.isArray((face as any).landmarks) && (face as any).landmarks.length < 6) {
+            return;
+          }
+          // reject boxes that are too close to frame edges (likely artefacts) — use canvas dimensions
+          const leftThreshold = canvasW * edgeMarginRatio;
+          const topThreshold = canvasH * edgeMarginRatio;
+          const rightThreshold = canvasW * (1 - edgeMarginRatio);
+          const bottomThreshold = canvasH * (1 - edgeMarginRatio);
+          const boxRight = box.x + box.width;
+          const boxBottom = box.y + box.height;
+          if (box.x < leftThreshold || box.y < topThreshold || boxRight > rightThreshold || boxBottom > bottomThreshold) {
+            return;
+          }
+          // require aspect ratio roughly like a face (height/width)
+          const aspect = box.height / Math.max(1, box.width);
+          if (aspect < minAspectRatio || aspect > maxAspectRatio) {
+            return;
+          }
+          // require center to be within central region (avoid bottom-left/edge detections)
+          const cxNorm = (box.x + box.width / 2) / canvasW;
+          const cyNorm = (box.y + box.height / 2) / canvasH;
+          if (cxNorm < centerBias || cxNorm > (1 - centerBias) || cyNorm < centerBias || cyNorm > (1 - centerBias)) {
+            return;
+          }
+
+          // require stability across consecutive frames: compare centers
+          const cx = box.x + box.width / 2;
+          const cy = box.y + box.height / 2;
+          const last = lastPredBoxRef.current;
+          let stable = false;
+          if (!last) {
+            consecutiveRef.current = 1;
+          } else {
+            const lastCx = last.x + last.width / 2;
+            const lastCy = last.y + last.height / 2;
+            const dx = Math.abs(cx - lastCx);
+            const dy = Math.abs(cy - lastCy);
+            const maxDim = Math.max(width, height);
+            // if center moved less than 10% of frame width/height, consider stable
+            if (dx < maxDim * 0.15 && dy < maxDim * 0.15) {
+              consecutiveRef.current = Math.min(consecutiveRef.current + 1, consecutiveDetections);
+            } else {
+              consecutiveRef.current = 1;
+            }
+          }
+          lastPredBoxRef.current = box;
+          if (consecutiveRef.current < consecutiveDetections) {
+            // wait for more stable frames
+            return;
+          }
+
           setDetectedBox(box);
 
-          // crop face
+          // crop face — add padding so we don't send an overly tight crop
+          const padX = Math.round(Math.max(cropPaddingMin, box.width * cropPaddingRatio));
+          const padY = Math.round(Math.max(cropPaddingMin, box.height * cropPaddingRatio * cropPaddingHeightMultiplier));
+          const cropX = Math.max(0, box.x - padX);
+          const cropY = Math.max(0, box.y - padY);
+          const cropW = Math.min(canvasW - cropX, box.width + padX * 2);
+          const cropH = Math.min(canvasH - cropY, box.height + padY * 2);
           const cropCanvas = document.createElement('canvas');
-          cropCanvas.width = box.width; cropCanvas.height = box.height;
+          cropCanvas.width = cropW; cropCanvas.height = cropH;
           const cctx = cropCanvas.getContext('2d');
-          if (cctx) cctx.drawImage(canvas, box.x, box.y, box.width, box.height, 0, 0, box.width, box.height);
+          if (cctx) cctx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
           const faceDataUrl = cropCanvas.toDataURL('image/jpeg', 0.9);
           const faceHash = hashString(faceDataUrl.slice(-200)); // small hash portion
+
+          // keep the UI overlay as the raw detected box (smaller)
+          setDetectedBox(box);
 
           const now = Date.now();
           const skipUntil = recentRef.current[faceHash] || 0;
@@ -178,6 +330,7 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
           }
 
           try {
+            
             // mark request timestamp immediately to enforce interval even if call hangs
             lastRequestAtRef.current = Date.now();
             const res = await onRecognized(faceDataUrl, box, faceHash);
@@ -241,6 +394,7 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
             }}
           />
         )}
+        
         {error && <div className="absolute inset-0 flex items-center justify-center text-sm text-red-600 bg-white/60">{error}</div>}
       </div>
       <div className="mt-3 flex items-center gap-2">

@@ -402,7 +402,7 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
                 <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-4">
                   <div className="text-sm font-medium mb-2">Face-to-face scanner</div>
                   <div className="rounded-md overflow-hidden bg-gray-50 p-3 flex items-center justify-center">
-                    <F2FFaceCamera onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} initialDelayMs={3000} requestIntervalMs={2000} />
+                    <F2FFaceCamera onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} initialDelayMs={3000} requestIntervalMs={3000} bypassFilters={true} />
                   </div>
                   <div className="text-xs text-muted-foreground mt-2">Face-to-face mode: camera will automatically scan and record attendance when a face is recognized.</div>
                 </div>
