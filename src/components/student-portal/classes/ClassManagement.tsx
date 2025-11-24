@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -28,7 +28,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+// Input removed in favor of SearchBar
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -53,7 +53,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SearchBar from "./SearchBar";
 import {
   DropdownMenu,
@@ -111,9 +110,14 @@ export default function ClassManagement() {
     AttendanceRecord[]
   >([]);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-  const [sortBy, setSortBy] = useState("name");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [modeFilter, setModeFilter] = useState("all");
+  // UI filter state (front-end only for now)
+  const [courseId, setCourseId] = useState<string | number | null>(null);
+  const [academicYear, setAcademicYear] = useState<string | null>(null);
+  const [semester, setSemester] = useState<string | null>(null);
+  const [modeFilter, setModeFilter] = useState<string | null>(null);
+  const [dayOfWeek, setDayOfWeek] = useState<string[]>([]);
+  const [facultyId, setFacultyId] = useState<string | number | null>(null);
+  const [activeNow, setActiveNow] = useState<boolean>(false);
 
   // Data & helpers now come from the shared hook
   const { enrolledClasses, activeSessions, generateAttendanceHistory, recentActivity, reload } = useStudentClasses();
@@ -121,44 +125,101 @@ export default function ClassManagement() {
 
   // Debug logging removed
 
+  // Search debounce and remote results
+  const [searchResults, setSearchResults] = useState<any[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const debounceRef = useRef<number | null>(null);
+
   const router = useRouter();
 
   const handleStartAttendance = (session: any, mode: "face" | "online") => {
     router.push(`/student/attendance?classId=${session.classId}&sessionId=${session.id}&mode=${mode}`);
   };
 
-  // Filter classes based on search and filters
-  const filteredClasses = enrolledClasses
-    .filter((cls) => {
-      const q = searchQuery.trim().toLowerCase();
+  // Do NOT perform front-end filtering while the user is adjusting filter controls.
+  // Only use backend search results (when available) or the full enrolled list.
+  const displayedClasses = searchResults !== null ? searchResults : enrolledClasses;
 
-      // Search filter: check course_name, class_code, course_code and assigned faculty
-      const title = (cls.course_name ?? cls.class_code ?? cls.course_code ?? "").toString();
-      const code = (cls.class_code ?? cls.course_code ?? "").toString();
-      const faculty = (cls.assigned_faculty_name ?? "").toString();
+    // Perform remote search against the same-origin proxy /api/classes/mine
+    const performSearch = async (q: string) => {
+      const trimmed = String(q ?? "").trim();
+      const hasFilters = Boolean(
+        academicYear || semester || courseId != null || modeFilter || facultyId != null || (Array.isArray(dayOfWeek) && dayOfWeek.length > 0) || activeNow
+      );
 
-      const matchesSearch =
-        q === "" ||
-        title.toLowerCase().includes(q) ||
-        code.toLowerCase().includes(q) ||
-        faculty.toLowerCase().includes(q);
+      // If there's no query and no other filters, clear remote results and don't call backend
+      if (!trimmed && !hasFilters) {
+        setSearchResults(null);
+        setSearchError(null);
+        setSearchLoading(false);
+        return;
+      }
+      setSearchLoading(true);
+      setSearchError(null);
+      try {
+          const params = new URLSearchParams();
+          params.append('skip', '0');
+          params.append('limit', '100');
+          if (trimmed) params.append('query', trimmed);
+          if (academicYear) params.append('academic_year', String(academicYear));
+          if (semester) params.append('semester', String(semester));
+          if (courseId != null) params.append('course_id', String(courseId));
+          if (modeFilter) params.append('mode', String(modeFilter));
+          if (facultyId != null) params.append('faculty_id', String(facultyId));
+          // append day_of_week multiple times
+          if (Array.isArray(dayOfWeek) && dayOfWeek.length > 0) {
+            dayOfWeek.forEach((d) => params.append('day_of_week', d));
+          }
+          // include active_now only when user explicitly checked it
+          if (activeNow) params.append('active_now', 'true');
 
-      // Status filter: use cls.status if present, else derive from is_active/session_active
-      const derivedStatus = (cls.status ?? (cls.session_active ? "active" : cls.is_active ? "active" : "inactive")).toString();
-      const matchesStatus = statusFilter === "all" || derivedStatus === statusFilter;
+          const url = `/api/classes/mine?${params.toString()}`;
+          const res = await fetch(url, { method: 'GET', credentials: 'same-origin' });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => res.statusText || '');
+          throw new Error(txt || `HTTP ${res.status}`);
+        }
+        const json = await res.json();
+        if (!Array.isArray(json)) {
+          setSearchResults([]);
+        } else {
+          setSearchResults(json);
+        }
+      } catch (err: any) {
+        setSearchError(err?.message ?? String(err));
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    };
 
-      // Mode filter: look at first schedule mode
-      const modeVal = (cls.normal_schedules?.[0]?.modes?.[0] ?? cls.schedules?.[0]?.modes?.[0] ?? "").toString();
-      const matchesMode = modeFilter === "all" || modeVal === modeFilter;
+    // Debounce effect for live searching
+    useEffect(() => {
+      // if empty query clear remote results
+      if (!searchQuery || !String(searchQuery).trim()) {
+        if (debounceRef.current) window.clearTimeout(debounceRef.current);
+        setSearchResults(null);
+        setSearchError(null);
+        setSearchLoading(false);
+        return;
+      }
 
-      return matchesSearch && matchesStatus && matchesMode;
-    })
-    .sort((a, b) => {
-      if (sortBy === "name") return (a.course_name ?? a.class_code ?? "").toString().localeCompare((b.course_name ?? b.class_code ?? "").toString());
-      if (sortBy === "instructor") return (a.assigned_faculty_name ?? "").toString().localeCompare((b.assigned_faculty_name ?? "").toString());
-      if (sortBy === "status") return (a.status ?? (a.session_active ? "active" : a.is_active ? "active" : "inactive")).toString().localeCompare((b.status ?? (b.session_active ? "active" : b.is_active ? "active" : "inactive")).toString());
-      return 0;
-    });
+      // schedule debounce
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      debounceRef.current = window.setTimeout(() => {
+        performSearch(searchQuery);
+      }, 1500);
+
+      return () => {
+        if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      };
+    }, [searchQuery]);
+
+    const handleImmediateSearch = () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      performSearch(searchQuery);
+    };
 
   const handleViewDetails = (classItem: EnrolledClass) => {
     setSelectedClass(classItem);
@@ -190,7 +251,7 @@ export default function ClassManagement() {
             <SearchBar
               value={searchQuery}
               onChange={(v) => setSearchQuery(v)}
-              onSearch={() => { /* filtering is live */ }}
+              onSearch={handleImmediateSearch}
               onClear={() => setSearchQuery("")}
               placeholder="Search classes..."
             />
@@ -204,7 +265,7 @@ export default function ClassManagement() {
             </Button>
           </div>
 
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <Button size="sm" onClick={() => setJoinClassOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Join Class
@@ -215,7 +276,7 @@ export default function ClassManagement() {
 
           <div className="space-y-4">
             <StudentClasses
-              enrolledClasses={filteredClasses}
+              enrolledClasses={displayedClasses}
               activeSessions={activeSessions}
               onStartAttendance={handleStartAttendance}
               onViewDetails={handleViewDetails}
@@ -226,17 +287,53 @@ export default function ClassManagement() {
           </div>
 
       <ClassDetailsDrawer open={classDetailsOpen} onOpenChange={setClassDetailsOpen} selectedClass={selectedClass} />
+      {/* derive options from loaded classes for the filter dropdowns (frontend-only for now) */}
+      {(() => {
+        const courseMap = new Map<string | number, { id: string | number; label: string }>();
+        const facultyMap = new Map<string, { id: string | number; label: string }>();
+        const years = new Set<string>();
+        const semesters = new Set<string>();
+        enrolledClasses.forEach((c: any) => {
+          const cid = c.id ?? c.class_id ?? c.classCode ?? null;
+          const label = c.course_name ?? c.class_code ?? c.course_code ?? String(cid);
+          if (cid != null && !courseMap.has(String(cid))) courseMap.set(String(cid), { id: cid, label });
+          const fid = c.assigned_faculty_id ?? c.faculty_id ?? null;
+          const fname = c.assigned_faculty_name ?? c.faculty_name ?? null;
+          if (fname && fid != null && !facultyMap.has(String(fid))) facultyMap.set(String(fid), { id: fid, label: fname });
+          if (c.academic_year) years.add(String(c.academic_year));
+          if (c.semester) semesters.add(String(c.semester));
+        });
+        const courseOptions = Array.from(courseMap.values());
+        const facultyOptions = Array.from(facultyMap.values());
+        const academicYearOptions = Array.from(years.values()).sort();
+        const semesterOptions = Array.from(semesters.values()).sort();
 
-      <ClassFilterDrawer
-        open={filterDrawerOpen}
-        onOpenChange={setFilterDrawerOpen}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        modeFilter={modeFilter}
-        setModeFilter={setModeFilter}
-      />
+        return (
+          <ClassFilterDrawer
+            open={filterDrawerOpen}
+            onOpenChange={setFilterDrawerOpen}
+            courseId={courseId}
+            setCourseId={setCourseId}
+            academicYear={academicYear}
+            setAcademicYear={setAcademicYear}
+            semester={semester}
+            setSemester={setSemester}
+            mode={modeFilter}
+            setMode={setModeFilter}
+            dayOfWeek={dayOfWeek}
+            setDayOfWeek={setDayOfWeek}
+            facultyId={facultyId}
+            setFacultyId={setFacultyId}
+            activeNow={activeNow}
+            setActiveNow={setActiveNow}
+            onApply={handleImmediateSearch}
+            courseOptions={courseOptions}
+            facultyOptions={facultyOptions}
+            academicYearOptions={academicYearOptions}
+            semesterOptions={semesterOptions}
+          />
+        );
+      })()}
 
       <AttendanceHistoryDrawer
         open={attendanceHistoryOpen}
