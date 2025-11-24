@@ -30,6 +30,7 @@ export default function ClassCard({
   const [takeOpen, setTakeOpen] = React.useState(false);
   const [checkingSession, setCheckingSession] = React.useState(false);
   const [startDialogOpen, setStartDialogOpen] = React.useState(false);
+  const [startDialogInitialSession, setStartDialogInitialSession] = React.useState<any | null>(null);
   const { toast } = useToast();
   const [sessionInfo, setSessionInfo] = React.useState<any | null>(null);
   const router = useRouter();
@@ -351,10 +352,14 @@ export default function ClassCard({
     }
   })();
 
+  // Top-level rule: if `session_active` is explicitly false, do NOT show the Attendance button.
+  // Otherwise, show it when the class is active + schedule supports online/hybrid, or when
+  // this device is a secretary and F2F scanning is enabled for the class.
   const showAttendanceButton = Boolean(
-    classItem?.is_active &&
-    Array.isArray(activeScheduleModes) &&
-    activeScheduleModes.some((mode) => mode === 'online' || mode === 'hybrid')
+    classItem?.session_active !== false && (
+      (classItem?.is_active && Array.isArray(activeScheduleModes) && activeScheduleModes.some((mode) => mode === 'online' || mode === 'hybrid'))
+      || (classItem?.is_secretary && Boolean(classItem?.f2f_activated))
+    )
   );
 
   return (
@@ -485,21 +490,48 @@ export default function ClassCard({
                     const sessionActive = !!resp?.session_active;
                     const sessionMessage = typeof resp?.session_message === 'string' ? String(resp.session_message) : null;
 
-                    // If backend reports the user already submitted attendance, surface that and don't open the modal.
-                    if (sessionMessage && sessionMessage.toLowerCase().includes('already submitted')) {
-                      toast({ title: 'Attendance submitted', description: sessionMessage, variant: 'default' });
-                      return;
-                    }
+                    // Determine schedule modes early so we can use them for decision logic
                     const modesRaw = (Array.isArray(resp?.current_schedule_modes) && resp.current_schedule_modes.length > 0)
                       ? resp.current_schedule_modes
                       : resp?.current_schedule?.modes ?? [];
                     const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
-                    const allowed = isActive && sessionActive && modes.some((m: string) => m === 'online' || m === 'hybrid');
+
+                    // Determine whether this session is effectively face-to-face (either backend flag or schedule mode)
+                    const isF2FMode = Boolean(resp?.f2f_activated) || modes.includes('face_to_face') || modes.includes('face-to-face') || modes.includes('f2f');
+
+                    // If backend reports the user already submitted attendance, normally surface that and don't open the modal.
+                    // However, allow secretary devices when the session is face-to-face so the secretary can still open
+                    // the StartSessionDialog (pre-populated) and scan students.
+                    if (sessionMessage && sessionMessage.toLowerCase().includes('already submitted')) {
+                      if (!(classItem.is_secretary && isF2FMode)) {
+                        toast({ title: 'Attendance submitted', description: sessionMessage, variant: 'default' });
+                        return;
+                      }
+                      // else: secretary + f2F mode -> fallthrough to open scanner
+                    }
+
+                    // Allowed for students: only when schedule supports online or hybrid modes.
+                    // For secretaries, allow when session is face-to-face so they can scan attendees.
+                    const allowed = isActive && sessionActive && (modes.some((m: string) => m === 'online' || m === 'hybrid') || (classItem.is_secretary && isF2FMode));
                     if (allowed) {
-                      // preserve the server-provided session payload for the modal
-                      setSessionInfo(resp ?? null);
-                      setTakeOpen(true);
-                    } else {
+                          // If this device is a secretary and the server says f2f scanning is activated,
+                          // open the StartSessionDialog pre-populated so the secretary can scan without
+                          // going through setup/creation steps.
+                          if (classItem.is_secretary && isF2FMode) {
+                            // Build an initialSession object to tell StartSessionDialog that
+                            // a session already exists and F2F scanning should be used.
+                            const initial = Object.assign({}, resp ?? {});
+                            // Ensure the dialog sees F2F activated and an `id` the camera handler can use.
+                            initial.f2f_activated = true;
+                            initial.id = initial.active_session_id ?? initial.session_id ?? initial.id ?? null;
+                            setStartDialogInitialSession(initial);
+                            setStartDialogOpen(true);
+                          } else {
+                            // preserve the server-provided session payload for the modal (student flow)
+                            setSessionInfo(resp ?? null);
+                            setTakeOpen(true);
+                          }
+                        } else {
                       // Provide clearer feedback depending on why access is denied
                       if (!sessionActive) {
                         const msg = resp?.session_message ?? 'There is no open session for this class schedule right now.';
@@ -541,10 +573,14 @@ export default function ClassCard({
       />
       <StartSessionDialog
         open={startDialogOpen}
-        onOpenChange={(v) => setStartDialogOpen(v)}
+        onOpenChange={(v) => {
+          setStartDialogOpen(v);
+          if (!v) setStartDialogInitialSession(null);
+        }}
         classId={classItem.id}
         classCode={classItem.class_code ?? classItem.course_code}
         isSecretary={classItem.is_secretary}
+        initialSession={startDialogInitialSession}
         onCreated={(session) => {
           try { setSessionInfo(session ?? null); } catch (e) {}
           try { toast({ title: 'Session started', description: 'A new session was created.' }); } catch (e) {}

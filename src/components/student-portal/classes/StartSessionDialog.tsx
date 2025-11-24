@@ -17,9 +17,11 @@ interface Props {
   classCode?: string | null;
   onCreated?: (session: any) => void;
   isSecretary?: boolean;
+  initialSession?: any | null;
 }
 
-export default function StartSessionDialog({ open, onOpenChange, classId, classCode, onCreated, isSecretary = false }: Props) {
+export default function StartSessionDialog({ open, onOpenChange, classId, classCode, onCreated, isSecretary = false, initialSession = null }: Props) {
+  // Use `initialSession` (if provided) to pre-populate `createdSession` and skip setup flows.
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [initialChecked, setInitialChecked] = useState(false);
@@ -38,6 +40,22 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
   useEffect(() => {
     if (!open) return;
     if (!classId) return;
+    // If parent provided an initialSession (e.g., secretary + f2f already active),
+    // use it to pre-populate the dialog and skip the remote initial check.
+    if (initialSession) {
+      try {
+        setCreatedSession(initialSession ?? null);
+        setMatchedInfo(initialSession ?? null);
+        setMatched(Boolean(initialSession?.matched ?? true));
+        setOverrideMode(initialSession?.schedule_mode ?? null);
+        setInitialChecked(true);
+        setSetupDone(true);
+        return;
+      } catch (e) {
+        // fallthrough to normal check
+      }
+    }
+
     // run initial check
     (async () => {
       setLoading(true);
@@ -85,7 +103,10 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
     setLoading(true);
     try {
       const payload: StartSessionIn = { class_id: Number(classId), phase: "setup" };
-      if (overrideMode) payload.override_mode = overrideMode as any;
+      if (overrideMode) {
+        const norm = String(overrideMode).toLowerCase().replace(/[-\s]+/g, '_');
+        payload.override_mode = norm as any;
+      }
       const res = await startSession(payload);
       // Prefer explicit `classCode` prop if provided, otherwise use matchedInfo
       const resolvedCode =
@@ -121,7 +142,10 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
     setLoading(true);
     try {
       const payload: StartSessionIn = { class_id: Number(classId), phase: "face_recognition" };
-      if (overrideMode) payload.override_mode = overrideMode as any;
+      if (overrideMode) {
+        const norm = String(overrideMode).toLowerCase().replace(/[-\s]+/g, '_');
+        payload.override_mode = norm as any;
+      }
 
       // determine effective mode (override takes precedence)
       const effectiveMode = (overrideMode as string) || (matchedInfo && (matchedInfo.schedule_mode ?? matchedInfo.schedule_mode)) || null;
@@ -337,8 +361,14 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
       const file = new File([blob], 'secretary.jpg', { type: blob.type || 'image/jpeg' });
       setCapturedFile(file);
 
-      const payload: StartSessionIn = { class_id: Number(classId), phase: 'face_recognition' };
-      if (overrideMode) payload.override_mode = overrideMode as any;
+      // If an override mode is selected, submit as `phase='setup'` so
+      // the backend will process the override (override only runs in setup).
+      // Otherwise, perform face verification via 'face_recognition'.
+      const payload: StartSessionIn = { class_id: Number(classId), phase: (overrideMode ? 'setup' : 'face_recognition') };
+      if (overrideMode) {
+        const norm = String(overrideMode).toLowerCase().replace(/[-\s]+/g, '_');
+        payload.override_mode = norm as any;
+      }
       if (coords) {
         payload.latitude = coords.latitude;
         payload.longitude = coords.longitude;
@@ -350,6 +380,91 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
       if (matchedInfo?.schedule_special_id) mPayload.schedule_special_id = matchedInfo.schedule_special_id;
       mPayload.face_file = file;
 
+      // Two-step flow: if overrideMode selected, first call setup to apply override,
+      // then perform face recognition in a separate face_recognition request with the file.
+      if (overrideMode) {
+        try {
+          toast({ title: 'Applying override', description: `Applying override: ${overrideMode}` });
+        } catch (e) {}
+        // Build setup payload (no face file)
+        const setupPayload: StartSessionIn = { class_id: Number(classId), phase: 'setup' };
+        if (overrideMode) setupPayload.override_mode = String(overrideMode).toLowerCase().replace(/[-\s]+/g, '_') as any;
+        if (coords) {
+          setupPayload.latitude = coords.latitude;
+          setupPayload.longitude = coords.longitude;
+        }
+        if (matchedInfo?.schedule_id) (setupPayload as any).schedule_id = matchedInfo.schedule_id;
+        if (matchedInfo?.schedule_special_id) (setupPayload as any).schedule_special_id = matchedInfo.schedule_special_id;
+
+        // Debug log setup attempt
+        // eslint-disable-next-line no-console
+        console.debug('startSession: setupPayload', setupPayload);
+        let setupRes: any = null;
+        try {
+          setupRes = await startSession(setupPayload);
+          // eslint-disable-next-line no-console
+          console.debug('startSession: setupRes', setupRes);
+        } catch (e: any) {
+          // log and rethrow so outer handler can show toast
+          // eslint-disable-next-line no-console
+          console.error('startSession (setup) failed', e);
+          throw e;
+        }
+        // If setup activated F2F, inform the user and continue to perform
+        // face_recognition so the backend can create the actual session.
+        if (setupRes?.f2f_activated) {
+          try { toast({ title: 'Override applied', description: 'Face-to-face mode enabled — verifying face to create session.' }); } catch (e) {}
+          // do not return here; proceed to recognition phase to create the session
+        }
+
+        // Now perform face recognition phase with multipart upload
+        const recogPayload: any = { class_id: Number(classId), phase: 'face_recognition' };
+        if (coords) {
+          recogPayload.latitude = coords.latitude;
+          recogPayload.longitude = coords.longitude;
+        }
+        if (matchedInfo?.schedule_id) recogPayload.schedule_id = matchedInfo.schedule_id;
+        if (matchedInfo?.schedule_special_id) recogPayload.schedule_special_id = matchedInfo.schedule_special_id;
+        recogPayload.face_file = file;
+
+        try {
+          toast({ title: 'Uploading face', description: 'Uploading face for verification...' });
+        } catch (e) {}
+        // eslint-disable-next-line no-console
+        console.debug('startSessionMultipart (recognition): keys', Object.keys(recogPayload));
+        let res: any = null;
+        try {
+          res = await startSessionMultipart(recogPayload);
+          // eslint-disable-next-line no-console
+          console.debug('startSessionMultipart (recognition) response', res);
+        } catch (e: any) {
+          // eslint-disable-next-line no-console
+          console.error('startSessionMultipart (recognition) failed', e);
+          throw e;
+        }
+        if (onCreated) onCreated(res);
+        if (res?.f2f_activated) {
+          setCreatedSession(res);
+          setCapturedDataUrl(null);
+          setCapturedFile(null);
+          setLoading(false);
+          toast({ title: 'Session created', description: 'Face-to-face session active — scanning for attendees.' });
+          return;
+        }
+        try { onOpenChange(false); } catch (e) {}
+        setCreatedSession(null);
+        setCapturedDataUrl(null);
+        setCapturedFile(null);
+        return;
+      }
+
+      // No override selected: single-step recognition upload
+      try {
+        toast({ title: 'Uploading face', description: 'Uploading face for verification...' });
+      } catch (e) {}
+      // helpful debug when troubleshooting network/no-send issues
+      // eslint-disable-next-line no-console
+      console.debug('startSessionMultipart: mPayload keys', Object.keys(mPayload));
       const res = await startSessionMultipart(mPayload);
       if (onCreated) onCreated(res);
       // If backend activated f2f scanning for this session, keep the dialog open
@@ -388,7 +503,7 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Start Session</DialogTitle>
+          <DialogTitle>{(createdSession?.f2f_activated || initialSession) ? 'Face-to-face scanner' : 'Start Session'}</DialogTitle>
         </DialogHeader>
 
         <div className="py-3">
