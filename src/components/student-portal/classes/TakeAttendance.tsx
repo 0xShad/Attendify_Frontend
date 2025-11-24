@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import FaceCamera from "@/components/online-face-camera";
-import { markPresent } from '@/lib/api/attendance';
+import F2FFaceCamera from "@/components/f2f-face-camera";
+import { markPresent, markPresentF2F } from '@/lib/api/attendance';
 import { useToast } from '@/hooks/use-toast';
 
 type Props = {
@@ -112,19 +113,37 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
         }
 
         if (matchInfo) {
-          if (matchInfo.matched) {
-            toast({ title: 'Attendance recorded', description: (
-              <div>
-                <div>Face matched (score: {typeof matchInfo.score === 'number' ? matchInfo.score.toFixed(4) : String(matchInfo.score)})</div>
-                <div className="text-xs text-muted-foreground">Model: {matchInfo.model} • Metric: {matchInfo.metric}</div>
-              </div>
-            ) });
+          const THRESHOLD = 0.45;
+          const rawScore = typeof matchInfo.score === 'number' ? matchInfo.score : Number(matchInfo.score);
+          const hasScore = !Number.isNaN(rawScore) && rawScore != null;
+          const scoreStr = hasScore ? rawScore.toFixed(4) : null;
+
+          if (hasScore) {
+            // lower scores are better (distance/cosine where smaller indicates a closer match)
+            const passed = rawScore < THRESHOLD;
+            if (passed) {
+              toast({ title: 'Attendance recorded', description: (
+                <div>
+                  <div>Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}) — Verified</div>
+                  <div className="text-xs text-muted-foreground">Model: {matchInfo.model} • Metric: {matchInfo.metric}</div>
+                </div>
+              ) });
+            } else {
+              toast({ title: 'Face recognition above threshold', description: (
+                <div>
+                  <div>Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}) — Not verified</div>
+                  <div className="text-xs text-muted-foreground">Try again or retake the photo.</div>
+                </div>
+              ), variant: 'destructive' });
+            }
           } else {
-            // backend may return 403 for face recognition failures, but handle defensively
-            toast({ title: 'Face recognition failed', description: 'Face recognition did not match our records.', variant: 'destructive' });
+            if (matchInfo.matched) {
+              toast({ title: 'Attendance recorded', description: 'Face matched — attendance recorded.' });
+            } else {
+              toast({ title: 'Face recognition failed', description: 'Face recognition did not match our records.', variant: 'destructive' });
+            }
           }
         } else {
-          // No match info available — generic success
           toast({ title: 'Attendance recorded', description: 'Your attendance was recorded successfully.' });
         }
       } catch (e) {
@@ -208,6 +227,105 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
     }
   };
 
+  // Handler for face-to-face recognition callbacks from F2FFaceCamera
+  const handleF2FRecognized = async (dataUrl: string, box: any, faceHash: string) => {
+    // Avoid duplicate UI submissions
+    if (!sessionInfo) return false;
+    const classId = sessionInfo?.class?.id ?? classItem?.id ?? null;
+    const sessionId = sessionInfo?.active_session_id ?? sessionInfo?.session_id ?? null;
+    if (!classId || !sessionId) return false;
+
+    // Small UI state: show verifying
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      // convert dataURL to blob
+      const arr = dataUrl.split(',');
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      const blob = new Blob([u8arr], { type: mime });
+
+      const resp = await markPresentF2F({
+        class_id: Number(classId),
+        session_id: Number(sessionId),
+        latitude: lat ?? undefined,
+        longitude: lon ?? undefined,
+        face_file: blob,
+      });
+
+      // Provide feedback similar to existing flow
+      try {
+        const remarks: string = resp?.remarks || '';
+        let matchInfo: any = null;
+        const marker = 'MATCH_INFO:';
+        const idx = remarks.indexOf(marker);
+        if (idx >= 0) {
+          const jsonPart = remarks.slice(idx + marker.length).trim();
+          try { matchInfo = JSON.parse(jsonPart); } catch (e) { /* ignore */ }
+        }
+
+        if (matchInfo) {
+          const THRESHOLD = 0.45;
+          const rawScore = typeof matchInfo.score === 'number' ? matchInfo.score : Number(matchInfo.score);
+          const hasScore = !Number.isNaN(rawScore) && rawScore != null;
+          const scoreStr = hasScore ? rawScore.toFixed(4) : null;
+
+          if (hasScore) {
+            const passed = rawScore >= THRESHOLD;
+            if (passed) {
+              toast({ title: 'Attendance recorded', description: (
+                <div>
+                  <div>Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}) — Verified</div>
+                  <div className="text-xs text-muted-foreground">Model: {matchInfo.model} • Metric: {matchInfo.metric}</div>
+                </div>
+              ) });
+            } else {
+              toast({ title: 'Face recognition below threshold', description: (
+                <div>
+                  <div>Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}) — Not verified</div>
+                  <div className="text-xs text-muted-foreground">Ensure good lighting and try again.</div>
+                </div>
+              ), variant: 'destructive' });
+            }
+          } else {
+            if (matchInfo.matched) {
+              toast({ title: 'Attendance recorded', description: 'Face matched — attendance recorded.' });
+            } else {
+              toast({ title: 'Face recognition failed', description: 'Face recognition did not match our records.', variant: 'destructive' });
+            }
+          }
+        } else {
+          toast({ title: 'Attendance recorded', description: 'Your attendance was recorded successfully.' });
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      if (typeof onRecorded === 'function') {
+        try { onRecorded(resp); } catch (e) { console.warn('onRecorded callback threw', e); }
+      }
+
+      // keep the UI briefly then close
+      setTimeout(() => {
+        setSubmitting(false);
+        onOpenChange(false);
+      }, 700);
+
+      // return true to indicate success for debounce
+      return true;
+    } catch (err: any) {
+      setSubmitting(false);
+      const msg = err?.message ?? String(err);
+      setSubmitError(msg);
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      return false;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
@@ -280,6 +398,16 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
                   const isHybrid = modes.includes('hybrid');
                   if (isOnline) {
                     return <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={true} />;
+                  }
+
+                  if (modes.includes('face_to_face') || modes.includes('f2f') ) {
+                    // For face-to-face mode, use the F2F detector which auto-submits on recognition
+                    return (
+                      <div className="w-full">
+                        <F2FFaceCamera onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} />
+                        <div className="text-xs text-muted-foreground mt-2">Face-to-face mode: camera will automatically scan and record attendance when a face is recognized.</div>
+                      </div>
+                    );
                   }
 
                   if (isHybrid) {

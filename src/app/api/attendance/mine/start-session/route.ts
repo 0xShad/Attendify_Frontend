@@ -35,9 +35,56 @@ export async function POST(request: Request) {
   try {
     // Use raw array buffer so multipart bodies (with boundaries) are forwarded correctly
     const bodyBuffer = await request.arrayBuffer();
+
+    // Debug: log what we received (headers, content-type, body length, small preview)
+    try {
+      // Mask sensitive header values before logging
+      const incomingHeaders = Object.fromEntries(request.headers.entries());
+      const maskedIncoming: Record<string, any> = { ...incomingHeaders };
+      if (maskedIncoming.cookie) maskedIncoming.cookie = '<redacted>';
+      if (maskedIncoming.authorization) maskedIncoming.authorization = '<redacted>';
+      const maskedForwarded: Record<string, any> = { ...forwardedHeaders };
+      if (maskedForwarded.cookie) maskedForwarded.cookie = '<redacted>';
+      if (maskedForwarded.authorization) maskedForwarded.authorization = '<redacted>';
+
+      console.debug('[proxy:start-session] incomingHeaders', maskedIncoming);
+      console.debug('[proxy:start-session] forwardedHeaders', maskedForwarded);
+      console.debug('[proxy:start-session] incomingContentType', incomingContentType);
+      const lengthHeader = request.headers.get('content-length');
+      console.debug('[proxy:start-session] content-length header', lengthHeader);
+
+      const bufLen = bodyBuffer ? bodyBuffer.byteLength : 0;
+      console.debug('[proxy:start-session] bodyBuffer.length', bufLen);
+
+      // If multipart, try to extract boundary from content-type
+      if (incomingContentType && incomingContentType.indexOf('multipart') >= 0) {
+        const m = /boundary=(?:"?)([^";]+)/i.exec(incomingContentType);
+        const boundary = m ? m[1] : null;
+        console.debug('[proxy:start-session] multipart boundary', boundary);
+      }
+    } catch (e) {
+      console.debug('[proxy:start-session] debug extraction failed', String(e));
+    }
+
     const res = await fetch(target, { method: 'POST', headers: forwardedHeaders, body: bodyBuffer, credentials: 'include' } as any);
     const text = await res.text();
     const contentType = res.headers.get('content-type') || 'application/json';
+
+    // Debug: log backend response metadata and small preview to help diagnose missing fields
+    try {
+      console.debug('[proxy:start-session] backend response status', res.status, 'ok', res.ok);
+      const respHeaders: Record<string, string> = {};
+      res.headers.forEach((v, k) => { respHeaders[k] = v; });
+      console.debug('[proxy:start-session] backend response headers', respHeaders);
+      console.debug('[proxy:start-session] backend content-type', contentType, 'body length', text ? text.length : 0);
+      if (text && text.length > 0) {
+        const preview = text.slice(0, 2000);
+        console.debug('[proxy:start-session] backend response preview', preview + (text.length > 2000 ? '...<truncated>' : ''));
+      }
+    } catch (e) {
+      console.debug('[proxy:start-session] response debug failed', String(e));
+    }
+
     return new NextResponse(text, { status: res.status, headers: { 'content-type': contentType } });
   } catch (err) {
     console.error('Proxy to backend POST /attendance/mine/start-session failed:', err);

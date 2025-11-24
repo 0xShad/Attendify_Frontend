@@ -3,6 +3,21 @@
  */
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
 
+// Normalize override_mode values to canonical backend enum strings.
+function normalizeOverrideMode(m?: string | null) {
+  if (!m) return null;
+  const s = String(m).trim().toLowerCase();
+  if (!s) return null;
+  // accept several common variants
+  if (s === 'online') return 'online';
+  if (s === 'hybrid') return 'hybrid';
+  if (s === 'f2f' || s === 'face-to-face' || s === 'face_to_face' || s === 'face to face') return 'face_to_face';
+  // fallback: replace dashes with underscores
+  const replaced = s.replace(/-/g, '_');
+  if (['online', 'face_to_face', 'hybrid'].includes(replaced)) return replaced as any;
+  return s;
+}
+
 export interface StartSessionIn {
   class_id: number;
   schedule_id?: number | null;
@@ -32,7 +47,8 @@ export async function startSession(payload: StartSessionIn): Promise<any> {
       if (payload.phase) form.append('phase', String(payload.phase));
       if (payload.schedule_id != null) form.append('schedule_id', String(payload.schedule_id));
       if (payload.schedule_special_id != null) form.append('schedule_special_id', String(payload.schedule_special_id));
-      if (payload.override_mode) form.append('override_mode', String(payload.override_mode));
+      const normMode = normalizeOverrideMode((payload as any).override_mode);
+      if (normMode) form.append('override_mode', String(normMode));
       if (payload.session_date) form.append('session_date', String(payload.session_date));
       if (payload.start_time) form.append('start_time', String(payload.start_time));
       if (payload.end_time) form.append('end_time', String(payload.end_time));
@@ -49,10 +65,16 @@ export async function startSession(payload: StartSessionIn): Promise<any> {
     }
 
     // Server-side direct call keeps JSON to backend
+    // Normalize override_mode for server-side JSON requests as well
+    const serverPayload: any = { ...payload };
+    const norm = normalizeOverrideMode((serverPayload as any).override_mode);
+    if (norm) serverPayload.override_mode = norm;
+    else delete serverPayload.override_mode;
+
     const res = await import('./fetchClient').then(m => m.fetchWithAuth(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(serverPayload),
     }));
     return res;
   } catch (err) {
@@ -77,7 +99,8 @@ export async function startSessionMultipart(payload: StartSessionIn & { face_fil
     if (payload.phase) form.append('phase', String(payload.phase));
     if (payload.schedule_id != null) form.append('schedule_id', String(payload.schedule_id));
     if (payload.schedule_special_id != null) form.append('schedule_special_id', String(payload.schedule_special_id));
-    if (payload.override_mode) form.append('override_mode', String(payload.override_mode));
+    const normMode2 = normalizeOverrideMode((payload as any).override_mode);
+    if (normMode2) form.append('override_mode', String(normMode2));
     if (payload.session_date) form.append('session_date', String(payload.session_date));
     if (payload.start_time) form.append('start_time', String(payload.start_time));
     if (payload.end_time) form.append('end_time', String(payload.end_time));
@@ -128,6 +151,36 @@ export async function markPresent(payload: MarkPresentIn): Promise<any> {
     const res = await import('./fetchClient').then(m => m.fetchWithAuth(url, {
       method: 'POST',
       // Do NOT set Content-Type for multipart; let the browser set the boundary
+      body: form,
+    }));
+    return res;
+  } catch (err) {
+    throw err;
+  }
+}
+
+/**
+ * Mark present (face-to-face endpoint) — multipart/form-data
+ * Endpoint: /api/attendance/mine/mark-present-f2f
+ */
+export async function markPresentF2F(payload: MarkPresentIn): Promise<any> {
+  const isBrowser = typeof window !== 'undefined';
+  const proxyUrl = `/api/attendance/mine/mark-present-f2f`;
+  const url = isBrowser ? proxyUrl : `${API_BASE_URL}/attendance/mine/mark-present-f2f`;
+
+  try {
+    const form = new FormData();
+    form.append('class_id', String(payload.class_id));
+    form.append('session_id', String(payload.session_id));
+    if (payload.profile_id != null) form.append('profile_id', String(payload.profile_id));
+    if (payload.latitude != null) form.append('latitude', String(payload.latitude));
+    if (payload.longitude != null) form.append('longitude', String(payload.longitude));
+    if (payload.face_file) {
+      form.append('face_file', payload.face_file, 'face.jpg');
+    }
+
+    const res = await import('./fetchClient').then(m => m.fetchWithAuth(url, {
+      method: 'POST',
       body: form,
     }));
     return res;

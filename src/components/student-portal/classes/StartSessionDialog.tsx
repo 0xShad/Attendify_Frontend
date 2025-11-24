@@ -7,6 +7,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { useToast } from "@/hooks/use-toast";
 import { startSession, startSessionMultipart, StartSessionIn } from "@/lib/api/attendance";
 import OnlineFaceCamera from "@/components/online-face-camera";
+import F2FFaceCamera from "@/components/f2f-face-camera";
+import { markPresentF2F } from '@/lib/api/attendance';
 
 interface Props {
   open: boolean;
@@ -167,24 +169,127 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
 
         const res = await startSessionMultipart(mPayload);
         if (onCreated) onCreated(res);
+        // If backend activated f2f scanning for this session, keep the dialog open
+        if (res?.f2f_activated) {
+          setCreatedSession(res);
+          // clear captured preview/file so camera can be used for f2f
+          setCapturedDataUrl(null);
+          setCapturedFile(null);
+          setLoading(false);
+          toast({ title: 'Session created', description: 'Face-to-face session active — scanning for attendees.' });
+          return;
+        }
         try { onOpenChange(false); } catch (e) {}
         setCreatedSession(null);
         setCapturedDataUrl(null);
         setCapturedFile(null);
-        setLoading(false);
-        return;
       }
 
       // Non-secretary or no-file flow: JSON API
       const res = await startSession(payload);
       // creation success -> return session object
       if (onCreated) onCreated(res);
-      try { onOpenChange(false); } catch (e) {}
-      setCreatedSession(null);
+      // if backend activated F2F scanning, keep dialog open and render scanner
+      if (res?.f2f_activated) {
+        setCreatedSession(res);
+        toast({ title: 'Session created', description: 'Face-to-face session active — scanning for attendees.' });
+      } else {
+        try { onOpenChange(false); } catch (e) {}
+        setCreatedSession(null);
+      }
     } catch (err: any) {
       toast({ title: "Start failed", description: String(err?.message ?? err), variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handler for face-to-face recognition callbacks from F2FFaceCamera
+  const handleF2FRecognized = async (dataUrl: string, box: any, faceHash: string) => {
+    if (!classId || !createdSession) return false;
+    const sessionId = createdSession?.id ?? null;
+    if (!sessionId) return false;
+
+    setLoading(true);
+    try {
+      // convert dataURL to blob
+      const arr = dataUrl.split(',');
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      const blob = new Blob([u8arr], { type: mime });
+
+      const resp = await markPresentF2F({
+        class_id: Number(classId),
+        session_id: Number(sessionId),
+        latitude: coords?.latitude ?? undefined,
+        longitude: coords?.longitude ?? undefined,
+        face_file: blob,
+      });
+
+      // Prefer structured `match_info` returned by the endpoint, fallback to legacy remarks parsing
+      let matchInfo: any = resp?.match_info ?? null;
+      if (!matchInfo) {
+        try {
+          const remarks: string = resp?.remarks || '';
+          const marker = 'MATCH_INFO:';
+          const idx = remarks.indexOf(marker);
+          if (idx >= 0) {
+            const jsonPart = remarks.slice(idx + marker.length).trim();
+            matchInfo = JSON.parse(jsonPart);
+          }
+        } catch (e) {
+          /* ignore parse errors */
+        }
+      }
+
+      if (matchInfo) {
+        const THRESHOLD = 0.45;
+        // normalize score to number when possible
+        const rawScore = typeof matchInfo.score === 'number' ? matchInfo.score : Number(matchInfo.score);
+        const hasScore = !Number.isNaN(rawScore) && rawScore != null;
+        const scoreStr = hasScore ? rawScore.toFixed(4) : null;
+
+        if (hasScore) {
+          // Note: lower score is better (distance/cosine where lower indicates closer match)
+          const passed = rawScore < THRESHOLD;
+          if (passed) {
+            toast({ title: 'Attendance recorded', description: (
+              <div>
+                <div>Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}) — Verified</div>
+                <div className="text-xs text-muted-foreground">Model: {matchInfo.model} • Metric: {matchInfo.metric}</div>
+              </div>
+            ) });
+          } else {
+            toast({ title: 'Face recognition above threshold', description: (
+              <div>
+                <div>Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}) — Not verified</div>
+                <div className="text-xs text-muted-foreground">Try again with better lighting or remove face occlusions.</div>
+              </div>
+            ), variant: 'destructive' });
+          }
+        } else {
+          // no numeric score provided — fall back to matched boolean when available
+          if (matchInfo.matched) {
+            toast({ title: 'Attendance recorded', description: 'Face matched — attendance recorded.' });
+          } else {
+            toast({ title: 'Face recognition failed', description: 'Face recognition did not match our records.', variant: 'destructive' });
+          }
+        }
+      } else {
+        toast({ title: 'Attendance recorded', description: 'An attendee was recorded.' });
+      }
+
+      setLoading(false);
+      return true;
+    } catch (err: any) {
+      setLoading(false);
+      const msg = err?.message ?? String(err);
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      return false;
     }
   };
 
@@ -245,6 +350,16 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
 
       const res = await startSessionMultipart(mPayload);
       if (onCreated) onCreated(res);
+      // If backend activated f2f scanning for this session, keep the dialog open
+      if (res?.f2f_activated) {
+        setCreatedSession(res);
+        // clear captured preview/file so camera can be used for f2f
+        setCapturedDataUrl(null);
+        setCapturedFile(null);
+        setLoading(false);
+        toast({ title: 'Session created', description: 'Face-to-face session active — scanning for attendees.' });
+        return;
+      }
       try { onOpenChange(false); } catch (e) {}
       setCreatedSession(null);
       setCapturedDataUrl(null);
@@ -282,79 +397,91 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
           ) : matched === false ? (
             <div className="rounded-md bg-gray-50 border border-gray-100 p-3 text-sm text-muted-foreground">No active schedule found for this class at the current time.</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            createdSession && createdSession?.f2f_activated ? (
               <div className="space-y-3">
-                <div className="text-sm text-muted-foreground">Matched schedule</div>
-                <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-4 text-sm">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Type</div>
-                      <div className="font-medium">{matchedInfo?.schedule_type ?? 'regular'}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Schedule</div>
-                      <div className="font-medium">{matchedInfo?.schedule_id ?? matchedInfo?.schedule_special_id ?? '—'}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Mode</div>
-                      <div className="inline-block px-2 py-0.5 text-xs rounded-md bg-blue-50 text-blue-700 font-medium">{matchedInfo?.schedule_mode ?? 'not set'}</div>
-                    </div>
+                <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-4">
+                  <div className="text-sm font-medium mb-2">Face-to-face scanner</div>
+                  <div className="rounded-md overflow-hidden bg-gray-50 p-3 flex items-center justify-center">
+                    <F2FFaceCamera onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} initialDelayMs={3000} requestIntervalMs={2000} />
                   </div>
+                  <div className="text-xs text-muted-foreground mt-2">Face-to-face mode: camera will automatically scan and record attendance when a face is recognized.</div>
                 </div>
-
-                {createdSession && (
-                  <div className="mt-2 rounded-md bg-emerald-50 border border-emerald-100 p-3 text-emerald-900">
-                    <div className="text-sm font-medium">Session created</div>
-                    <div className="text-sm">ID: {createdSession?.id ?? 'unknown'}</div>
-                    {createdSession?.start_time && <div className="text-sm">Time: {createdSession.start_time} — {createdSession.end_time}</div>}
-                  </div>
-                )}
-
-                <div>
-                  <div className="text-sm mb-2">Override Mode (optional)</div>
-                  <Select onValueChange={(v) => setOverrideMode(v === 'none' ? null : v)} value={overrideMode ?? "none"}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder={overrideMode ?? "Use schedule mode"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Use schedule mode</SelectItem>
-                      <SelectItem value="online">Online</SelectItem>
-                      <SelectItem value="face_to_face">Face to face</SelectItem>
-                      <SelectItem value="hybrid">Hybrid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="pt-2">
-                  <div className="text-sm text-muted-foreground">Schedule mode: <span className="font-medium">{(overrideMode ?? (matchedInfo?.schedule_mode ?? 'unknown'))}</span></div>
-                  {((overrideMode ?? matchedInfo?.schedule_mode) === 'hybrid') && (
-                    <div className="mt-2 space-y-2 bg-gray-50 border border-gray-100 p-3 rounded-md">
-                      <div className="text-sm font-medium">Hybrid mode requires location</div>
-                      <div className="text-sm text-muted-foreground">
-                        {geoStatus === 'idle' && 'Location will be requested automatically for hybrid mode.'}
-                        {geoStatus === 'requesting' && 'Requesting location…'}
-                        {geoStatus === 'granted' && coords && `Lat ${coords.latitude.toFixed(6)}, Lon ${coords.longitude.toFixed(6)}`}
-                        {geoStatus === 'denied' && `Denied: ${geoError ?? 'permission denied'}`}
-                        {geoStatus === 'error' && `Error: ${geoError ?? 'unknown'}`}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="text-sm text-muted-foreground">Matched schedule</div>
+                  <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-4 text-sm">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Type</div>
+                        <div className="font-medium">{matchedInfo?.schedule_type ?? 'regular'}</div>
                       </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Schedule</div>
+                        <div className="font-medium">{matchedInfo?.schedule_id ?? matchedInfo?.schedule_special_id ?? '—'}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Mode</div>
+                        <div className="inline-block px-2 py-0.5 text-xs rounded-md bg-blue-50 text-blue-700 font-medium">{matchedInfo?.schedule_mode ?? 'not set'}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {createdSession && (
+                    <div className="mt-2 rounded-md bg-emerald-50 border border-emerald-100 p-3 text-emerald-900">
+                      <div className="text-sm font-medium">Session created</div>
+                      <div className="text-sm">ID: {createdSession?.id ?? 'unknown'}</div>
+                      {createdSession?.start_time && <div className="text-sm">Time: {createdSession.start_time} — {createdSession.end_time}</div>}
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="text-sm mb-2">Override Mode (optional)</div>
+                    <Select onValueChange={(v) => setOverrideMode(v === 'none' ? null : v)} value={overrideMode ?? "none"}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder={overrideMode ?? "Use schedule mode"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Use schedule mode</SelectItem>
+                        <SelectItem value="online">Online</SelectItem>
+                        <SelectItem value="face_to_face">Face to face</SelectItem>
+                        <SelectItem value="hybrid">Hybrid</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="pt-2">
+                    <div className="text-sm text-muted-foreground">Schedule mode: <span className="font-medium">{(overrideMode ?? (matchedInfo?.schedule_mode ?? 'unknown'))}</span></div>
+                    {((overrideMode ?? matchedInfo?.schedule_mode) === 'hybrid') && (
+                      <div className="mt-2 space-y-2 bg-gray-50 border border-gray-100 p-3 rounded-md">
+                        <div className="text-sm font-medium">Hybrid mode requires location</div>
+                        <div className="text-sm text-muted-foreground">
+                          {geoStatus === 'idle' && 'Location will be requested automatically for hybrid mode.'}
+                          {geoStatus === 'requesting' && 'Requesting location…'}
+                          {geoStatus === 'granted' && coords && `Lat ${coords.latitude.toFixed(6)}, Lon ${coords.longitude.toFixed(6)}`}
+                          {geoStatus === 'denied' && `Denied: ${geoError ?? 'permission denied'}`}
+                          {geoStatus === 'error' && `Error: ${geoError ?? 'unknown'}`}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {isSecretary && (
+                    <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-4">
+                      <div className="text-sm font-medium mb-2">Secretary verification</div>
+                      <div className="text-sm text-muted-foreground mb-3">Follow the instructions and blink naturally to capture your face.</div>
+                      <div className="rounded-md overflow-hidden bg-gray-50 p-3 flex items-center justify-center">
+                        <OnlineFaceCamera onCapture={submitCapturedFace} />
+                      </div>
+                      {/* Capture auto-submits; controls removed for secretary flow */}
                     </div>
                   )}
                 </div>
               </div>
-
-              <div className="space-y-3">
-                {isSecretary && (
-                  <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-4">
-                    <div className="text-sm font-medium mb-2">Secretary verification</div>
-                    <div className="text-sm text-muted-foreground mb-3">Follow the instructions and blink naturally to capture your face.</div>
-                    <div className="rounded-md overflow-hidden bg-gray-50 p-3 flex items-center justify-center">
-                      <OnlineFaceCamera onCapture={submitCapturedFace} />
-                    </div>
-                    {/* Capture auto-submits; controls removed for secretary flow */}
-                  </div>
-                )}
-              </div>
-            </div>
+            )
           )}
         </div>
 
