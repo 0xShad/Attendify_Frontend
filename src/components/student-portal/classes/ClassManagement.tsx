@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Plus,
-  Search,
   Filter,
   Calendar,
   Clock,
@@ -55,6 +54,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SearchBar from "./SearchBar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -185,17 +185,15 @@ export default function ClassManagement() {
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col gap-4">
         {/* Search and Filter (page header already contains the main title) */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search classes..."
+        <div className="flex flex-col sm:flex-row gap-2 items-center">
+          <div className="flex-1 flex items-center gap-2">
+            <SearchBar
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              onChange={(v) => setSearchQuery(v)}
+              onSearch={() => { /* filtering is live */ }}
+              onClear={() => setSearchQuery("")}
+              placeholder="Search classes..."
             />
-          </div>
-          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -204,6 +202,9 @@ export default function ClassManagement() {
               <Filter className="w-4 h-4 mr-2" />
               Filter
             </Button>
+          </div>
+
+          <div className="flex-shrink-0">
             <Button size="sm" onClick={() => setJoinClassOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Join Class
@@ -212,55 +213,17 @@ export default function ClassManagement() {
         </div>
       </div>
 
-      <Tabs defaultValue="enrolled" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="enrolled">Enrolled Classes</TabsTrigger>
-          <TabsTrigger value="activity">Recent Activity</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="enrolled" className="space-y-4">
-          <StudentClasses
-            enrolledClasses={filteredClasses}
-            activeSessions={activeSessions}
-            onStartAttendance={handleStartAttendance}
-            onViewDetails={handleViewDetails}
-            onViewAttendanceHistory={handleViewAttendanceHistory}
-            onDropClass={handleDropClass}
-            onAttendanceRecorded={() => { try { reload && reload(); } catch (e) { /* ignore */ } }}
-          />
-        </TabsContent>
-
-        <TabsContent value="activity" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>
-                Your recent interactions across all classes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex items-center gap-4 p-3 rounded-lg bg-muted/50"
-                  >
-                    <div
-                      className={`p-2 rounded-full bg-white ${activity.color}`}
-                    >
-                      <activity.icon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{activity.message}</p>
-                      <p className="text-xs text-muted-foreground">{activity.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          <div className="space-y-4">
+            <StudentClasses
+              enrolledClasses={filteredClasses}
+              activeSessions={activeSessions}
+              onStartAttendance={handleStartAttendance}
+              onViewDetails={handleViewDetails}
+              onViewAttendanceHistory={handleViewAttendanceHistory}
+              onDropClass={handleDropClass}
+              onAttendanceRecorded={() => { try { reload && reload(); } catch (e) { /* ignore */ } }}
+            />
+          </div>
 
       <ClassDetailsDrawer open={classDetailsOpen} onOpenChange={setClassDetailsOpen} selectedClass={selectedClass} />
 
