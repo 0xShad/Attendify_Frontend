@@ -284,7 +284,9 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
       }
 
       setLoading(false);
-      return true;
+      // Return the server response object so the caller (F2FFaceCamera)
+      // can examine match_info/status and decide whether to debounce.
+      return resp;
     } catch (err: any) {
       setLoading(false);
       const msg = err?.message ?? String(err);
@@ -402,7 +404,7 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
                 <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-4">
                   <div className="text-sm font-medium mb-2">Face-to-face scanner</div>
                   <div className="rounded-md overflow-hidden bg-gray-50 p-3 flex items-center justify-center">
-                    <F2FFaceCamera onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} initialDelayMs={3000} requestIntervalMs={3000} bypassFilters={true} />
+                    <F2FFaceCamera onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} initialDelayMs={3000} requestIntervalMs={3000} bypassFilters={true} debug={false} />
                   </div>
                   <div className="text-xs text-muted-foreground mt-2">Face-to-face mode: camera will automatically scan and record attendance when a face is recognized.</div>
                 </div>

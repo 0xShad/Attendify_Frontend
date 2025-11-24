@@ -315,8 +315,9 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
         onOpenChange(false);
       }, 700);
 
-      // return true to indicate success for debounce
-      return true;
+      // return full server response so caller (F2FFaceCamera) can inspect it
+      // and decide whether to debounce based on server-confirmed marks
+      return resp;
     } catch (err: any) {
       setSubmitting(false);
       const msg = err?.message ?? String(err);

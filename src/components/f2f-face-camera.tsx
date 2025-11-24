@@ -29,6 +29,8 @@ interface F2FFaceCameraProps {
   cropPaddingRatio?: number; // fraction of box width to pad when cropping
   cropPaddingMin?: number; // minimum padding in pixels when cropping
   cropPaddingHeightMultiplier?: number; // multiplier to make vertical padding slightly larger than horizontal
+  debounceStorageKey?: string; // optional localStorage key suffix to persist debounce map (e.g. `${classId}_${sessionId}`)
+  debug?: boolean; // enable debug logging for troubleshooting
 }
 
 // simple djb2 string hash for small base64 blobs
@@ -39,7 +41,7 @@ function hashString(s: string) {
 }
 
 
-export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width = 420, height = 320, className = "", initialDelayMs = 0, requestIntervalMs = 3000, minProbability = 0.75, minBoxWidth = 30, minBoxHeight = 30, consecutiveDetections = 1, minBoxAreaRatio = 0.005, centerBias = 0.04, minAspectRatio = 0.45, maxAspectRatio = 2.2, edgeMarginRatio = 0.02, modelsUrl = '/models', tinyInputSize = 320, scoreThreshold = 0.5, bypassFilters = false, cropPaddingRatio = 0.35, cropPaddingMin = 20, cropPaddingHeightMultiplier = 1.15 }: F2FFaceCameraProps) {
+export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width = 420, height = 320, className = "", initialDelayMs = 0, requestIntervalMs = 3000, minProbability = 0.75, minBoxWidth = 30, minBoxHeight = 30, consecutiveDetections = 1, minBoxAreaRatio = 0.005, centerBias = 0.04, minAspectRatio = 0.45, maxAspectRatio = 2.2, edgeMarginRatio = 0.02, modelsUrl = '/models', tinyInputSize = 320, scoreThreshold = 0.5, bypassFilters = false, cropPaddingRatio = 0.35, cropPaddingMin = 20, cropPaddingHeightMultiplier = 1.15, debounceStorageKey, debug = false }: F2FFaceCameraProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [streaming, setStreaming] = useState(false);
@@ -57,8 +59,32 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
   // stability helpers: require consecutive stable detections before firing
   const lastPredBoxRef = useRef<FaceBox | null>(null);
   const consecutiveRef = useRef<number>(0);
+  const processingRef = useRef<boolean>(false);
+  const descriptorToIdRef = useRef<Record<string, string>>({}); // descriptorKey -> serverId mapping
+  const descriptorVectorsRef = useRef<Array<{ id: string; vec: number[] }>>([]); // stored rounded descriptor vectors for confirmed ids
+  const perPersonLastRequestRef = useRef<Record<string, number>>({}); // personKey -> last request timestamp
+
+  // localStorage key for debounce persistence (if provided)
+  const storageKey = debounceStorageKey ? `f2f_recent:${debounceStorageKey}` : null;
 
   useEffect(() => {
+    // load persisted debounce map if available
+    if (storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (raw) {
+          const parsed = JSON.parse(raw || '{}');
+          const now = Date.now();
+          // restore only non-expired entries
+          Object.keys(parsed.recent || {}).forEach(k => {
+            if (parsed.recent[k] > now) recentRef.current[k] = parsed.recent[k];
+          });
+          descriptorToIdRef.current = parsed.map || {};
+        }
+      } catch (e) {
+        // ignore localStorage errors
+      }
+    }
     runningRef.current = true;
     const start = async () => {
       setError(null);
@@ -99,7 +125,11 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
 
     const detectLoop = async () => {
       if (!runningRef.current) return;
+      if (processingRef.current) {
+        return; // avoid overlapping runs
+      }
       if (!videoRef.current || videoRef.current.readyState < 2) return;
+      processingRef.current = true;
 
       try {
         if (!faceapi && !loadingModels) {
@@ -108,17 +138,16 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
           setModelError(null);
           try {
             faceapi = await import('@vladmandic/face-api');
-            // load tiny face detector + tiny landmarks (fast)
+            // load tiny face detector + tiny landmarks + recognition net (fast)
             await Promise.all([
               faceapi.nets.tinyFaceDetector.loadFromUri(modelsUrl),
-              faceapi.nets.faceLandmark68TinyNet.loadFromUri(modelsUrl)
+              faceapi.nets.faceLandmark68TinyNet.loadFromUri(modelsUrl),
+              faceapi.nets.faceRecognitionNet.loadFromUri(modelsUrl),
             ]);
             modelsLoaded = true;
             setModelLoaded(true);
-            
             // face-api models loaded
           } catch (e) {
-            
             setModelError(String(e?.message || e));
             setModelLoaded(false);
             faceapi = null;
@@ -169,10 +198,14 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
           try {
             const options = new faceapi.TinyFaceDetectorOptions({ inputSize: tinyInputSize, scoreThreshold });
             // run detection on the canvas we just drew into so coordinates match the canvas/display pixels
-            const results = await faceapi.detectAllFaces(canvas, options).withFaceLandmarks(true);
+            // request landmarks and face descriptors so we can compute a stable debounce key
+            // use tiny landmarks explicitly (true) and request descriptors
+            const results = await faceapi.detectAllFaces(canvas, options).withFaceLandmarks(true).withFaceDescriptors();
             if (!results || results.length === 0) {
               // no predictions this frame
+            
             } else {
+              
             }
             faces = (results || []).map((r: any) => {
               const b = r.detection?.box || r.box || { x: 0, y: 0, width: canvasW, height: canvasH };
@@ -181,178 +214,200 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
               const by = Math.max(0, Math.round(b.y || 0));
               const bw = Math.max(1, Math.round(b.width || canvasW));
               const bh = Math.max(1, Math.round(b.height || canvasH));
-              return { boundingBox: { x: bx, y: by, width: bw, height: bh }, probability: r.detection?.score ?? (r.score ?? 1), landmarks: r.landmarks?.positions || [] };
+              return {
+                boundingBox: { x: bx, y: by, width: bw, height: bh },
+                probability: r.detection?.score ?? (r.score ?? 1),
+                landmarks: r.landmarks?.positions || [],
+                descriptor: r.descriptor || null,
+              };
             });
           } catch (e) {
-            faces = [];
+            
           }
         }
 
-        // Note: No server-side Google Vision fallback for this component.
-        // We rely solely on the in-browser face-api.js model and strict filters above.
-
         if (faces && faces.length > 0) {
-          // show detecting state while a face is present
+          // show detecting state while faces are present
           setStatus('detecting');
-          // pick largest face
-          let face = faces[0];
+          // pick largest face for the UI overlay
+          let largest = faces[0];
           if (faces.length > 1) {
-            face = faces.reduce((a, b) => ((a.boundingBox?.width || a.boundingBox?.box?.width || 0) > (b.boundingBox?.width || b.boundingBox?.box?.width || 0) ? a : b));
+            largest = faces.reduce((a, b) => ((a.boundingBox?.width || 0) > (b.boundingBox?.width || 0) ? a : b));
           }
+          // set overlay box to largest face
+          const lb = largest.boundingBox || { x: 0, y: 0, width: width, height: height };
+          setDetectedBox({ x: lb.x, y: lb.y, width: lb.width, height: lb.height });
 
-          // Normalise bounding box depending on API shape
-          let box: FaceBox = { x: 0, y: 0, width: width, height: height };
-          if (face.boundingBox) {
-            const bb = face.boundingBox;
-            box = { x: bb.x || 0, y: bb.y || 0, width: bb.width || width, height: bb.height || height };
-          } else if (face.box) {
-            const bb = face.box;
-            box = { x: bb.x || 0, y: bb.y || 0, width: bb.width || width, height: bb.height || height };
-          } else if (face.bounding_poly || face.boundingPoly || face.boundingBox) {
-            const v = face.boundingPoly?.vertices || face.bounding_poly?.vertices || [];
-            if (v && v.length >= 4) {
-              const xs = v.map((p: any) => p.x || 0);
-              const ys = v.map((p: any) => p.y || 0);
-              const minX = Math.max(0, Math.min(...xs));
-              const minY = Math.max(0, Math.min(...ys));
-              const maxX = Math.min(width, Math.max(...xs));
-              const maxY = Math.min(height, Math.max(...ys));
-              box = { x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY) };
-            }
-          }
-
-          // apply stricter filters: probability, minimum size (can be bypassed for testing)
-          const probRaw = Array.isArray((face as any).probability) ? (face as any).probability[0] : (face as any).probability;
-          const prob = typeof probRaw === 'number' ? probRaw : 1;
-          // always apply strict local filters before calling onRecognized
-          if (prob < minProbability) {
-            return;
-          }
-          if (box.width < minBoxWidth || box.height < minBoxHeight) {
-            return;
-          }
-          // require minimum box area relative to the canvas/frame we ran detection on
-          const frameArea = canvasW * canvasH;
-          const boxArea = box.width * box.height;
-          if (boxArea < frameArea * minBoxAreaRatio) {
-            return;
-          }
-          // require a minimum number of landmarks if provided by detector
-          if ((face as any).landmarks && Array.isArray((face as any).landmarks) && (face as any).landmarks.length < 6) {
-            return;
-          }
-          // reject boxes that are too close to frame edges (likely artefacts) — use canvas dimensions
-          const leftThreshold = canvasW * edgeMarginRatio;
-          const topThreshold = canvasH * edgeMarginRatio;
-          const rightThreshold = canvasW * (1 - edgeMarginRatio);
-          const bottomThreshold = canvasH * (1 - edgeMarginRatio);
-          const boxRight = box.x + box.width;
-          const boxBottom = box.y + box.height;
-          if (box.x < leftThreshold || box.y < topThreshold || boxRight > rightThreshold || boxBottom > bottomThreshold) {
-            return;
-          }
-          // require aspect ratio roughly like a face (height/width)
-          const aspect = box.height / Math.max(1, box.width);
-          if (aspect < minAspectRatio || aspect > maxAspectRatio) {
-            return;
-          }
-          // require center to be within central region (avoid bottom-left/edge detections)
-          const cxNorm = (box.x + box.width / 2) / canvasW;
-          const cyNorm = (box.y + box.height / 2) / canvasH;
-          if (cxNorm < centerBias || cxNorm > (1 - centerBias) || cyNorm < centerBias || cyNorm > (1 - centerBias)) {
-            return;
-          }
-
-          // require stability across consecutive frames: compare centers
-          const cx = box.x + box.width / 2;
-          const cy = box.y + box.height / 2;
-          const last = lastPredBoxRef.current;
-          let stable = false;
-          if (!last) {
-            consecutiveRef.current = 1;
-          } else {
-            const lastCx = last.x + last.width / 2;
-            const lastCy = last.y + last.height / 2;
-            const dx = Math.abs(cx - lastCx);
-            const dy = Math.abs(cy - lastCy);
-            const maxDim = Math.max(width, height);
-            // if center moved less than 10% of frame width/height, consider stable
-            if (dx < maxDim * 0.15 && dy < maxDim * 0.15) {
-              consecutiveRef.current = Math.min(consecutiveRef.current + 1, consecutiveDetections);
-            } else {
-              consecutiveRef.current = 1;
-            }
-          }
-          lastPredBoxRef.current = box;
-          if (consecutiveRef.current < consecutiveDetections) {
-            // wait for more stable frames
-            return;
-          }
-
-          setDetectedBox(box);
-
-          // crop face — add padding so we don't send an overly tight crop
-          const padX = Math.round(Math.max(cropPaddingMin, box.width * cropPaddingRatio));
-          const padY = Math.round(Math.max(cropPaddingMin, box.height * cropPaddingRatio * cropPaddingHeightMultiplier));
-          const cropX = Math.max(0, box.x - padX);
-          const cropY = Math.max(0, box.y - padY);
-          const cropW = Math.min(canvasW - cropX, box.width + padX * 2);
-          const cropH = Math.min(canvasH - cropY, box.height + padY * 2);
-          const cropCanvas = document.createElement('canvas');
-          cropCanvas.width = cropW; cropCanvas.height = cropH;
-          const cctx = cropCanvas.getContext('2d');
-          if (cctx) cctx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-          const faceDataUrl = cropCanvas.toDataURL('image/jpeg', 0.9);
-          const faceHash = hashString(faceDataUrl.slice(-200)); // small hash portion
-
-          // keep the UI overlay as the raw detected box (smaller)
-          setDetectedBox(box);
-
+          // process each detected face independently (still single detectLoop run)
           const now = Date.now();
-          const skipUntil = recentRef.current[faceHash] || 0;
           const debounceMs = (debounceMinutes || 5) * 60 * 1000;
-          if (skipUntil && now < skipUntil) {
-            // skip recognition for this face
-            return;
-          }
+          for (const f of faces) {
+            try {
+              const faceBox = f.boundingBox || f.box || { x: 0, y: 0, width: canvasW, height: canvasH };
+              const bx = Math.max(0, Math.round(faceBox.x || 0));
+              const by = Math.max(0, Math.round(faceBox.y || 0));
+              const bw = Math.max(1, Math.round(faceBox.width || canvasW));
+              const bh = Math.max(1, Math.round(faceBox.height || canvasH));
+              const box: FaceBox = { x: bx, y: by, width: bw, height: bh };
 
-          // call onRecognized (respect initial delay and request interval)
-          const sinceMount = Date.now() - (mountedAtRef.current || 0);
-          if (initialDelayMs && sinceMount < initialDelayMs) {
-            // skip calling recognition until delay has passed
-            return;
-          }
+              // local filters (keep these to avoid sending bad crops)
+              const probRaw = Array.isArray((f as any).probability) ? (f as any).probability[0] : (f as any).probability;
+              const prob = typeof probRaw === 'number' ? probRaw : 1;
+              if (prob < minProbability) continue;
+              if (box.width < minBoxWidth || box.height < minBoxHeight) continue;
+              const frameArea = canvasW * canvasH;
+              if (box.width * box.height < frameArea * minBoxAreaRatio) continue;
+              if ((f as any).landmarks && Array.isArray((f as any).landmarks) && (f as any).landmarks.length < 6) continue;
+              const leftThreshold = canvasW * edgeMarginRatio;
+              const topThreshold = canvasH * edgeMarginRatio;
+              const rightThreshold = canvasW * (1 - edgeMarginRatio);
+              const bottomThreshold = canvasH * (1 - edgeMarginRatio);
+              if (box.x < leftThreshold || box.y < topThreshold || (box.x + box.width) > rightThreshold || (box.y + box.height) > bottomThreshold) continue;
+              const aspect = box.height / Math.max(1, box.width);
+              if (aspect < minAspectRatio || aspect > maxAspectRatio) continue;
 
-          const sinceLastReq = Date.now() - (lastRequestAtRef.current || 0);
-          if (requestIntervalMs && sinceLastReq < requestIntervalMs) {
-            // respect global request interval
-            return;
-          }
+              // crop per-face
+              const padX = Math.round(Math.max(cropPaddingMin, box.width * cropPaddingRatio));
+              const padY = Math.round(Math.max(cropPaddingMin, box.height * cropPaddingRatio * cropPaddingHeightMultiplier));
+              const cropX = Math.max(0, box.x - padX);
+              const cropY = Math.max(0, box.y - padY);
+              const cropW = Math.min(canvasW - cropX, box.width + padX * 2);
+              const cropH = Math.min(canvasH - cropY, box.height + padY * 2);
+              const cropCanvas = document.createElement('canvas');
+              cropCanvas.width = cropW; cropCanvas.height = cropH;
+              const cctx = cropCanvas.getContext('2d');
+              if (!cctx) continue;
+              cctx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+              const faceDataUrl = cropCanvas.toDataURL('image/jpeg', 0.9);
+              const faceHash = hashString(faceDataUrl.slice(-200));
 
-          try {
-            
-            // mark request timestamp immediately to enforce interval even if call hangs
-            lastRequestAtRef.current = Date.now();
-            const res = await onRecognized(faceDataUrl, box, faceHash);
-            const success = typeof res === 'boolean' ? res : (res === undefined ? false : Boolean(res));
-            if (success) {
-              // mark as recognized until debounceMs passes
-              recentRef.current[faceHash] = now + debounceMs;
-              // show success state briefly
-              setStatus('success');
-              if (successTimeoutRef.current) window.clearTimeout(successTimeoutRef.current);
-              // revert to idle/detecting after 1200ms
-              // store numeric timeout id
-              successTimeoutRef.current = window.setTimeout(() => {
-                successTimeoutRef.current = null;
-                setStatus('idle');
-              }, 1200) as unknown as number;
+              // descriptor -> stable key and vector similarity check
+              let descriptorKey: string | null = null;
+              let descriptorRounded: number[] | null = null;
+              if ((f as any).descriptor && (f as any).descriptor.length) {
+                descriptorRounded = Array.from((f as any).descriptor as Float32Array).map((n: number) => Math.round(n * 10000));
+                const s = descriptorRounded.join(',');
+                descriptorKey = hashString(s);
+              }
+              // default personKey uses descriptorKey or fallback face hash
+              let personKey = descriptorKey ? `desc:${descriptorKey}` : `hash:${faceHash}`;
+              // If we have an exact descriptor->id mapping, prefer it
+              if (descriptorKey && descriptorToIdRef.current && descriptorToIdRef.current[descriptorKey]) {
+                personKey = `id:${descriptorToIdRef.current[descriptorKey]}`;
+              }
+              // If the descriptor varies between frames, try similarity against stored confirmed descriptor vectors
+              if (descriptorRounded && descriptorVectorsRef.current.length > 0) {
+                try {
+                  const THRESHOLD = 0.45; // same matching threshold used by server (lower is closer)
+                  const limit = (THRESHOLD * 10000);
+                  const limitSq = limit * limit;
+                  for (const entry of descriptorVectorsRef.current) {
+                    if (!entry.vec || entry.vec.length !== descriptorRounded.length) continue;
+                    let sumSq = 0;
+                    for (let i = 0; i < descriptorRounded.length; i++) {
+                      const diff = (descriptorRounded[i] - entry.vec[i]);
+                      sumSq += diff * diff;
+                      if (sumSq > limitSq) break;
+                    }
+                    if (sumSq <= limitSq) {
+                      // treat as same person (id match)
+                      personKey = `id:${entry.id}`;
+                      break;
+                    }
+                  }
+                } catch (e) {
+                  
+                }
+              }
+              
+
+              // enforce per-person debounce (skip API calls) but continue detecting
+              const skipUntil = recentRef.current[personKey] || 0;
+              if (skipUntil && now < skipUntil) {
+                continue;
+              }
+
+              // enforce per-person request interval to avoid bursts; fall back to global lastRequestAtRef if needed
+              const lastReqForPerson = perPersonLastRequestRef.current[personKey] || 0;
+              const sinceLastForPerson = Date.now() - lastReqForPerson;
+              if (requestIntervalMs && sinceLastForPerson < requestIntervalMs) {
+                continue;
+              }
+
+              // respect initial delay since mount
+              const sinceMount = Date.now() - (mountedAtRef.current || 0);
+              if (initialDelayMs && sinceMount < initialDelayMs) continue;
+
+              // call onRecognized for this face
+              try {
+                perPersonLastRequestRef.current[personKey] = Date.now();
+                const res = await onRecognized(faceDataUrl, box, faceHash);
+                // prefer structured response checks — only treat as "attendance marked" when the backend explicitly indicates marking
+                const maybeResObj = (res && typeof res === 'object') ? (res as any) : null;
+                // Consider attendance "marked" only when backend explicitly indicates it.
+                // Match the server shape you provided: status:'present', matched_profile_id/profile_id, match_info.matched, or note:'recently_marked'.
+                const attendanceMarked = Boolean(maybeResObj && (
+                  maybeResObj.attendance_marked === true ||
+                  maybeResObj.marked === true ||
+                  maybeResObj.note === 'recently_marked' ||
+                  maybeResObj.status === 'marked' ||
+                  maybeResObj.status === 'present' ||
+                  maybeResObj.was_marked === true ||
+                  // presence of canonical ids implies a matched/marked response
+                  !!maybeResObj.matched_profile_id ||
+                  !!maybeResObj.profile_id ||
+                  // explicit match_info indicating a match
+                  (maybeResObj.match_info && maybeResObj.match_info.matched === true)
+                ));
+                
+                if (attendanceMarked) {
+                  const then = Date.now();
+                  recentRef.current[personKey] = then + debounceMs;
+                  try {
+                    const maybeId = maybeResObj
+                      ? (maybeResObj.matched_profile_id || maybeResObj.profile_id || maybeResObj.match_info?.student_id || maybeResObj.student_id || maybeResObj.id || maybeResObj.match_info?.id)
+                      : null;
+                    if (maybeId) {
+                      const idKey = `id:${maybeId}`;
+                      recentRef.current[idKey] = then + debounceMs;
+                      if (descriptorKey) descriptorToIdRef.current[descriptorKey] = String(maybeId);
+                      // store rounded descriptor vector for future similarity checks
+                      if (descriptorRounded) {
+                        try {
+                          const existing = descriptorVectorsRef.current.find(d => d.id === String(maybeId));
+                          if (!existing) {
+                            descriptorVectorsRef.current.push({ id: String(maybeId), vec: descriptorRounded });
+                          } else {
+                            // optionally refresh/replace existing vector with latest
+                            existing.vec = descriptorRounded;
+                          }
+                        } catch (e) { /* ignore */ }
+                      }
+                    }
+                    if (maybeResObj && maybeResObj.note === 'recently_marked' && descriptorKey) {
+                      recentRef.current[`desc:${descriptorKey}`] = then + debounceMs;
+                    }
+                    if (storageKey) {
+                      try { localStorage.setItem(storageKey, JSON.stringify({ recent: recentRef.current, map: descriptorToIdRef.current })); } catch (e) {}
+                    }
+                  } catch (e) {}
+                  // show transient success only for overlay
+                  setStatus('success');
+                  if (successTimeoutRef.current) window.clearTimeout(successTimeoutRef.current);
+                  successTimeoutRef.current = window.setTimeout(() => { successTimeoutRef.current = null; setStatus('idle'); }, 1200) as unknown as number;
+                } else {
+                }
+              } catch (err) {
+                
+              }
+            } catch (e) {
+              
             }
-          } catch (e) {
-            // swallow
           }
+          processingRef.current = false;
         } else {
           setDetectedBox(null);
+          processingRef.current = false;
         }
       } catch (err) {
         // ignore transient detect errors
