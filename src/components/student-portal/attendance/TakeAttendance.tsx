@@ -40,11 +40,15 @@ export default function AttendanceTake({ open, onOpenChange, classItem, sessionI
   const S = sessionDetails ?? sessionInfo;
 
   const handleFaceCapture = (dataUrl: string) => {
+    // Clear any previous submit errors (e.g. previous failed face match)
+    setSubmitError(null);
     setFaceValidated(true);
     setLastCaptured(dataUrl);
   };
 
   const handleRetake = () => {
+    // Clear previous submit errors when user retries
+    setSubmitError(null);
     setFaceValidated(false);
     setLastCaptured(null);
     if (typeof onRetake === 'function') {
