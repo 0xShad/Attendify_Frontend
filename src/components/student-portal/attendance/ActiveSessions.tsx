@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Clock, MapPin, Camera, AlertTriangle } from "lucide-react";
 import AttendanceTake from "@/components/student-portal/attendance/TakeAttendance";
+import TakeAttendanceF2F from "@/components/student-portal/attendance/TakeAttendanceF2F";
 import { getMyClassSession } from "@/lib/api/classes";
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,7 +21,6 @@ type AttendanceSession = {
   isActive: boolean;
   mode: "Online" | "In-Person";
   location: string;
-  coordinates?: { lat: number; lng: number };
   requiresFaceRecognition: boolean;
   allowOnlineMode: boolean;
   cutoffTime: number;
@@ -30,13 +30,9 @@ type AttendanceSession = {
 };
 
 export default function ActiveSessions({
-  currentLocation,
-  isWithinLocationRange,
   handleStartAttendance,
   formatTimeRemaining,
 }: {
-  currentLocation: { lat: number; lng: number } | null;
-  isWithinLocationRange: (session: AttendanceSession) => boolean;
   handleStartAttendance: (session: AttendanceSession, mode: "face" | "online") => void;
   formatTimeRemaining: (minutes: number) => string;
 }) {
@@ -75,6 +71,8 @@ export default function ActiveSessions({
 
   const [attendanceOpen, setAttendanceOpen] = useState(false);
   const [attendanceSession, setAttendanceSession] = useState<any | null>(null);
+  const [f2fOpen, setF2fOpen] = useState(false);
+  const [f2fSession, setF2fSession] = useState<any | null>(null);
 
   const list = classes ?? [];
 
@@ -126,35 +124,20 @@ export default function ActiveSessions({
             ) || 0;
 
             const schedule = cls.next_schedule ?? (Array.isArray(cls.normal_schedules) && cls.normal_schedules[0]) ?? null;
+            const isSecretary = Boolean(cls.is_secretary ?? cls.isSecretary ?? false);
             const startTime = schedule?.start_time ? String(schedule.start_time).slice(0,5) : "TBA";
             const endTime = schedule?.end_time ? String(schedule.end_time).slice(0,5) : "TBA";
             const date = schedule?.date ?? cls.date ?? new Date().toISOString().split("T")[0];
 
-            const isNearby = (() => {
-              const coords = (cls.coordinates ?? cls.next_schedule?.coordinates) ?? null;
-              if (!coords) return true;
-              return isWithinLocationRange({
-                id: String(cls.active_session_id ?? cls.id),
-                classId: String(cls.id),
-                className: cls.course_name ?? cls.class_code ?? cls.course_code ?? cls.name ?? "",
-                instructor: cls.assigned_faculty_name ?? cls.assigned_faculty ?? "",
-                date,
-                startTime,
-                endTime,
-                isActive: Boolean(cls.session_active),
-                mode: (schedule?.modes && schedule.modes[0]) ? String(schedule.modes[0]) as any : (cls.f2f_activated ? "In-Person" : "Online"),
-                location: schedule?.location ?? cls.room ?? "",
-                coordinates: coords,
-                requiresFaceRecognition: Boolean(cls.f2f_activated),
-                allowOnlineMode: Boolean(cls.allowOnlineMode ?? cls.allow_online_mode ?? false),
-                cutoffTime: Number(cls.cutoffTime ?? cls.cutoff_time ?? 10),
-                studentsPresent: present,
-                totalStudents: studentsCount,
-                timeRemaining: Number(cls.timeRemaining ?? cls.time_remaining ?? 0),
-              } as AttendanceSession);
-            })();
+            
 
             const progressPct = studentsCount > 0 ? Math.round((presentOrLate / studentsCount) * 10000) / 100 : 0;
+
+            const modesRawLocal = Array.isArray(cls.current_schedule_modes) && cls.current_schedule_modes.length > 0
+              ? cls.current_schedule_modes
+              : schedule?.modes ?? cls.modes ?? null;
+            const modesLocal = Array.isArray(modesRawLocal) ? modesRawLocal.map((m: any) => String(m ?? '').toLowerCase()) : [];
+            const isF2FModeLocal = modesLocal.includes('face_to_face') || modesLocal.includes('f2f') || modesLocal.includes('face-to-face');
 
             return (
               <Card key={cls.id} className={`${sessionActive ? "border-green-200 bg-green-50/30" : "border-gray-200"}`}>
@@ -204,17 +187,17 @@ export default function ActiveSessions({
                     </div>
                   )}
 
-                  {cls.f2f_activated && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className={`w-4 h-4 ${isNearby ? "text-green-500" : "text-red-500"}`} />
-                      <span className={isNearby ? "text-green-700" : "text-red-700"}>
-                        {isNearby ? "Within classroom range" : "Too far from classroom"}
-                      </span>
-                    </div>
-                  )}
+                  {/* removed coordinate/proximity UI per request */}
 
                   {sessionActive ? (
-                    <div className="flex gap-2">
+                    // If this is a face-to-face mode and the current user is NOT a secretary,
+                    // do not show the Attendance button — instruct them to use the professor/secretary device.
+                    isF2FModeLocal && !isSecretary ? (
+                      <div className="text-sm text-center w-full p-4 rounded-md bg-yellow-50 text-amber-800">
+                        Face to Face attendance should be taken on your professor's or class secretary's device.
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
                       <Button onClick={async () => {
                         const classId = cls.id ?? cls.class_id ?? null;
                         if (!classId) {
@@ -226,6 +209,26 @@ export default function ActiveSessions({
                         setCheckingSession(String(classId));
                         try {
                             const resp = await getMyClassSession(Number(classId));
+                            // Determine if this is an active face-to-face session on this device
+                            const respF2F = Boolean(cls.f2f_activated ?? resp?.class?.f2f_activated ?? false);
+                            const respSessionActive = Boolean(resp?.session_active ?? sessionActive);
+                            // only bypass already-submitted when the current user is a secretary for this class
+                            const respIsSecretary = Boolean(cls.is_secretary ?? resp?.class?.is_secretary ?? cls.isSecretary ?? resp?.class?.isSecretary ?? false);
+                            const isF2FActive = respF2F && respSessionActive && respIsSecretary;
+
+                            // If it's an active F2F session, open the F2F modal regardless of any "already submitted" message
+                            if (isF2FActive) {
+                              setF2fSession(resp ?? {
+                                class: resp?.class ?? cls,
+                                active_session_id: resp?.active_session_id ?? resp?.session_id ?? cls.active_session_id ?? cls.id,
+                                current_schedule: resp?.current_schedule ?? schedule,
+                                current_schedule_modes: resp?.current_schedule_modes ?? (schedule?.modes ?? null),
+                                session_active: resp?.session_active ?? sessionActive,
+                              });
+                              setF2fOpen(true);
+                              return;
+                            }
+
                             // if backend signals message that attendance already recorded, don't open modal
                             const msg = resp?.session_message ?? resp?.message ?? null;
                             const already = resp?.already_submitted ?? resp?.attendance_recorded ?? false;
@@ -240,7 +243,7 @@ export default function ActiveSessions({
                               : resp?.current_schedule?.modes ?? schedule?.modes ?? null;
                             const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
 
-                            // If session is face-to-face, trigger the face flow (external handler) instead of opening the online modal
+                            // If session is face-to-face and not handled by the f2f modal above, trigger the face flow (external handler)
                             if (modes.includes('face_to_face') || modes.includes('f2f') || modes.includes('face-to-face')) {
                               try {
                                 const sessionObj = {
@@ -257,6 +260,7 @@ export default function ActiveSessions({
                               return;
                             }
 
+                        
                             // Only open the TakeAttendance modal for online/hybrid modes
                             if (modes.includes('online') || modes.includes('hybrid')) {
                               setAttendanceSession(resp ?? {
@@ -282,10 +286,16 @@ export default function ActiveSessions({
                         Attendance
                       </Button>
                     </div>
+                    )
                   ) : (
                     <div className="text-center py-2">
                       <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Attendance not yet open</Badge>
-                      <div className="text-xs text-muted-foreground mt-1">The session is scheduled now; attendance will open when the instructor starts it.</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {isSecretary
+                          ? 'Please start the session in "My Classes".'
+                          : 'The session is scheduled right now but your instructor or secretary has not started the attendance session yet.'
+                        }
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -306,6 +316,20 @@ export default function ActiveSessions({
         sessionInfo={attendanceSession}
         onRecorded={() => {
           // refresh list after a successful record
+          loadClasses().catch(() => {});
+        }}
+      />
+
+      {/* Face-to-face modal (placeholder) */}
+      <TakeAttendanceF2F
+        open={f2fOpen}
+        onOpenChange={(v: boolean) => {
+          setF2fOpen(v);
+          if (!v) setF2fSession(null);
+        }}
+        classItem={f2fSession?.class}
+        sessionInfo={f2fSession}
+        onRecorded={() => {
           loadClasses().catch(() => {});
         }}
       />

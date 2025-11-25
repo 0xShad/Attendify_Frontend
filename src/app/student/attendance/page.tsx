@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Camera, MapPin, Clock, AlertTriangle, Loader2, Scan } from "lucide-react";
+import { Camera, Clock, Loader2, Scan } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,6 @@ type AttendanceSession = {
   isActive: boolean;
   mode: "Online" | "In-Person";
   location: string;
-  coordinates?: { lat: number; lng: number } | null;
   requiresFaceRecognition: boolean;
   allowOnlineMode: boolean;
   cutoffTime: number;
@@ -36,8 +35,7 @@ export default function StudentAttendance() {
   const [selectedSession, setSelectedSession] = useState<AttendanceSession | null>(null);
   const [faceRecognitionOpen, setFaceRecognitionOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
+  
   const [cameraActive, setCameraActive] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
 
@@ -49,12 +47,7 @@ export default function StudentAttendance() {
   ] as any[]);
 
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => setCurrentLocation({ lat: position.coords.latitude, lng: position.coords.longitude }),
-        () => setLocationError("Location access denied. Some features may be limited.")
-      );
-    }
+    // Coordinates/location removed — no-op
   }, []);
 
   // Camera helpers
@@ -106,18 +99,7 @@ export default function StudentAttendance() {
     else handleOnlineAttendance();
   };
 
-  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 6371e3; const toRad = (d: number) => (d * Math.PI) / 180;
-    const φ1 = toRad(lat1), φ2 = toRad(lat2), Δφ = toRad(lat2 - lat1), Δλ = toRad(lng2 - lng1);
-    const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
-    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  };
-
-  const isWithinLocationRange = (session: AttendanceSession) => {
-    if (!currentLocation || !session.coordinates) return true;
-    const d = calculateDistance(currentLocation.lat, currentLocation.lng, session.coordinates.lat, session.coordinates.lng);
-    return d <= 100;
-  };
+  // Coordinates/location helpers removed
 
   const formatTimeRemaining = (minutes: number) => {
     if (minutes < 0) return "Session ended";
@@ -133,14 +115,7 @@ export default function StudentAttendance() {
         <p className="text-muted-foreground">Record attendance and view your attendance history</p>
       </div>
 
-      {locationError && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="flex items-center gap-2 p-4">
-            <AlertTriangle className="w-4 h-4 text-yellow-600" />
-            <p className="text-yellow-700 text-sm">{locationError}</p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Location/camera permission messaging removed — coordinates are no longer used */}
 
       <Tabs defaultValue="active" className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
@@ -151,8 +126,6 @@ export default function StudentAttendance() {
 
         <TabsContent value="active" className="space-y-4">
           <ActiveSessions
-            currentLocation={currentLocation}
-            isWithinLocationRange={isWithinLocationRange}
             handleStartAttendance={handleStartAttendance}
             formatTimeRemaining={formatTimeRemaining}
           />
@@ -193,55 +166,6 @@ export default function StudentAttendance() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      <Drawer open={faceRecognitionOpen} onOpenChange={(open: boolean) => { setFaceRecognitionOpen(open); if (!open) { stopCamera(); setSelectedSession(null); } }}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>Face Recognition Attendance</DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-4 space-y-4">
-            <div className="text-center">
-              <div className="relative mx-auto w-64 h-48 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
-                {isProcessing ? (
-                  <div className="space-y-2">
-                    <Loader2 className="w-8 h-8 mx-auto animate-spin text-blue-500" />
-                    <p className="text-sm text-muted-foreground">Processing face recognition...</p>
-                  </div>
-                ) : cameraActive ? (
-                  <div className="space-y-2">
-                    <div className="w-32 h-32 border-2 border-blue-500 rounded-lg flex items-center justify-center animate-pulse">
-                      <Camera className="w-8 h-8 text-blue-500" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">Position your face in the frame</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Camera className="w-8 h-8 mx-auto text-gray-400" />
-                    <p className="text-sm text-muted-foreground">Starting camera...</p>
-                  </div>
-                )}
-              </div>
-              {selectedSession && (
-                <div className="text-sm mt-3">
-                  <div className="font-medium">{selectedSession.className}</div>
-                  <div className="text-muted-foreground">{selectedSession.date} • {selectedSession.startTime}</div>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleFaceRecognition} disabled={isProcessing || !cameraActive} className="flex-1">
-                {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Scan className="w-4 h-4 mr-2" />} Record Attendance
-              </Button>
-              <Button variant="outline" onClick={() => setFaceRecognitionOpen(false)} disabled={isProcessing}>Cancel</Button>
-            </div>
-          </div>
-          <DrawerFooter>
-            <DrawerClose asChild>
-              <Button variant="outline" className="w-full">Close</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
     </div>
   );
 }
