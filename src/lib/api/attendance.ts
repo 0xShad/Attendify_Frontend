@@ -188,3 +188,30 @@ export async function markPresentF2F(payload: MarkPresentIn): Promise<any> {
     throw err;
   }
 }
+
+/**
+ * Fetch attendance logs for the current user (or faculty) via the proxy.
+ * Accepts optional filters: skip, limit, class_id, session_id, profile_id
+ */
+export async function getAttendanceLogs(params?: { skip?: number; limit?: number; class_id?: number; session_id?: number; profile_id?: number }): Promise<any[]> {
+  const isBrowser = typeof window !== 'undefined';
+  const proxyUrl = `/api/attendance/mine/attendance_logs`;
+  const url = isBrowser ? proxyUrl : `${API_BASE_URL}/attendance/mine/attendance_logs`;
+
+  try {
+    const qs = [] as string[];
+    if (params) {
+      if (typeof params.skip === 'number') qs.push(`skip=${encodeURIComponent(String(params.skip))}`);
+      if (typeof params.limit === 'number') qs.push(`limit=${encodeURIComponent(String(params.limit))}`);
+      if (typeof params.class_id === 'number') qs.push(`class_id=${encodeURIComponent(String(params.class_id))}`);
+      if (typeof params.session_id === 'number') qs.push(`session_id=${encodeURIComponent(String(params.session_id))}`);
+      if (typeof params.profile_id === 'number') qs.push(`profile_id=${encodeURIComponent(String(params.profile_id))}`);
+    }
+    const finalUrl = qs.length ? `${url}?${qs.join('&')}` : url;
+
+    const res = await import('./fetchClient').then(m => m.fetchWithAuth(finalUrl, { method: 'GET' }));
+    return res;
+  } catch (err) {
+    throw err;
+  }
+}

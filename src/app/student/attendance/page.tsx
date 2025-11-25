@@ -39,12 +39,7 @@ export default function StudentAttendance() {
   const [cameraActive, setCameraActive] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
 
-  // Small attendance history sample — can be replaced with real API later
-  const [attendanceHistory] = useState(() => [
-    { id: 1, classId: "CS101", className: "Introduction to Computer Science", date: "2025-10-16", status: "Present", sessionType: "In-Person", timestamp: "09:05 AM", method: "Face Recognition" },
-    { id: 2, classId: "MATH201", className: "Calculus II", date: "2025-10-15", status: "Present", sessionType: "In-Person", timestamp: "14:02 PM", method: "Face Recognition" },
-    { id: 3, classId: "ENG102", className: "English Composition", date: "2025-10-14", status: "Present", sessionType: "Online", timestamp: "11:00 AM", method: "Online Check-in" },
-  ] as any[]);
+  // attendanceHistory is now handled inside `AttendanceHistory` via API
 
   useEffect(() => {
     // Coordinates/location removed — no-op
@@ -132,7 +127,7 @@ export default function StudentAttendance() {
         </TabsContent>
 
         <TabsContent value="history" className="space-y-4">
-          <AttendanceHistory attendanceHistory={attendanceHistory} />
+          <AttendanceHistory />
         </TabsContent>
 
         <TabsContent value="stats" className="space-y-4">
