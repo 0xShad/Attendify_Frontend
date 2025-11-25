@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActiveSessions from "@/components/student-portal/attendance/ActiveSessions";
 import AttendanceHistory from "@/components/student-portal/attendance/AttendanceHistory";
+import AttendanceStats from "@/components/student-portal/attendance/AttendanceStats";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose, DrawerFooter } from "@/components/ui/drawer";
 import { useToast } from "@/hooks/use-toast";
 
@@ -103,6 +104,26 @@ export default function StudentAttendance() {
     return hours === 0 ? `${mins}m` : `${hours}h ${mins}m`;
   };
 
+  const [selectedTab, setSelectedTab] = useState<string>('active');
+
+  // Read persisted tab synchronously before paint to avoid visible tab flicker
+  React.useLayoutEffect(() => {
+    try {
+      const v = sessionStorage.getItem('attendance:selectedTab');
+      if (v) setSelectedTab(v);
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  React.useEffect(() => {
+    try {
+      sessionStorage.setItem('attendance:selectedTab', selectedTab);
+    } catch (e) {
+      // ignore
+    }
+  }, [selectedTab]);
+
   return (
     <div className="space-y-4 md:space-y-6">
       <div>
@@ -112,7 +133,7 @@ export default function StudentAttendance() {
 
       {/* Location/camera permission messaging removed — coordinates are no longer used */}
 
-      <Tabs defaultValue="active" className="space-y-4">
+      <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v)} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="active">Active Sessions</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
@@ -131,34 +152,7 @@ export default function StudentAttendance() {
         </TabsContent>
 
         <TabsContent value="stats" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Statistics</CardTitle>
-              <CardDescription>Summary statistics</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card>
-                  <CardContent>
-                    <div className="text-sm text-muted-foreground">Overview</div>
-                    <div className="text-2xl font-bold">92.5%</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <div className="text-sm text-muted-foreground">This Week</div>
-                    <div className="text-2xl font-bold">95%</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <div className="text-sm text-muted-foreground">This Month</div>
-                    <div className="text-2xl font-bold">90.2%</div>
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
+          <AttendanceStats />
         </TabsContent>
       </Tabs>
     </div>
