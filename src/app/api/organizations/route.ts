@@ -60,8 +60,13 @@ export async function GET(request: Request) {
   const forwardedHeaders: Record<string, string> = {};
   if (clientAuth) forwardedHeaders['authorization'] = clientAuth;
   else {
-    const accessToken = parseCookie(cookie, 'access_token');
-    if (accessToken) forwardedHeaders['authorization'] = `Bearer ${accessToken}`;
+    const cookieNames = ['access_token', 'accessToken', 'auth_token', 'authToken', 'access'];
+    let found: string | null = null;
+    for (const n of cookieNames) {
+      const v = parseCookie(cookie, n);
+      if (v) { found = v; break; }
+    }
+    if (found) forwardedHeaders['authorization'] = `Bearer ${found}`;
   }
   if (cookie) forwardedHeaders['cookie'] = cookie;
 

@@ -128,6 +128,29 @@ export async function listMyClasses(params: Partial<ListClassesParams> = {}): Pr
 }
 
 /**
+ * Fetch abbreviated class options for the current authenticated faculty.
+ * Calls same-origin proxy: GET /api/classes/mine/options
+ * Returns a compact list suitable for dropdowns: { id, course_id, class_code, course_name }
+ */
+export async function listMyClassOptions(): Promise<any[]> {
+  const url = `/api/classes/mine/options`;
+  try {
+    const res = await import('./fetchClient').then((m) => m.fetchRawWithAuth(url, { method: 'GET' }));
+    if (res.status === 401) throw new Error('Unauthorized');
+    if (res.status === 403) throw new Error('Forbidden');
+    if (res.status === 404) return [];
+    if (!res.ok) {
+      const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(body));
+    }
+    return res.json();
+  } catch (err: any) {
+    const msg = err?.message ? String(err.message) : String(err);
+    throw new Error(`Failed to fetch my class options: ${msg}`);
+  }
+}
+
+/**
  * List classes assigned to the current authenticated student (caller).
  * Calls GET /classes/mine/student via same-origin proxy so HTTP-only cookies work.
  */
@@ -210,6 +233,30 @@ export async function getMyClassSession(id: number): Promise<any> {
     return res.json();
   } catch (err: any) {
     throw err;
+  }
+}
+
+/**
+ * Create announcement for a class assigned to the current authenticated faculty.
+ * Calls same-origin proxy: POST /api/classes/mine/{classId}/announcements
+ */
+export async function createAnnouncementForClass(classId: number | string, payload: { title: string; content: string; }): Promise<any> {
+  const path = `/api/classes/mine/${encodeURIComponent(String(classId))}/announcements`;
+  try {
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(path, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    }));
+
+    if (res.status === 201) return res.json();
+    const txt = await res.text().catch(() => null);
+    const body = txt && txt.length ? (JSON.parse(txt) || txt) : txt;
+    const msg = body?.detail || body?.message || txt || `HTTP ${res.status}`;
+    throw new Error(String(msg));
+  } catch (err: any) {
+    const msg = err?.message ? String(err.message) : String(err);
+    throw new Error(`Failed to create announcement for class ${classId}: ${msg}`);
   }
 }
 
@@ -705,8 +752,10 @@ export const classesAPI = {
   listEnrolleesForClass,
   listAvailableStudentsForClass,
   listAvailableStudentsForMyClass,
+  listMyClassOptions,
   addEnrolleeToClass,
   deleteEnrolleeFromClass,
   getMyClassEnrollees,
   joinMyClass,
+  createAnnouncementForClass,
 };

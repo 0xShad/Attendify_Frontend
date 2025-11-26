@@ -78,6 +78,7 @@ import { checkAuth } from "@/lib/clientAuth";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import AnnouncementsManager from "@/components/faculty/announcements/AnnouncementsManager";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -409,7 +410,6 @@ export function FacultyPortal() {
   // Sheet and Drawer states
   const [addClassOpen, setAddClassOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [addAnnouncementOpen, setAddAnnouncementOpen] = useState(false);
   const [startSessionOpen, setStartSessionOpen] = useState(false);
   const [manualAttendanceOpen, setManualAttendanceOpen] = useState(false);
   const [viewClassOpen, setViewClassOpen] = useState(false);
@@ -417,16 +417,12 @@ export function FacultyPortal() {
   const [enrollStudentOpen, setEnrollStudentOpen] = useState(false);
   const [viewStudentOpen, setViewStudentOpen] = useState(false);
   const [viewSessionOpen, setViewSessionOpen] = useState(false);
-  const [viewAnnouncementOpen, setViewAnnouncementOpen] = useState(false);
-  const [editAnnouncementOpen, setEditAnnouncementOpen] = useState(false);
 
   // Selected items for viewing/editing
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedSession, setSelectedSession] =
     useState<AttendanceSession | null>(null);
-  const [selectedAnnouncement, setSelectedAnnouncement] =
-    useState<Announcement | null>(null);
 
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
@@ -441,16 +437,9 @@ export function FacultyPortal() {
   const [newClassSemester, setNewClassSemester] = useState("");
   const [newClassDescription, setNewClassDescription] = useState("");
 
-  // Announcement form
-  const [announcementTitle, setAnnouncementTitle] = useState("");
-  const [announcementContent, setAnnouncementContent] = useState("");
-  const [announcementPriority, setAnnouncementPriority] = useState<
-    "Low" | "Medium" | "High"
-  >("Medium");
-  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
-
   const [classes, setClasses] = useState<Class[]>([]);
   const { user } = useAuthContext();
+  const announcementsRef = React.useRef<{ openNewAnnouncement?: () => void } | null>(null);
 
   const [students, setStudents] = useState<Student[]>([
     {
@@ -647,27 +636,7 @@ export function FacultyPortal() {
     },
   ]);
 
-  const [announcements, setAnnouncements] = useState<Announcement[]>([
-    {
-      id: "ANN001",
-      title: "Midterm Exam Schedule",
-      content:
-        "The midterm examinations will be held next week. Please check your individual schedules.",
-      classIds: ["CS101", "CS201"],
-      createdDate: "2025-10-15",
-      priority: "High",
-      status: "Published",
-    },
-    {
-      id: "ANN002",
-      title: "Assignment Due Reminder",
-      content: "Don't forget that Assignment 3 is due this Friday at 11:59 PM.",
-      classIds: ["CS101"],
-      createdDate: "2025-10-14",
-      priority: "Medium",
-      status: "Published",
-    },
-  ]);
+  
 
   // Navigation items
   const navigationItems = [
@@ -868,42 +837,6 @@ export function FacultyPortal() {
     });
   };
 
-  const handleAddAnnouncement = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!announcementTitle || !announcementContent) {
-      toast({
-        title: "Error",
-        description: "Title and content are required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newAnnouncement: Announcement = {
-      id: `ANN${Date.now()}`,
-      title: announcementTitle,
-      content: announcementContent,
-      classIds: selectedClasses,
-      createdDate: new Date().toISOString().split("T")[0],
-      priority: announcementPriority,
-      status: "Published",
-    };
-
-    setAnnouncements((prev) => [newAnnouncement, ...prev]);
-    setAddAnnouncementOpen(false);
-
-    // Reset form
-    setAnnouncementTitle("");
-    setAnnouncementContent("");
-    setAnnouncementPriority("Medium");
-    setSelectedClasses([]);
-
-    toast({
-      title: "Success",
-      description: "Announcement published successfully",
-    });
-  };
-
   const handleExportReport = (type: string) => {
     toast({
       title: "Export Started",
@@ -1097,14 +1030,14 @@ export function FacultyPortal() {
                             <IconPlus className="w-4 h-4 mr-2" />
                             Create New Class
                           </Button>
-                          <Button
-                            onClick={() => setAddAnnouncementOpen(true)}
-                            className="w-full justify-start"
-                            variant="outline"
-                          >
-                            <IconSpeakerphone className="w-4 h-4 mr-2" />
-                            New Announcement
-                          </Button>
+                              <Button
+                                onClick={() => announcementsRef.current?.openNewAnnouncement?.()}
+                                className="w-full justify-start"
+                                variant="outline"
+                              >
+                                <IconSpeakerphone className="w-4 h-4 mr-2" />
+                                New Announcement
+                              </Button>
                           <Button
                             onClick={() =>
                               handleExportReport("Attendance Summary")
@@ -1336,195 +1269,22 @@ export function FacultyPortal() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
                     <h3 className="text-lg font-medium">Announcements</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Communicate with your students across all classes
-                    </p>
+                    <p className="text-sm text-muted-foreground">Communicate with your students across all classes</p>
                   </div>
-                  <Button onClick={() => setAddAnnouncementOpen(true)}>
+                  <Button onClick={() => announcementsRef.current?.openNewAnnouncement?.()}>
                     <IconPlus className="w-4 h-4 mr-2" />
                     New Announcement
                   </Button>
                 </div>
 
-                {/* Announcements List */}
-                <div className="space-y-4">
-                  {announcements.map((announcement) => (
-                    <Card key={announcement.id}>
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <CardTitle className="text-lg">
-                              {announcement.title}
-                            </CardTitle>
-                            <CardDescription className="mt-1">
-                              {announcement.createdDate} • Classes:{" "}
-                              {announcement.classIds.join(", ")}
-                            </CardDescription>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant="outline"
-                              className={
-                                announcement.priority === "High"
-                                  ? "border-red-200 text-red-700 bg-red-50"
-                                  : announcement.priority === "Medium"
-                                  ? "border-yellow-200 text-yellow-700 bg-yellow-50"
-                                  : "border-green-200 text-green-700 bg-green-50"
-                              }
-                            >
-                              {announcement.priority}
-                            </Badge>
-                            <Badge
-                              variant="outline"
-                              className={
-                                announcement.status === "Published"
-                                  ? "border-green-200 text-green-700 bg-green-50"
-                                  : "border-gray-200 text-gray-700 bg-gray-50"
-                              }
-                            >
-                              {announcement.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          {announcement.content}
-                        </p>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedAnnouncement(announcement);
-                              setEditAnnouncementOpen(true);
-                            }}
-                          >
-                            <Edit className="w-3 h-3 mr-1" />
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedAnnouncement(announcement);
-                              setViewAnnouncementOpen(true);
-                            }}
-                          >
-                            <Eye className="w-3 h-3 mr-1" />
-                            View Details
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                {/* Announcements Manager (handles list, create, view, edit) */}
+                <AnnouncementsManager ref={announcementsRef} classes={classes} />
               </div>
             )}
           </div>
         </SidebarInset>
 
         
-
-        {/* Add Announcement Drawer */}
-        <Drawer
-          open={addAnnouncementOpen}
-          onOpenChange={setAddAnnouncementOpen}
-        >
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>Create Announcement</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4 space-y-4 overflow-y-auto">
-              <div>
-                <Label htmlFor="announcement-title">Title</Label>
-                <Input
-                  id="announcement-title"
-                  value={announcementTitle}
-                  onChange={(e) => setAnnouncementTitle(e.target.value)}
-                  placeholder="Announcement title"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="announcement-content">Content</Label>
-                <Textarea
-                  id="announcement-content"
-                  value={announcementContent}
-                  onChange={(e) => setAnnouncementContent(e.target.value)}
-                  placeholder="Write your announcement..."
-                  rows={4}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="announcement-priority">Priority</Label>
-                <Select
-                  value={announcementPriority}
-                  onValueChange={(value: "Low" | "Medium" | "High") =>
-                    setAnnouncementPriority(value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Low">Low</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="High">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Target Classes</Label>
-                <div className="space-y-2 mt-2 max-h-40 overflow-y-auto border rounded-lg p-3">
-                  {classes.map((classItem) => (
-                    <div
-                      key={classItem.id}
-                      className="flex items-center space-x-2"
-                    >
-                      <input
-                        type="checkbox"
-                        id={`class-${classItem.id}`}
-                        checked={selectedClasses.includes(classItem.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedClasses((prev) => [
-                              ...prev,
-                              classItem.id,
-                            ]);
-                          } else {
-                            setSelectedClasses((prev) =>
-                              prev.filter((id) => id !== classItem.id)
-                            );
-                          }
-                        }}
-                        className="h-4 w-4"
-                      />
-                      <Label
-                        htmlFor={`class-${classItem.id}`}
-                        className="text-sm font-normal flex-1"
-                      >
-                        {classItem.name} ({classItem.code})
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <DrawerFooter>
-              <Button onClick={handleAddAnnouncement} className="w-full">
-                <IconSpeakerphone className="w-4 h-4 mr-2" />
-                Publish Announcement
-              </Button>
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Cancel
-                </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
 
         {/* Settings Drawer */}
         <Drawer open={settingsOpen} onOpenChange={setSettingsOpen}>
@@ -1668,264 +1428,7 @@ export function FacultyPortal() {
 
         
 
-        {/* View Announcement Details Drawer */}
-        <Drawer
-          open={viewAnnouncementOpen}
-          onOpenChange={setViewAnnouncementOpen}
-        >
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>
-                {selectedAnnouncement?.title || "Announcement Details"}
-              </DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4 space-y-6 overflow-y-auto">
-              {selectedAnnouncement && (
-                <>
-                  {/* Announcement Information */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Badge
-                        variant="outline"
-                        className={
-                          selectedAnnouncement.priority === "High"
-                            ? "border-red-200 text-red-700 bg-red-50"
-                            : selectedAnnouncement.priority === "Medium"
-                            ? "border-yellow-200 text-yellow-700 bg-yellow-50"
-                            : "border-green-200 text-green-700 bg-green-50"
-                        }
-                      >
-                        {selectedAnnouncement.priority} Priority
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className={
-                          selectedAnnouncement.status === "Published"
-                            ? "border-green-200 text-green-700 bg-green-50"
-                            : "border-gray-200 text-gray-700 bg-gray-50"
-                        }
-                      >
-                        {selectedAnnouncement.status}
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">
-                          Content
-                        </Label>
-                        <div className="mt-1 p-3 bg-muted/30 rounded-lg">
-                          <p className="text-sm">
-                            {selectedAnnouncement.content}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">
-                            Created
-                          </Label>
-                          <p className="mt-1">
-                            {selectedAnnouncement.createdDate}
-                          </p>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">
-                            Priority
-                          </Label>
-                          <p className="mt-1">
-                            {selectedAnnouncement.priority}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Target Classes */}
-                  <div className="space-y-4">
-                    <Label className="text-sm font-medium text-muted-foreground">
-                      Target Classes ({selectedAnnouncement.classIds.length})
-                    </Label>
-                    <div className="space-y-2">
-                      {selectedAnnouncement.classIds.map((classId, index) => {
-                        const classItem = classes.find((c) => c.id === classId);
-                        return (
-                          <div
-                            key={classId}
-                            className="flex items-center justify-between p-3 border rounded-lg bg-muted/30"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                              <div>
-                                <div className="text-sm font-medium">
-                                  {classItem?.name || `Class ${classId}`}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {classItem?.code || classId} •{" "}
-                                  {classItem?.enrolledStudents || 0} students
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Delivery Stats (Mock data) */}
-                  <div className="space-y-4">
-                    <Label className="text-sm font-medium text-muted-foreground">
-                      Delivery Statistics
-                    </Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 border rounded-lg text-center">
-                        <div className="text-lg font-bold text-blue-600">
-                          {selectedAnnouncement.classIds.reduce(
-                            (total, classId) => {
-                              const classItem = classes.find(
-                                (c) => c.id === classId
-                              );
-                              return total + (classItem?.enrolledStudents || 0);
-                            },
-                            0
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Total Recipients
-                        </div>
-                      </div>
-                      <div className="p-3 border rounded-lg text-center">
-                        <div className="text-lg font-bold text-green-600">
-                          {Math.floor(Math.random() * 20) + 80}%
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Read Rate
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            <DrawerFooter>
-              <Button
-                onClick={() => {
-                  setViewAnnouncementOpen(false);
-                  setEditAnnouncementOpen(true);
-                }}
-                className="w-full"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Announcement
-              </Button>
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Close
-                </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
-
-        {/* Edit Announcement Drawer */}
-        <Drawer
-          open={editAnnouncementOpen}
-          onOpenChange={setEditAnnouncementOpen}
-        >
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>Edit Announcement</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4 space-y-4 overflow-y-auto">
-              {selectedAnnouncement && (
-                <>
-                  <div>
-                    <Label htmlFor="edit-announcement-title">Title</Label>
-                    <Input
-                      id="edit-announcement-title"
-                      defaultValue={selectedAnnouncement.title}
-                      placeholder="Announcement title"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-announcement-content">Content</Label>
-                    <Textarea
-                      id="edit-announcement-content"
-                      defaultValue={selectedAnnouncement.content}
-                      placeholder="Write your announcement..."
-                      rows={4}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-announcement-priority">Priority</Label>
-                    <Select defaultValue={selectedAnnouncement.priority}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Low">Low</SelectItem>
-                        <SelectItem value="Medium">Medium</SelectItem>
-                        <SelectItem value="High">High</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-announcement-status">Status</Label>
-                    <Select defaultValue={selectedAnnouncement.status}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Draft">Draft</SelectItem>
-                        <SelectItem value="Published">Published</SelectItem>
-                        <SelectItem value="Archived">Archived</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label>Target Classes</Label>
-                    <div className="space-y-2 mt-2 max-h-40 overflow-y-auto border rounded-lg p-3">
-                      {classes.map((classItem) => (
-                        <div
-                          key={classItem.id}
-                          className="flex items-center space-x-2"
-                        >
-                          <input
-                            type="checkbox"
-                            id={`edit-class-${classItem.id}`}
-                            defaultChecked={selectedAnnouncement.classIds.includes(
-                              classItem.id
-                            )}
-                            className="h-4 w-4"
-                          />
-                          <Label
-                            htmlFor={`edit-class-${classItem.id}`}
-                            className="text-sm font-normal flex-1"
-                          >
-                            {classItem.name} ({classItem.code})
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            <DrawerFooter>
-              <Button className="w-full">
-                <Settings className="w-4 h-4 mr-2" />
-                Save Changes
-              </Button>
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Cancel
-                </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
+        
 
         
         {/* Manual attendance drawer removed. Attendance edits handled inline or via dedicated flow. */}

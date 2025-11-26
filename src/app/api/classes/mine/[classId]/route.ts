@@ -25,8 +25,13 @@ export async function GET(request: Request, { params }: { params: { classId: str
   const forwardedHeaders: Record<string, string> = {};
   if (clientAuth) forwardedHeaders['authorization'] = clientAuth;
   else {
-    const accessToken = parseCookie(cookie, 'access_token');
-    if (accessToken) forwardedHeaders['authorization'] = `Bearer ${accessToken}`;
+    const cookieNames = ['access_token', 'accessToken', 'auth_token', 'authToken', 'access'];
+    let found: string | null = null;
+    for (const n of cookieNames) {
+      const v = parseCookie(cookie, n);
+      if (v) { found = v; break; }
+    }
+    if (found) forwardedHeaders['authorization'] = `Bearer ${found}`;
   }
   // Forward cookies so backend can authenticate via session cookie if needed
   if (cookie) forwardedHeaders['cookie'] = cookie;
