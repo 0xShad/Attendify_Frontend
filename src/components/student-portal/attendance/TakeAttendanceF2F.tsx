@@ -118,7 +118,7 @@ export default function TakeAttendanceF2F({ open, onOpenChange, classItem, sessi
           </div>
 
           <div className="mt-4 flex justify-center">
-            <F2FFaceCamera onRecognized={handleRecognized} bypassFilters={false} width={560} height={420} className="mx-auto" />
+            <F2FFaceCamera onRecognized={handleRecognized} bypassFilters={true} width={560} height={420} className="mx-auto" />
           </div>
         </div>
 

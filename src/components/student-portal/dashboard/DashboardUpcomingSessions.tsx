@@ -16,9 +16,10 @@ type Session = {
 
 type Props = {
   sessions: Session[];
+  noMoreToday?: boolean;
 };
 
-export default function DashboardUpcomingSessions({ sessions }: Props) {
+export default function DashboardUpcomingSessions({ sessions, noMoreToday }: Props) {
   return (
     <Card className="border shadow-sm bg-stone-50/40 supports-backdrop-filter:backdrop-blur-md border-stone-200/50">
       <CardHeader className="pb-4">
@@ -28,18 +29,28 @@ export default function DashboardUpcomingSessions({ sessions }: Props) {
         {sessions.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Calendar className="w-10 h-10 mx-auto mb-3 opacity-50" />
-            <p>No classes today</p>
-            <p className="text-sm">Enjoy your day off!</p>
+            <p>{noMoreToday ? "No more classes today" : "No classes today"}</p>
+            <p className="text-sm">{noMoreToday ? "You've attended all scheduled classes for today." : "Enjoy your day off!"}</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {sessions.slice(0, 4).map((cls) => {
-              const sessionTime = cls.nextSession ? new Date(cls.nextSession) : null;
-              const timeUntil = sessionTime
-                ? Math.floor((sessionTime.getTime() - new Date().getTime()) / (1000 * 60))
-                : 0;
+            {sessions
+              .slice(0, 4)
+              .filter((cls) => {
+                if (!cls.nextSession) return true;
+                const sessionTime = new Date(cls.nextSession);
+                const minutes = Math.floor((sessionTime.getTime() - new Date().getTime()) / (1000 * 60));
+                // Skip events that are already in the past
+                return minutes >= 0;
+              })
+              .map((cls) => {
+                const sessionTime = cls.nextSession ? new Date(cls.nextSession) : null;
+                const rawMinutes = sessionTime
+                  ? Math.floor((sessionTime.getTime() - new Date().getTime()) / (1000 * 60))
+                  : 0;
+                const timeUntil = Math.max(0, rawMinutes);
 
-              return (
+                return (
                 <div
                   key={cls.id}
                   className="flex items-center gap-3 p-3 rounded-lg bg-white/50 border border-stone-200/50 hover:bg-white/70 transition-colors"
@@ -47,9 +58,9 @@ export default function DashboardUpcomingSessions({ sessions }: Props) {
                   <div className="shrink-0">
                     <div
                       className={`w-3 h-3 rounded-full ${
-                        cls.mode === "Online"
+                        /online/i.test(String(cls.mode))
                           ? "bg-blue-500"
-                          : cls.mode === "In-Person"
+                          : /in-person|face|face-to-face|face_to_face|f2f/i.test(String(cls.mode))
                           ? "bg-green-500"
                           : "bg-purple-500"
                       }`}

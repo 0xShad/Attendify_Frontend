@@ -28,6 +28,46 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
   const [locating, setLocating] = React.useState(false);
   const [locationConfirmed, setLocationConfirmed] = React.useState(false);
   const [locationError, setLocationError] = React.useState<string | null>(null);
+
+  // Automatically request geolocation when this dialog opens and the
+  // active session requires hybrid mode. This mirrors the behavior in the
+  // attendance tab so users don't have to type coordinates manually.
+  React.useEffect(() => {
+    if (!open) return;
+    const S_local = sessionInfo;
+    if (!S_local) return;
+    const modesRaw = Array.isArray(S_local?.current_schedule_modes) && S_local.current_schedule_modes.length > 0
+      ? S_local.current_schedule_modes
+      : S_local?.current_schedule?.modes ?? null;
+    const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
+    const isHybrid = modes.includes('hybrid');
+    if (!isHybrid) return;
+
+    if (locationConfirmed || locating) return;
+
+    const doRequest = () => {
+      if (!('geolocation' in navigator)) {
+        setLocationError('Geolocation not supported by this browser');
+        return;
+      }
+      setLocating(true);
+      setLocationError(null);
+      navigator.geolocation.getCurrentPosition((pos) => {
+        setLocating(false);
+        setLat(String(pos.coords.latitude));
+        setLon(String(pos.coords.longitude));
+        setLocationConfirmed(true);
+      }, (err) => {
+        setLocating(false);
+        setLocationError(err.message || 'Unable to get location');
+        setLocationConfirmed(false);
+      }, { enableHighAccuracy: true, timeout: 10000 });
+    };
+
+    try { doRequest(); } catch (e) { setLocationError(String(e)); setLocating(false); }
+    // only run when dialog opens or sessionInfo changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, sessionInfo]);
   const [submitting, setSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const { toast } = useToast();
@@ -58,7 +98,7 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
 
   const handleRecord = async () => {
     if (!lastCaptured) return;
-    setSubmitError(null);
+            setSubmitError(null);
     setSubmitting(true);
 
     try {
@@ -163,25 +203,27 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
       const status = err?.status;
       const body = err?.body ?? {};
       try {
-        if (status === 403 && body && typeof body === 'object' && body.distance_km != null && body.threshold_km != null) {
-          const distanceKm = Number(body.distance_km);
-          const thresholdKm = Number(body.threshold_km);
+        const detail = (body && typeof body === 'object' && body.detail && typeof body.detail === 'object') ? body.detail : body;
+        if (status === 403 && detail && typeof detail === 'object' && (detail.distance_km != null && detail.threshold_km != null || detail.code === 'not_in_location')) {
+          const distanceKm = Number(detail.distance_km ?? detail.distance ?? 0);
+          const thresholdKm = Number(detail.threshold_km ?? detail.threshold ?? 0);
           const distanceM = Math.round(distanceKm * 1000);
           const thresholdM = Math.round(thresholdKm * 1000);
           const diffM = Math.max(0, distanceM - thresholdM);
-          const msg = body.error || 'You are outside the allowed area for this hybrid session.';
-          toast({ title: 'Location not allowed', description: (
-            <div>
-              <div>{msg}</div>
-              <div className="text-xs text-muted-foreground">Measured: {distanceM} m • Allowed: {thresholdM} m</div>
-              {diffM > 0 && <div className="text-xs">Try moving closer by ~{diffM} m.</div>}
-            </div>
-          ), variant: 'destructive' });
-          setSubmitError(msg);
+          const rawErr = detail.message ?? detail.error ?? detail.detail ?? null;
+          const reportedLat = detail.reported_lat ?? detail.reportedLat ?? detail.reportedLatitude ?? null;
+          const reportedLon = detail.reported_lon ?? detail.reportedLon ?? detail.reportedLongitude ?? null;
+          const sessionLat = detail.session_lat ?? detail.sessionLat ?? null;
+          const sessionLon = detail.session_lon ?? detail.sessionLon ?? null;
+          // Show only the concise server-provided message in the toast per request
+          toast({ title: 'Location not allowed', description: String(rawErr ?? detail?.message ?? 'You are not within allowed area for hybrid session'), variant: 'destructive' });
+          // Show details in toast only; do not set a red inline error message
+          setSubmitError(null);
         } else if (status === 403) {
           // Face recognition or generic forbidden detail. Provide more helpful guidance
-          const rawMsg = (body && (body.detail || body.error || body.message)) || err?.message || 'Action forbidden';
-          const lc = String(rawMsg).toLowerCase();
+          const rawMsgVal = (body && (body.detail ?? body.error ?? body.message)) ?? err?.message ?? 'Action forbidden';
+          const rawMsg = typeof rawMsgVal === 'string' ? rawMsgVal : (rawMsgVal ? JSON.stringify(rawMsgVal) : 'Action forbidden');
+          const lc = rawMsg.toLowerCase();
           if (lc.includes('face recognition failed') || lc.includes('face not matched') || lc.includes('face_match')) {
             const msg = 'Face recognition failed. Your photo did not match our records.';
             toast({ title: 'Face recognition failed', description: (
@@ -195,11 +237,12 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
                 </ul>
               </div>
             ), variant: 'destructive' });
-            setSubmitError(msg);
+            // keep only a short, user-friendly inline message; details are in the toast
+            setSubmitError(null);
           } else {
             const msg = rawMsg || 'Action forbidden';
-            toast({ title: 'Attendance rejected', description: msg, variant: 'destructive' });
-            setSubmitError(msg);
+            toast({ title: 'Attendance rejected', description: String(msg), variant: 'destructive' });
+            setSubmitError(null);
           }
         } else {
           // Fallback: generic error handling. Sanitize sensitive server traces
@@ -321,7 +364,8 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
     } catch (err: any) {
       setSubmitting(false);
       const msg = err?.message ?? String(err);
-      setSubmitError(msg);
+            // keep only a short inline message; details shown in toast
+            setSubmitError('Attendance rejected');
       toast({ title: 'Error', description: msg, variant: 'destructive' });
       return false;
     }
@@ -398,14 +442,14 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
                   const isOnline = modes.includes('online');
                   const isHybrid = modes.includes('hybrid');
                   if (isOnline) {
-                    return <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={true} />;
+                    return <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={false} />;
                   }
 
                   if (modes.includes('face_to_face') || modes.includes('f2f') ) {
                     // For face-to-face mode, use the F2F detector which auto-submits on recognition
                     return (
                       <div className="w-full">
-                        <F2FFaceCamera onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} bypassFilters={true} />
+                        <F2FFaceCamera onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} bypassFilters={false} />
                         <div className="text-xs text-muted-foreground mt-2">Face-to-face mode: camera will automatically scan and record attendance when a face is recognized.</div>
                       </div>
                     );
@@ -414,47 +458,57 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
                   if (isHybrid) {
                     return (
                       <div className="w-full">
-                        <div className="mb-4 text-sm text-muted-foreground">This session requires location confirmation. Please provide your latitude and longitude, or use your device's location.</div>
-                        <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
-                          <div className="flex-1">
-                            <label className="text-xs font-medium">Latitude</label>
-                            <input type="text" value={lat ?? ''} onChange={(e) => { setLat(e.target.value); setLocationConfirmed(false); }} className="w-full border rounded px-2 py-1 mt-1" placeholder="e.g. 14.5995" />
+                        <div className="mb-4 text-sm text-muted-foreground">This session requires location confirmation. The app will attempt to obtain your device location automatically.</div>
+                        {locating && (
+                          <div className="mb-3 text-sm text-muted-foreground">Obtaining location…</div>
+                        )}
+                        {locationError && (
+                          <div className="mb-3 text-sm text-red-600">{locationError}</div>
+                        )}
+                        {/* Show the coordinates so the user can verify them */}
+                        {(lat || lon) && (
+                          <div className="mb-3 text-sm text-muted-foreground">
+                            <div className="flex gap-4 items-center">
+                              <div className="flex-1">
+                                <div className="text-xs font-medium">Latitude</div>
+                                <div className="text-sm">{lat ?? '—'}</div>
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-xs font-medium">Longitude</div>
+                                <div className="text-sm">{lon ?? '—'}</div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <label className="text-xs font-medium">Longitude</label>
-                            <input type="text" value={lon ?? ''} onChange={(e) => { setLon(e.target.value); setLocationConfirmed(false); }} className="w-full border rounded px-2 py-1 mt-1" placeholder="e.g. 120.9842" />
-                          </div>
-                          <div className="flex items-center gap-2 mt-2 md:mt-0">
-                            <button className="btn btn-outline px-3 py-1 rounded border" onClick={async () => {
-                              if (!('geolocation' in navigator)) { setLocationError('Geolocation not supported by this browser'); return; }
-                              setLocating(true); setLocationError(null);
-                              navigator.geolocation.getCurrentPosition((pos) => {
-                                setLocating(false);
-                                setLat(String(pos.coords.latitude));
-                                setLon(String(pos.coords.longitude));
-                                setLocationConfirmed(true);
-                              }, (err) => {
-                                setLocating(false);
-                                setLocationError(err.message || 'Unable to get location');
-                              }, { enableHighAccuracy: true, timeout: 10000 });
-                            }} disabled={locating}>
-                              {locating ? 'Locating...' : 'Use my location'}
-                            </button>
-                            <button className="btn btn-primary px-3 py-1 rounded bg-blue-600 text-white" onClick={() => {
-                              // confirm manual coordinates
-                              if (lat && lon) { setLocationConfirmed(true); setLocationError(null); } else { setLocationError('Please enter both latitude and longitude'); }
-                            }}>Confirm</button>
-                          </div>
-                        </div>
-                        {locationError && <div className="text-red-600 text-sm mt-2">{locationError}</div>}
-
-                        {/* Show camera after location confirmed */}
+                        )}
                         {locationConfirmed ? (
                           <div className="mt-4">
-                            <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={true} />
+                            <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={false} />
                           </div>
                         ) : (
-                          <div className="mt-4 text-xs text-muted-foreground">Camera will be available after location is confirmed.</div>
+                          <div className="mt-4 text-xs text-muted-foreground">Camera will be available after location is obtained. If your browser blocks location access, allow it or retry.</div>
+                        )}
+                        {!locationConfirmed && (
+                          <div className="mt-3">
+                            <Button variant="outline" onClick={() => {
+                              // Retry location request
+                              setLocationError(null);
+                              setLocating(true);
+                              try {
+                                navigator.geolocation.getCurrentPosition((pos) => {
+                                  setLocating(false);
+                                  setLat(String(pos.coords.latitude));
+                                  setLon(String(pos.coords.longitude));
+                                  setLocationConfirmed(true);
+                                }, (err) => {
+                                  setLocating(false);
+                                  setLocationError(err.message || 'Unable to get location');
+                                }, { enableHighAccuracy: true, timeout: 10000 });
+                              } catch (e) {
+                                setLocating(false);
+                                setLocationError(String(e));
+                              }
+                            }}>Retry Location</Button>
+                          </div>
                         )}
                       </div>
                     );

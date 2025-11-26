@@ -50,6 +50,8 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
         setOverrideMode(initialSession?.schedule_mode ?? null);
         setInitialChecked(true);
         setSetupDone(true);
+        // Debug: log the initialSession object received from parent
+        try { console.debug('StartSessionDialog: initialSession provided', initialSession); } catch (e) {}
         return;
       } catch (e) {
         // fallthrough to normal check
@@ -85,6 +87,19 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
       }
     })();
   }, [open, classId]);
+
+  // Log createdSession changes to help debugging when f2f scanner should appear
+  useEffect(() => {
+    try {
+      // log a snapshot of the createdSession to avoid lazy object inspection in some consoles
+      const dump = (() => { try { return JSON.stringify(createdSession); } catch (e) { return String(createdSession); } })();
+      console.debug('StartSessionDialog: createdSession updated (raw)', dump);
+      console.debug('StartSessionDialog: createdSession updated (obj)', createdSession);
+    } catch (e) {}
+  }, [createdSession]);
+
+  // Log createdF2F value when it changes so we can confirm rendering decision
+  /* createdF2F is declared later - move its debug effect below its declaration */
 
   // utility to request geolocation
   function getCurrentPositionAsync(options?: PositionOptions): Promise<GeolocationPosition> {
@@ -140,6 +155,13 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
   const handleStart = async () => {
     if (!classId) return;
     setLoading(true);
+    // Friendly class label for toasts
+    const resolvedCode =
+      (classCode as string) ||
+      (matchedInfo?.class_code as string) ||
+      (matchedInfo?.class?.code as string) ||
+      (matchedInfo?.class?.class_code as string) ||
+      `Class ${classId}`;
     try {
       const payload: StartSessionIn = { class_id: Number(classId), phase: "face_recognition" };
       if (overrideMode) {
@@ -192,6 +214,7 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
         mPayload.face_file = capturedFile;
 
         const res = await startSessionMultipart(mPayload);
+        try { console.debug('StartSessionDialog: startSessionMultipart (capturedFile) response', res); } catch (e) {}
         if (onCreated) onCreated(res);
         // If backend activated f2f scanning for this session, keep the dialog open
         if (res?.f2f_activated) {
@@ -203,6 +226,8 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
           toast({ title: 'Session created', description: 'Face-to-face session active — scanning for attendees.' });
           return;
         }
+        // Non-F2F successful creation -> notify and close
+        try { toast({ title: `Session for ${resolvedCode} has started` }); } catch (e) {}
         try { onOpenChange(false); } catch (e) {}
         setCreatedSession(null);
         setCapturedDataUrl(null);
@@ -211,6 +236,7 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
 
       // Non-secretary or no-file flow: JSON API
       const res = await startSession(payload);
+      try { console.debug('StartSessionDialog: startSession response', res); } catch (e) {}
       // creation success -> return session object
       if (onCreated) onCreated(res);
       // if backend activated F2F scanning, keep dialog open and render scanner
@@ -218,6 +244,8 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
         setCreatedSession(res);
         toast({ title: 'Session created', description: 'Face-to-face session active — scanning for attendees.' });
       } else {
+        // Non-F2F successful creation -> notify and close
+        try { toast({ title: `Session for ${resolvedCode} has started` }); } catch (e) {}
         try { onOpenChange(false); } catch (e) {}
         setCreatedSession(null);
       }
@@ -353,6 +381,13 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
   const submitCapturedFace = async (dataUrl: string) => {
     if (!classId) return;
     setLoading(true);
+    // Friendly class label for toasts
+    const resolvedCode =
+      (classCode as string) ||
+      (matchedInfo?.class_code as string) ||
+      (matchedInfo?.class?.code as string) ||
+      (matchedInfo?.class?.class_code as string) ||
+      `Class ${classId}`;
     try {
       setCapturedDataUrl(dataUrl);
       // convert dataURL to blob
@@ -451,6 +486,8 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
           toast({ title: 'Session created', description: 'Face-to-face session active — scanning for attendees.' });
           return;
         }
+        // Non-F2F successful creation -> notify and close
+        try { toast({ title: `Session for ${resolvedCode} has started` }); } catch (e) {}
         try { onOpenChange(false); } catch (e) {}
         setCreatedSession(null);
         setCapturedDataUrl(null);
@@ -477,6 +514,8 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
         toast({ title: 'Session created', description: 'Face-to-face session active — scanning for attendees.' });
         return;
       }
+      // Non-F2F successful creation -> notify and close
+      try { toast({ title: `Session for ${resolvedCode} has started` }); } catch (e) {}
       try { onOpenChange(false); } catch (e) {}
       setCreatedSession(null);
       setCapturedDataUrl(null);
@@ -498,12 +537,26 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
   };
 
   const effectiveMode = (overrideMode as string) || (matchedInfo && matchedInfo.schedule_mode) || null;
-  
+  // tolerant computation of whether this dialog should show the F2F scanner
+  const createdF2F = Boolean(
+    createdSession && (
+      ((createdSession as any).f2f_activated) ||
+      ((createdSession as any).f2fActivated) ||
+      ((createdSession as any).schedule_mode === 'face_to_face') ||
+      (createdSession?.mode && /face|f2f/i.test(String(createdSession.mode)))
+    )
+  );
+
+  // Log createdF2F value when it changes so we can confirm rendering decision
+  useEffect(() => {
+    try { console.debug('StartSessionDialog: createdF2F value', createdF2F); } catch (e) {}
+  }, [createdF2F]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{(createdSession?.f2f_activated || initialSession) ? 'Face-to-face scanner' : 'Start Session'}</DialogTitle>
+          <DialogTitle>{(createdF2F || initialSession) ? 'Face-to-face scanner' : 'Start Session'}</DialogTitle>
         </DialogHeader>
 
         <div className="py-3">
@@ -514,12 +567,22 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
           ) : matched === false ? (
             <div className="rounded-md bg-gray-50 border border-gray-100 p-3 text-sm text-muted-foreground">No active schedule found for this class at the current time.</div>
           ) : (
-            createdSession && createdSession?.f2f_activated ? (
+            createdF2F ? (
               <div className="space-y-3">
                 <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-4">
                   <div className="text-sm font-medium mb-2">Face-to-face scanner</div>
                   <div className="rounded-md overflow-hidden bg-gray-50 p-3 flex items-center justify-center">
-                    <F2FFaceCamera onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} initialDelayMs={3000} requestIntervalMs={3000} bypassFilters={true} debug={false} />
+                    <F2FFaceCamera
+                      onRecognized={handleF2FRecognized}
+                      debounceMinutes={5}
+                      width={420}
+                      height={320}
+                      initialDelayMs={3000}
+                      requestIntervalMs={3000}
+                      bypassFilters={false}
+                      // enable verbose debug logs for troubleshooting camera mount/flow
+                      debug={true}
+                    />
                   </div>
                   <div className="text-xs text-muted-foreground mt-2">Face-to-face mode: camera will automatically scan and record attendance when a face is recognized.</div>
                 </div>
