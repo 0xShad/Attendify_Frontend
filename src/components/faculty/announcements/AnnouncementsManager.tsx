@@ -55,6 +55,17 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
     setEditOpen(true);
   };
 
+  const handleDelete = (a: Announcement) => {
+    const id = String(a.id);
+    setAnnouncements((prev) => prev.filter((x) => String(x.id) !== id));
+    if (selectedAnnouncement && String(selectedAnnouncement.id) === id) {
+      setSelectedAnnouncement(null);
+      setViewOpen(false);
+      setEditOpen(false);
+    }
+    toast({ title: "Deleted", description: `Announcement removed`, variant: "default" });
+  };
+
   const handleCreate = async (title: string, content: string, selectedClasses: string[]) => {
     if (!title || !content) {
       toast({ title: "Error", description: "Title and content are required", variant: "destructive" });
@@ -175,6 +186,7 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
         announcements={announcements}
         onEdit={handleEdit}
         onView={handleView}
+        onDelete={handleDelete}
       />
 
       <AnnouncementFormDrawer
