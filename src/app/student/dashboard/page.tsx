@@ -60,7 +60,7 @@ export default function StudentDashboard() {
         if (mounted) setDashboard(data);
       })
       .catch((err) => {
-        console.debug("Failed to fetch student dashboard:", err);
+        console.error("Failed to fetch student dashboard:", err);
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -76,58 +76,34 @@ export default function StudentDashboard() {
       const data = await getStudentDashboard();
       setDashboard(data);
     } catch (err) {
-      try { console.debug('refreshDashboard failed', err); } catch (e) {}
+      console.error('refreshDashboard failed', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const enrolledClasses = useMemo(
-    () => [
-      {
-        id: "CS101",
-        name: "Introduction to Computer Science",
-        code: "CS101",
-        instructor: "Dr. Sarah Johnson",
-        schedule: "Mon, Wed, Fri 9:00 AM",
-        mode: "Hybrid" as const,
-        location: "Room 202 / Online",
-        nextSession: new Date("2025-10-17T09:00:00"),
-        attendanceRate: 92.5,
-        totalSessions: 32,
-        attendedSessions: 30,
-        status: "Active" as const,
-      },
-      {
-        id: "MATH201",
-        name: "Calculus II",
-        code: "MATH201",
-        instructor: "Prof. Michael Chen",
-        schedule: "Tue, Thu 2:00 PM",
-        mode: "In-Person" as const,
-        location: "Math Building 104",
-        nextSession: new Date("2025-10-17T14:00:00"),
-        attendanceRate: 88.0,
-        totalSessions: 28,
-        attendedSessions: 25,
-        status: "Active" as const,
-      },
-      {
-        id: "ENG102",
-        name: "English Composition",
-        code: "ENG102",
-        instructor: "Dr. Emily Rodriguez",
-        schedule: "Mon, Wed 11:00 AM",
-        mode: "Online" as const,
-        nextSession: new Date("2025-10-17T11:00:00"),
-        attendanceRate: 96.0,
-        totalSessions: 24,
-        attendedSessions: 23,
-        status: "Active" as const,
-      },
-    ],
-    []
-  );
+  // Map enrolled classes from the dashboard payload when available. The
+  // backend returns `Enrolled_Classes_This_Semester` with fields like
+  // `class_id`, `class_code`, `my_attendance_rate`, `session_attended`,
+  // and `session_total`. Map to the frontend shape expected by the
+  // `DashboardClassPerformance` component.
+  const enrolledClasses = useMemo(() => {
+    if (dashboard && Array.isArray(dashboard.Enrolled_Classes_This_Semester)) {
+      return dashboard.Enrolled_Classes_This_Semester.map((it: any) => ({
+        id: it.class_id ? String(it.class_id) : `${String(it.course_id ?? 'c')}-${String(it.class_code ?? '')}`,
+        // Use the full course name as the primary label for UI/charting
+        name: it.course_name ? String(it.course_name) : (it.course_code ? String(it.course_code) : String(it.class_code ?? '')),
+        code: it.class_code ?? it.course_code ?? null,
+        attendanceRate: Number(it.my_attendance_rate ?? 0),
+        attendedSessions: Number(it.session_attended ?? it.attendance_present ?? 0),
+        totalSessions: Number(it.session_total ?? 0),
+        raw: it,
+      }));
+    }
+
+    // Fallback: empty list (avoid hardcoded mock data when real dashboard exists)
+    return [];
+  }, [dashboard]);
 
   // Parse schedule start_time (HH:MM:SS) into a Date for today
   function parseScheduleStartToDate(startTime: string | null) {
@@ -286,19 +262,24 @@ export default function StudentDashboard() {
 
   // Attendance chart data
   const attendanceChartData = useMemo(() => {
+    // Prefer Today_Schedule_Section when present, otherwise use the
+    // enrolled-classes list returned under Enrolled_Classes_This_Semester.
     if (dashboard?.Today_Schedule_Section?.length) {
       return dashboard.Today_Schedule_Section.map((it: any) => ({
-        name: it.class_code || it.course_name || "",
+        // Prefer course_name when available so chart labels show full course title
+        name: it.course_name ? String(it.course_name) : (it.class_code ? String(it.class_code) : ''),
         attendance: dashboard.attendance_rate_this_semester ?? 0,
         sessions: 0,
         total: 0,
       }));
     }
+
     return enrolledClasses.map((cls) => ({
-      name: cls.code,
-      attendance: cls.attendanceRate,
-      sessions: cls.attendedSessions,
-      total: cls.totalSessions,
+      // Prefer course name for chart labels
+      name: cls.name || cls.code || '',
+      attendance: Number(cls.attendanceRate ?? 0),
+      sessions: Number(cls.attendedSessions ?? 0),
+      total: Number(cls.totalSessions ?? 0),
     }));
   }, [dashboard, enrolledClasses]);
 
