@@ -4,12 +4,11 @@ import React, { useState, forwardRef, useImperativeHandle } from "react";
 import AnnouncementsList from "./AnnouncementsList";
 import AnnouncementFormDrawer from "./AnnouncementFormDrawer";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// priority/status removed — no select or badges needed
 import { useToast } from "@/hooks/use-toast";
 import { classesAPI } from "@/lib/api";
 
@@ -20,8 +19,7 @@ type Announcement = {
   content: string;
   classIds: string[];
   createdDate: string;
-  priority: string;
-  status: string;
+  // priority and status are not provided by backend
   classCode?: string | null;
   courseName?: string | null;
 };
@@ -57,7 +55,7 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
     setEditOpen(true);
   };
 
-  const handleCreate = async (title: string, content: string, priority: string, selectedClasses: string[]) => {
+  const handleCreate = async (title: string, content: string, selectedClasses: string[]) => {
     if (!title || !content) {
       toast({ title: "Error", description: "Title and content are required", variant: "destructive" });
       return;
@@ -85,8 +83,6 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
             content: created.content ?? content,
             classIds: [String(created.class_id ?? selectedClasses[idx])],
             createdDate: created.created_at ? String(created.created_at).split("T")[0] : new Date().toISOString().split("T")[0],
-            priority: priority,
-            status: created.status ?? "Published",
             classCode: created.class_code ?? null,
             courseName: created.course_name ?? null,
           };
@@ -129,8 +125,6 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
         content: created.content ?? content,
         classIds: [String(created.class_id ?? classId)],
         createdDate: created.created_at ? String(created.created_at).split("T")[0] : new Date().toISOString().split("T")[0],
-        priority: created.priority ?? "Medium",
-        status: created.status ?? "Published",
         classCode: created.class_code ?? null,
         courseName: created.course_name ?? null,
       };
@@ -161,8 +155,6 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
           content: item.content ?? '',
           classIds: [String(item.class_id ?? '')].filter(Boolean),
           createdDate: item.created_at ? String(item.created_at).split('T')[0] : new Date().toISOString().split('T')[0],
-          priority: item.priority ?? 'Medium',
-          status: item.status ?? 'Published',
           classCode: item.class_code ?? null,
           courseName: item.course_name ?? null,
         } as Announcement));
@@ -202,31 +194,6 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
             {selectedAnnouncement && (
               <>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Badge
-                      variant="outline"
-                      className={
-                        selectedAnnouncement.priority === "High"
-                          ? "border-red-200 text-red-700 bg-red-50"
-                          : selectedAnnouncement.priority === "Medium"
-                          ? "border-yellow-200 text-yellow-700 bg-yellow-50"
-                          : "border-green-200 text-green-700 bg-green-50"
-                      }
-                    >
-                      {selectedAnnouncement.priority} Priority
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={
-                        selectedAnnouncement.status === "Published"
-                          ? "border-green-200 text-green-700 bg-green-50"
-                          : "border-gray-200 text-gray-700 bg-gray-50"
-                      }
-                    >
-                      {selectedAnnouncement.status}
-                    </Badge>
-                  </div>
-
                   <div className="space-y-3">
                     <div>
                       <Label className="text-sm font-medium text-muted-foreground">Content</Label>
@@ -235,15 +202,9 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Created</Label>
-                        <p className="mt-1">{selectedAnnouncement.createdDate}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Priority</Label>
-                        <p className="mt-1">{selectedAnnouncement.priority}</p>
-                      </div>
+                    <div className="text-sm">
+                      <Label className="text-sm font-medium text-muted-foreground">Created</Label>
+                      <p className="mt-1">{selectedAnnouncement.createdDate}</p>
                     </div>
                   </div>
                 </div>
@@ -302,19 +263,7 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
                   <Label htmlFor="edit-announcement-content">Content</Label>
                   <Textarea id="edit-announcement-content" defaultValue={selectedAnnouncement.content} placeholder="Write your announcement..." rows={4} />
                 </div>
-                <div>
-                  <Label htmlFor="edit-announcement-priority">Priority</Label>
-                  <Select defaultValue={selectedAnnouncement.priority}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Low">Low</SelectItem>
-                      <SelectItem value="Medium">Medium</SelectItem>
-                      <SelectItem value="High">High</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* priority removed - backend does not provide priority/status */}
                 <div>
                   <Label>Target Classes</Label>
                   <div className="space-y-2 mt-2 max-h-40 overflow-y-auto border rounded-lg p-3">

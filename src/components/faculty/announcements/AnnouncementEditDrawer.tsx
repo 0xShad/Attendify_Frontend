@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// priority removed — backend does not provide priority/status
 
 type Props = {
   open: boolean;
@@ -34,19 +34,7 @@ export default function AnnouncementEditDrawer({ open, onOpenChange, announcemen
                 <Label htmlFor="edit-announcement-content">Content</Label>
                 <Textarea id="edit-announcement-content" defaultValue={announcement.content} placeholder="Write your announcement..." rows={4} />
               </div>
-              <div>
-                <Label htmlFor="edit-announcement-priority">Priority</Label>
-                <Select defaultValue={announcement.priority}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Low">Low</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="High">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* priority removed — backend does not provide priority/status */}
               <div>
                 <Label>Target Classes</Label>
                 <div className="space-y-2 mt-2 max-h-40 overflow-y-auto border rounded-lg p-3">

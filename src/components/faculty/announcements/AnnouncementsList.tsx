@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+// priority/status removed — badges not shown
 import { Button } from "@/components/ui/button";
 import { Edit, Eye } from "lucide-react";
 
@@ -31,30 +31,7 @@ export default function AnnouncementsList({ announcements, onEdit, onView }: Pro
                   })()}
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className={
-                    announcement.priority === "High"
-                      ? "border-red-200 text-red-700 bg-red-50"
-                      : announcement.priority === "Medium"
-                      ? "border-yellow-200 text-yellow-700 bg-yellow-50"
-                      : "border-green-200 text-green-700 bg-green-50"
-                  }
-                >
-                  {announcement.priority}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className={
-                    announcement.status === "Published"
-                      ? "border-green-200 text-green-700 bg-green-50"
-                      : "border-gray-200 text-gray-700 bg-gray-50"
-                  }
-                >
-                  {announcement.status}
-                </Badge>
-              </div>
+              <div className="flex items-center gap-2" />
             </div>
           </CardHeader>
           <CardContent>

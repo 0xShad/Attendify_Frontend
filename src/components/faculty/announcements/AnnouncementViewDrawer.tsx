@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
-import { Badge } from "@/components/ui/badge";
+// priority/status removed — view shows content and created date only
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
@@ -25,31 +25,6 @@ export default function AnnouncementViewDrawer({ open, onOpenChange, announcemen
           {announcement && (
             <>
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Badge
-                    variant="outline"
-                    className={
-                      announcement.priority === "High"
-                        ? "border-red-200 text-red-700 bg-red-50"
-                        : announcement.priority === "Medium"
-                        ? "border-yellow-200 text-yellow-700 bg-yellow-50"
-                        : "border-green-200 text-green-700 bg-green-50"
-                    }
-                  >
-                    {announcement.priority} Priority
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={
-                      announcement.status === "Published"
-                        ? "border-green-200 text-green-700 bg-green-50"
-                        : "border-gray-200 text-gray-700 bg-gray-50"
-                    }
-                  >
-                    {announcement.status}
-                  </Badge>
-                </div>
-
                 <div className="space-y-3">
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Content</Label>
@@ -58,15 +33,9 @@ export default function AnnouncementViewDrawer({ open, onOpenChange, announcemen
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Created</Label>
-                      <p className="mt-1">{announcement.createdDate}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Priority</Label>
-                      <p className="mt-1">{announcement.priority}</p>
-                    </div>
+                  <div className="text-sm">
+                    <Label className="text-sm font-medium text-muted-foreground">Created</Label>
+                    <p className="mt-1">{announcement.createdDate}</p>
                   </div>
                 </div>
               </div>
