@@ -441,7 +441,7 @@ export async function joinMyClass(classCode: string): Promise<any> {
     // Map common error statuses to helpful messages
     if (res.status === 400) {
       const body = await res.json().catch(() => null);
-      const msg = body?.detail ?? body?.message ?? JSON.stringify(body) || 'Bad Request';
+      const msg = (body?.detail ?? body?.message ?? JSON.stringify(body)) || 'Bad Request';
       throw Object.assign(new Error(String(msg)), { status: 400, body });
     }
     if (res.status === 401) throw Object.assign(new Error('Unauthorized'), { status: 401 });
