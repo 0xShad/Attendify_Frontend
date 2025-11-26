@@ -33,6 +33,7 @@ export default function DashboardAttendanceChart({ chartConfig, attendanceChartD
               {(() => {
                 // Keep the actual raw counts for labels/tooltips, but ensure a
                 // minimal visible height for zero values by using `renderValue`.
+                const MIN_RENDER = 0.25; // smaller visible bar for zero counts
                 const summaryData = [
                   { rawValue: Number(totals.present || 0), name: 'Present', color: '#10b981' },
                   { rawValue: Number(totals.late || 0), name: 'Late', color: '#f59e0b' },
@@ -41,8 +42,8 @@ export default function DashboardAttendanceChart({ chartConfig, attendanceChartD
                 ].map((d) => ({
                   name: d.name,
                   rawValue: d.rawValue,
-                  // small non-zero render value so bars appear even when count == 0
-                  renderValue: d.rawValue > 0 ? d.rawValue : 0.5,
+                  // use MIN_RENDER for zero values so bars remain visible but minimal
+                  renderValue: d.rawValue > 0 ? d.rawValue : MIN_RENDER,
                   color: d.color,
                 }));
 
