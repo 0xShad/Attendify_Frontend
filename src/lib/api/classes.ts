@@ -37,10 +37,7 @@ export async function listClasses(params: ListClassesParams = {}): Promise<any[]
   if (params.program_id !== undefined && params.program_id !== null) url.searchParams.append('program_id', String(params.program_id));
   if (params.room) url.searchParams.append('room', String(params.room));
 
-  // Debug: log the final URL so network issues / CORS problems are easier to diagnose in the browser
-  // Note: kept as console.debug so it won't spam production logs unless the devtools are open.
   try {
-    console.debug("Fetching classes list:", url.toString());
     const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -74,7 +71,6 @@ export async function listClassesForFaculty(
   if (params.program_id !== undefined && params.program_id !== null) url.searchParams.append('program_id', String(params.program_id));
 
   try {
-    console.debug("Fetching classes for faculty:", url.toString());
     const res = await import("./fetchClient").then((m) => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -104,7 +100,7 @@ export async function listMyClasses(params: Partial<ListClassesParams> = {}): Pr
   if (params.course_id !== undefined && params.course_id !== null) url.searchParams.append('course_id', String(params.course_id));
 
   try {
-    console.debug('Fetching my classes:', url.toString());
+    // fetching my classes via same-origin proxy
     const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url.toString(), { method: 'GET' }));
     const duration = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - start);
@@ -113,22 +109,11 @@ export async function listMyClasses(params: Partial<ListClassesParams> = {}): Pr
     // Use Response.clone() to avoid consuming the original body that we still need to parse.
     try {
       if (process.env.NODE_ENV !== 'production') {
-        const clone = res.clone();
-        const text = await clone.text().catch(() => '');
-        let bodyPreview: any = text;
-        try {
-          bodyPreview = JSON.parse(text);
-        } catch (_) {
-          // keep raw text
-        }
-        console.debug(`[classes.listMyClasses] GET ${url.toString()} ${res.status} in ${duration}ms`, {
-          status: res.status,
-          durationMs: duration,
-          body: bodyPreview,
-        });
+        // In dev we intentionally avoid logging heavy response previews here
+        // to keep console output minimal. Keep behavior simple and non-verbose.
       }
     } catch (logErr) {
-      console.debug('[classes.listMyClasses] Failed to log response preview', String(logErr));
+      // ignore logging errors
     }
 
     if (!res.ok) {
@@ -158,9 +143,6 @@ export async function getClass(id: number): Promise<any> {
  */
 export async function getMyClass(id: number): Promise<any> {
   const url = `/api/classes/mine/${id}`;
-  try {
-    console.debug('classesAPI.getMyClass: calling', { id, url });
-  } catch (_) {}
   try {
     const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'GET' }));
     if (res.status === 404) {
@@ -577,13 +559,13 @@ export async function listAvailableStudentsForMyClass(
     if (res.status !== 404) {
       try {
         const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
-        console.debug('listAvailableStudentsForMyClass: /api/organizations/mine/students returned non-ok', res.status, body);
+        // non-ok response from mine endpoint — falling back to compatibility path
       } catch (e) {
         // ignore
       }
     }
   } catch (err) {
-    console.debug('listAvailableStudentsForMyClass: failed to call mine proxy, falling back', err);
+    // failed to call mine proxy, falling back
   }
 
   // Compatibility fallback: determine org id from class and call numeric path

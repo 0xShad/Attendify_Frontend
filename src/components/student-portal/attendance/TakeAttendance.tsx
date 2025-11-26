@@ -83,7 +83,7 @@ export default function AttendanceTake({ open, onOpenChange, classItem, sessionI
         }
       } catch (err) {
         // ignore fetch errors here; existing UI will handle missing sessionInfo
-        try { console.debug('TakeAttendance: getMyClassSession failed', err); } catch (e) {}
+      
       } finally {
         if (mounted) setLoadingSessionDetails(false);
       }

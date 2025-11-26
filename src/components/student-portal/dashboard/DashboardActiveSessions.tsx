@@ -93,7 +93,6 @@ export default function DashboardActiveSessions({ sessions, currentSession, onRe
         return;
       } catch (err) {
         // fallback: still open the dialog but sessionInfo may be null and the camera will show missing id
-        try { console.debug('DashboardActiveSessions: getMyClassSession failed', err); } catch (e) {}
         if (s.sessionId) {
           setF2fSessionInfo({ active_session_id: s.sessionId, session_id: s.sessionId, class: { id: classItem.id } });
         } else {
@@ -133,7 +132,6 @@ export default function DashboardActiveSessions({ sessions, currentSession, onRe
         setTakeOpen(true);
         return;
       } catch (err) {
-        try { console.debug('DashboardActiveSessions: getMyClassSession failed', err); } catch (e) {}
         if (s.sessionId) {
           setTakeSessionInfo({ active_session_id: s.sessionId, session_id: s.sessionId, class: { id: classItem.id } });
         } else {
@@ -229,7 +227,7 @@ export default function DashboardActiveSessions({ sessions, currentSession, onRe
                           // Secretary + F2F -> open F2F scanner
                           if (userIsSecretary && modeIsF2F) {
                             return (
-                              <Button size="sm" className="w-full sm:w-auto sm:whitespace-nowrap" onClick={async () => { try { await openF2FDialog(session); } catch (e) { try { console.debug('openF2FDialog error', e); } catch {} } }}>
+                              <Button size="sm" className="w-full sm:w-auto sm:whitespace-nowrap" onClick={async () => { try { await openF2FDialog(session); } catch (e) { } }}>
                                 <Camera className="w-3 h-3 mr-1" />
                                 Face Scan
                               </Button>
@@ -238,7 +236,7 @@ export default function DashboardActiveSessions({ sessions, currentSession, onRe
 
                           // Otherwise (non-F2F or hybrid/online), open the attendee TakeAttendance dialog
                           return (
-                            <Button size="sm" className="w-full sm:w-auto sm:whitespace-nowrap" onClick={async () => { try { await openTakeDialog(session); } catch (e) { try { console.debug('openTakeDialog error', e); } catch {} } }}>
+                            <Button size="sm" className="w-full sm:w-auto sm:whitespace-nowrap" onClick={async () => { try { await openTakeDialog(session); } catch (e) { } }}>
                               <Camera className="w-3 h-3 mr-1" />
                               Face Scan
                             </Button>
@@ -286,7 +284,7 @@ export default function DashboardActiveSessions({ sessions, currentSession, onRe
               // the dialog is closed preserves the scanning UI.
               if (dialogSession && ((dialogSession as any).f2f_activated || (dialogSession as any).f2fActivated || (dialogSession as any).schedule_mode === 'face_to_face')) {
                 if (typeof onRefresh === 'function') {
-                  try { await onRefresh(); } catch (e) { try { console.debug('onRefresh failed', e); } catch {} }
+                  try { await onRefresh(); } catch (e) { }
                 }
               }
               setDialogSession(null);
@@ -319,7 +317,7 @@ export default function DashboardActiveSessions({ sessions, currentSession, onRe
               // Non-F2F: close dialog then refresh parent dashboard
               closeStartDialog();
               if (typeof onRefresh === 'function') {
-                try { await onRefresh(); } catch (e) { try { console.debug('onRefresh failed', e); } catch {} }
+                try { await onRefresh(); } catch (e) { }
               }
             } catch (e) {}
           }}
@@ -346,7 +344,7 @@ export default function DashboardActiveSessions({ sessions, currentSession, onRe
               setF2fClassItem(null);
               setF2fSessionInfo(null);
               if (typeof onRefresh === 'function') {
-                try { await onRefresh(); } catch (e) { try { console.debug('onRefresh failed', e); } catch {} }
+                try { await onRefresh(); } catch (e) { }
               }
             }
           }}
@@ -361,7 +359,7 @@ export default function DashboardActiveSessions({ sessions, currentSession, onRe
             if (!v) {
               closeTakeDialog();
               if (typeof onRefresh === 'function') {
-                try { await onRefresh(); } catch (e) { try { console.debug('onRefresh failed', e); } catch {} }
+                try { await onRefresh(); } catch (e) { }
               }
             }
           }}

@@ -48,14 +48,10 @@ export default function ActiveSessions({
     setLoading(true);
     setError(null);
     try {
-      const mod = await import("@/lib/api/classes");
-      const data = await mod.listMyClasses({ limit: 200 });
-      // helpful debug: log backend response shape so we can see available fields
-      // (remove or guard this in production)
-      // eslint-disable-next-line no-console
-      console.debug("ActiveSessions: listMyClasses response:", data);
-      // Filter to only active classes
-      const active = Array.isArray(data) ? data.filter((c: any) => c.is_active) : [];
+    const mod = await import("@/lib/api/classes");
+    const data = await mod.listMyClasses({ limit: 200 });
+    // Filter to only active classes
+    const active = Array.isArray(data) ? data.filter((c: any) => c.is_active) : [];
       setClasses(active);
     } catch (err: any) {
       console.error("ActiveSessions: failed to load classes", err);

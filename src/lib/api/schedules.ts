@@ -47,7 +47,6 @@ export async function listSchedulesForClass(classId: number): Promise<Schedule[]
       return Array.isArray(data) ? data as Schedule[] : [];
     } catch (err) {
       // If the proxy call failed, fallthrough to direct backend URL below.
-      console.debug('listSchedulesForClass: proxy call failed, falling back to backend URL', err);
     }
   }
 

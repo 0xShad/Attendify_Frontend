@@ -50,8 +50,7 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
         setOverrideMode(initialSession?.schedule_mode ?? null);
         setInitialChecked(true);
         setSetupDone(true);
-        // Debug: log the initialSession object received from parent
-        try { console.debug('StartSessionDialog: initialSession provided', initialSession); } catch (e) {}
+        // initialSession provided by parent (no debug logs emitted)
         return;
       } catch (e) {
         // fallthrough to normal check
@@ -88,14 +87,9 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
     })();
   }, [open, classId]);
 
-  // Log createdSession changes to help debugging when f2f scanner should appear
+  // createdSession changes (no debug logs emitted)
   useEffect(() => {
-    try {
-      // log a snapshot of the createdSession to avoid lazy object inspection in some consoles
-      const dump = (() => { try { return JSON.stringify(createdSession); } catch (e) { return String(createdSession); } })();
-      console.debug('StartSessionDialog: createdSession updated (raw)', dump);
-      console.debug('StartSessionDialog: createdSession updated (obj)', createdSession);
-    } catch (e) {}
+    // intentionally left blank for side-effects if needed in future
   }, [createdSession]);
 
   // Log createdF2F value when it changes so we can confirm rendering decision
@@ -214,7 +208,6 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
         mPayload.face_file = capturedFile;
 
         const res = await startSessionMultipart(mPayload);
-        try { console.debug('StartSessionDialog: startSessionMultipart (capturedFile) response', res); } catch (e) {}
         if (onCreated) onCreated(res);
         // If backend activated f2f scanning for this session, keep the dialog open
         if (res?.f2f_activated) {
@@ -236,7 +229,6 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
 
       // Non-secretary or no-file flow: JSON API
       const res = await startSession(payload);
-      try { console.debug('StartSessionDialog: startSession response', res); } catch (e) {}
       // creation success -> return session object
       if (onCreated) onCreated(res);
       // if backend activated F2F scanning, keep dialog open and render scanner
@@ -431,14 +423,11 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
         if (matchedInfo?.schedule_id) (setupPayload as any).schedule_id = matchedInfo.schedule_id;
         if (matchedInfo?.schedule_special_id) (setupPayload as any).schedule_special_id = matchedInfo.schedule_special_id;
 
-        // Debug log setup attempt
-        // eslint-disable-next-line no-console
-        console.debug('startSession: setupPayload', setupPayload);
+        // setup attempt (no debug logs emitted)
         let setupRes: any = null;
         try {
           setupRes = await startSession(setupPayload);
-          // eslint-disable-next-line no-console
-          console.debug('startSession: setupRes', setupRes);
+          // setup result (no debug logs emitted)
         } catch (e: any) {
           // log and rethrow so outer handler can show toast
           // eslint-disable-next-line no-console
@@ -465,13 +454,10 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
         try {
           toast({ title: 'Uploading face', description: 'Uploading face for verification...' });
         } catch (e) {}
-        // eslint-disable-next-line no-console
-        console.debug('startSessionMultipart (recognition): keys', Object.keys(recogPayload));
+        // recognition payload prepared
         let res: any = null;
         try {
           res = await startSessionMultipart(recogPayload);
-          // eslint-disable-next-line no-console
-          console.debug('startSessionMultipart (recognition) response', res);
         } catch (e: any) {
           // eslint-disable-next-line no-console
           console.error('startSessionMultipart (recognition) failed', e);
@@ -500,8 +486,7 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
         toast({ title: 'Uploading face', description: 'Uploading face for verification...' });
       } catch (e) {}
       // helpful debug when troubleshooting network/no-send issues
-      // eslint-disable-next-line no-console
-      console.debug('startSessionMultipart: mPayload keys', Object.keys(mPayload));
+      // multipart payload prepared for upload
       const res = await startSessionMultipart(mPayload);
       if (onCreated) onCreated(res);
       // If backend activated f2f scanning for this session, keep the dialog open
@@ -547,10 +532,8 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
     )
   );
 
-  // Log createdF2F value when it changes so we can confirm rendering decision
-  useEffect(() => {
-    try { console.debug('StartSessionDialog: createdF2F value', createdF2F); } catch (e) {}
-  }, [createdF2F]);
+  // createdF2F value changed (no debug logs emitted)
+  useEffect(() => {}, [createdF2F]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -580,8 +563,6 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
                       initialDelayMs={3000}
                       requestIntervalMs={3000}
                       bypassFilters={false}
-                      // enable verbose debug logs for troubleshooting camera mount/flow
-                      debug={true}
                     />
                   </div>
                   <div className="text-xs text-muted-foreground mt-2">Face-to-face mode: camera will automatically scan and record attendance when a face is recognized.</div>
