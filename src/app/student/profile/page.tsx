@@ -87,11 +87,81 @@ export default function StudentProfile() {
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSaving(false);
-    setIsEditing(false);
+    try {
+      // Build editable fields
+      const payload: any = {
+        firstname: profileData.firstname ?? profileData.firstName,
+        lastname: profileData.lastname ?? profileData.lastName,
+        middlename: profileData.middlename ?? profileData.middleName,
+        email: profileData.email,
+        username: profileData.username,
+        bio: profileData.bio,
+      };
 
-    toast({ title: "Profile saved", description: "Your changes have been saved." });
+      const avatarFile = profileData?.avatar_file as File | undefined;
+      let resp: Response;
+
+      if (avatarFile) {
+        // Multipart form when a file is present
+        const fd = new FormData();
+        // append only defined values
+        Object.entries(payload).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) fd.append(k, String(v));
+        });
+        fd.append('avatar_file', avatarFile, avatarFile.name);
+
+        resp = await fetch('/api/profiles/mine', {
+          method: 'PATCH',
+          body: fd,
+        });
+      } else {
+        resp = await fetch('/api/profiles/mine', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        toast({ title: 'Failed to save profile', description: txt || `Status ${resp.status}`, variant: 'destructive' });
+        return;
+      }
+
+      // After successful save, re-fetch authoritative profile from backend
+      setIsLoadingProfile(true);
+      const refresh = await fetch('/api/profiles/mine', { headers: { Accept: 'application/json' } });
+      if (refresh.ok) {
+        const data = await refresh.json();
+        setProfileData((prev) => ({
+          ...prev,
+          ...data,
+          firstName: data.firstname ?? data.firstName ?? prev.firstName,
+          lastName: data.lastname ?? data.lastName ?? prev.lastName,
+          firstname: data.firstname ?? data.firstName ?? prev.firstname,
+          lastname: data.lastname ?? data.lastName ?? prev.lastname,
+          avatar_url: data.avatar_url ?? data.avatarUrl ?? prev.avatar_url,
+          face_image: data.face_image ?? data.faceImage ?? prev.face_image,
+          email: data.email ?? prev.email,
+          username: data.username ?? prev.username,
+          bio: data.bio ?? prev.bio,
+          organization_id: data.organization_id ?? data.organizationId ?? prev.organization_id,
+          program_id: data.program_id ?? data.programId ?? prev.program_id,
+        }));
+      }
+
+      setIsEditing(false);
+      toast({ title: 'Profile saved', description: 'Your changes have been saved.' });
+    } catch (err: any) {
+      console.error('Save failed', err);
+      toast({ title: 'Error saving', description: err?.message ?? String(err), variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+      setIsLoadingProfile(false);
+    }
   };
 
   const handleUpdatePassword = async () => {
@@ -222,12 +292,7 @@ export default function StudentProfile() {
 
         {/* Academic Information */}
         <TabsContent value="academic" className="space-y-6">
-          <AcademicInfo
-            profileData={profileData}
-            setProfileData={setProfileData}
-            isEditing={isEditing}
-            enrolledClasses={enrolledClasses}
-          />
+          <AcademicInfo />
         </TabsContent>
 
         {/* Security Settings (modularized) */}

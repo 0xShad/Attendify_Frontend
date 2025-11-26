@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { parseISO, formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -22,11 +22,32 @@ type Props = {
 };
 
 export default function BasicInfo({ profileData, setProfileData, isEditing, setIsEditing, onSave, onCancel, isSaving = false, isLoading = false }: Props) {
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  const validateEmailEduPh = (email?: string | null) => {
+    if (!email) return false;
+    // allow subdomains, require domain to end with edu.ph (case-insensitive)
+    return /@([A-Za-z0-9-]+\.)*edu\.ph$/i.test(email.trim());
+  };
+
+  const handleSaveClick = async () => {
+    // validate email when present
+    const email = profileData?.email ?? null;
+    if (email && !validateEmailEduPh(String(email))) {
+      setEmailError("Email must belong to an .edu.ph domain");
+      return;
+    }
+    setEmailError(null);
+    if (onSave) {
+      await Promise.resolve(onSave());
+    }
+  };
   const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
-    setProfileData({ ...profileData, avatar_preview: url, avatar_file_name: file.name });
+    // store the File object so the parent can upload it when saving
+    setProfileData({ ...profileData, avatar_preview: url, avatar_file_name: file.name, avatar_file: file });
   };
 
   const first = profileData.firstname ?? profileData.firstName ?? "User";
@@ -170,7 +191,7 @@ export default function BasicInfo({ profileData, setProfileData, isEditing, setI
 
                 {isEditing ? (
                   <div className="flex gap-2">
-                    <Button onClick={() => { if (onSave) void onSave(); }} disabled={isSaving}>
+                    <Button onClick={() => { void handleSaveClick(); }} disabled={isSaving || isLoading}>
                       {isSaving ? "Saving..." : "Save Changes"}
                     </Button>
                     <Button variant="outline" onClick={() => { if (onCancel) onCancel(); else if (setIsEditing) setIsEditing(false); }} disabled={isSaving}>
@@ -220,7 +241,10 @@ export default function BasicInfo({ profileData, setProfileData, isEditing, setI
                 {isLoading ? (
                   <div className="h-10 w-full rounded bg-slate-700/20 animate-pulse" />
                 ) : (
-                  <Input type="email" value={profileData.email ?? ""} onChange={(e: any) => setProfileData({ ...profileData, email: e.target.value })} disabled={!isEditing} />
+                  <>
+                    <Input type="email" value={profileData.email ?? ""} onChange={(e: any) => { setProfileData({ ...profileData, email: e.target.value }); setEmailError(null); }} disabled={!isEditing} />
+                    {emailError ? <p className="text-xs text-red-400 mt-1">{emailError}</p> : null}
+                  </>
                 )}
               </div>
               <div className="relative">

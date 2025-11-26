@@ -127,6 +127,39 @@ export async function listMyClasses(params: Partial<ListClassesParams> = {}): Pr
   }
 }
 
+/**
+ * List classes assigned to the current authenticated student (caller).
+ * Calls GET /classes/mine/student via same-origin proxy so HTTP-only cookies work.
+ */
+export async function listMyStudentClasses(params: Partial<ListClassesParams> = {}): Promise<any> {
+  const { skip = 0, limit = 100 } = params as any;
+  const qp = new URLSearchParams();
+  qp.set('skip', String(skip));
+  qp.set('limit', String(limit));
+  if (params.academic_year) qp.set('academic_year', String(params.academic_year));
+  if (params.semester) qp.set('semester', String(params.semester));
+  if ((params as any).class_code) qp.set('class_code', String((params as any).class_code));
+  if (params.organization_id !== undefined && params.organization_id !== null) qp.set('organization_id', String(params.organization_id));
+  if (params.program_id !== undefined && params.program_id !== null) qp.set('program_id', String(params.program_id));
+  if (params.course_id !== undefined && params.course_id !== null) qp.set('course_id', String(params.course_id));
+
+  const path = `/api/classes/mine/student${qp.toString() ? `?${qp.toString()}` : ''}`;
+
+  try {
+    // fetching my student classes via same-origin proxy
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(path, { method: 'GET' }));
+
+    if (!res.ok) {
+      const err = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(err));
+    }
+    return res.json();
+  } catch (err: any) {
+    const msg = err?.message ? String(err.message) : String(err);
+    throw new Error(`Failed to fetch my student classes: ${msg}`);
+  }
+}
+
 export async function getClass(id: number): Promise<any> {
   const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(CLASSES_ENDPOINTS.DETAIL(String(id)), { method: 'GET' }));
   if (!res.ok) {
@@ -660,6 +693,7 @@ export const classesAPI = {
   listClasses,
   listClassesForFaculty,
   listMyClasses,
+  listMyStudentClasses,
   getClass,
   getMyClass,
   createClass,
