@@ -22,38 +22,21 @@ type Announcement = {
   createdDate: string;
   priority: string;
   status: string;
+  classCode?: string | null;
+  courseName?: string | null;
 };
 
 type Props = {
   classes: ClassItem[];
 };
 
-const sampleAnnouncements: Announcement[] = [
-  {
-    id: "ANN001",
-    title: "Midterm Exam Schedule",
-    content:
-      "The midterm examinations will be held next week. Please check your individual schedules.",
-    classIds: ["CS101", "CS201"],
-    createdDate: "2025-10-15",
-    priority: "High",
-    status: "Published",
-  },
-  {
-    id: "ANN002",
-    title: "Assignment Due Reminder",
-    content: "Don't forget that Assignment 3 is due this Friday at 11:59 PM.",
-    classIds: ["CS101"],
-    createdDate: "2025-10-14",
-    priority: "Medium",
-    status: "Published",
-  },
-];
+const sampleAnnouncements: Announcement[] = [];
 
 const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
   const { toast } = useToast();
 
   const [announcements, setAnnouncements] = useState<Announcement[]>(sampleAnnouncements);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState<boolean>(false);
   const [addOpen, setAddOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -104,6 +87,8 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
             createdDate: created.created_at ? String(created.created_at).split("T")[0] : new Date().toISOString().split("T")[0],
             priority: priority,
             status: created.status ?? "Published",
+            classCode: created.class_code ?? null,
+            courseName: created.course_name ?? null,
           };
           successes.push(ann);
         } else {
@@ -146,6 +131,8 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
         createdDate: created.created_at ? String(created.created_at).split("T")[0] : new Date().toISOString().split("T")[0],
         priority: created.priority ?? "Medium",
         status: created.status ?? "Published",
+        classCode: created.class_code ?? null,
+        courseName: created.course_name ?? null,
       };
 
       setAnnouncements((prev) => [ann, ...prev]);
@@ -158,6 +145,37 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
       setAddOpen(false);
     }
   };
+
+  // Load announcements on mount
+  React.useEffect(() => {
+    let mounted = true;
+    const init = async () => {
+      setLoadingAnnouncements(true);
+      try {
+        const data = await classesAPI.listMyAnnouncements();
+        if (!mounted) return;
+        // Map backend AnnouncementOut -> UI Announcement shape
+        const mapped = (Array.isArray(data) ? data : []).map((item: any) => ({
+          id: String(item.id),
+          title: item.title ?? '',
+          content: item.content ?? '',
+          classIds: [String(item.class_id ?? '')].filter(Boolean),
+          createdDate: item.created_at ? String(item.created_at).split('T')[0] : new Date().toISOString().split('T')[0],
+          priority: item.priority ?? 'Medium',
+          status: item.status ?? 'Published',
+          classCode: item.class_code ?? null,
+          courseName: item.course_name ?? null,
+        } as Announcement));
+        setAnnouncements(mapped);
+      } catch (err: any) {
+        console.error('Failed to load announcements:', err);
+      } finally {
+        if (mounted) setLoadingAnnouncements(false);
+      }
+    };
+    init();
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <div>

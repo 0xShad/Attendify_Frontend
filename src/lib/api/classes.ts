@@ -151,6 +151,28 @@ export async function listMyClassOptions(): Promise<any[]> {
 }
 
 /**
+ * Fetch announcements visible to the current caller (faculty or student).
+ * Calls same-origin proxy: GET /api/classes/mine/announcements
+ */
+export async function listMyAnnouncements(): Promise<any[]> {
+  const url = `/api/classes/mine/announcements`;
+  try {
+    const res = await import('./fetchClient').then((m) => m.fetchRawWithAuth(url, { method: 'GET' }));
+    if (res.status === 401) throw new Error('Unauthorized');
+    if (res.status === 403) throw new Error('Forbidden');
+    if (res.status === 404) return [];
+    if (!res.ok) {
+      const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(body));
+    }
+    return res.json();
+  } catch (err: any) {
+    const msg = err?.message ? String(err.message) : String(err);
+    throw new Error(`Failed to fetch my announcements: ${msg}`);
+  }
+}
+
+/**
  * List classes assigned to the current authenticated student (caller).
  * Calls GET /classes/mine/student via same-origin proxy so HTTP-only cookies work.
  */
@@ -753,6 +775,7 @@ export const classesAPI = {
   listAvailableStudentsForClass,
   listAvailableStudentsForMyClass,
   listMyClassOptions,
+  listMyAnnouncements,
   addEnrolleeToClass,
   deleteEnrolleeFromClass,
   getMyClassEnrollees,

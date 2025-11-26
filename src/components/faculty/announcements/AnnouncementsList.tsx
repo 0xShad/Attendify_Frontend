@@ -21,7 +21,14 @@ export default function AnnouncementsList({ announcements, onEdit, onView }: Pro
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-lg">{announcement.title}</CardTitle>
                 <CardDescription className="mt-1">
-                  {announcement.createdDate} • Classes: {announcement.classIds.join(", ")}
+                  {announcement.createdDate} • {(() => {
+                    // Prefer class code and course name when available
+                    if (announcement.classCode) {
+                      return announcement.courseName ? `${announcement.classCode} — ${announcement.courseName}` : announcement.classCode;
+                    }
+                    // Fallback to listing class IDs
+                    return `Classes: ${announcement.classIds.join(', ')}`;
+                  })()}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">

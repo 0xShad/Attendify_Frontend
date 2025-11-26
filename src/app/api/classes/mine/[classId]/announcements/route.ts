@@ -42,17 +42,7 @@ export async function POST(request: Request, { params }: { params: { classId: st
   try {
     const bodyText = await request.text();
 
-    // Dev-only logging to help debug double-encoded JSON issues.
-    if (process.env.NODE_ENV !== 'production') {
-      try {
-        const preview = bodyText && bodyText.length > 200 ? `${bodyText.slice(0, 200)}...` : bodyText;
-        const safeHeaders = { ...forwardedHeaders } as Record<string, any>;
-        if (safeHeaders['Authorization']) safeHeaders['Authorization'] = 'REDACTED';
-        console.log('[proxy][debug] incoming body preview:', preview);
-        console.log('[proxy][debug] forwardedHeaders (masked):', safeHeaders);
-        console.log('[proxy][debug] normalized Content-Type:', contentTypeHeader);
-      } catch (e) {}
-    }
+    // (dev-only logging removed)
 
     // Normalize JSON body so backend receives an object not a quoted JSON string
     let bodyToSend: string | undefined = undefined;
