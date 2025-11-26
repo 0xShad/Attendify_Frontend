@@ -1,9 +1,6 @@
 "use client";
 import React from "react";
-import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
 import DashboardAttendanceChart from "./DashboardAttendanceChart";
 import DashboardClassPerformance from "./DashboardClassPerformance";
 
@@ -22,12 +19,7 @@ export default function DashboardAttendanceOverview({ enrolledClasses, chartConf
             <CardTitle className="text-lg">Attendance Overview</CardTitle>
             <CardDescription>Your attendance performance across all classes</CardDescription>
           </div>
-          <Link href="/student/attendance">
-            <Button variant="outline" size="sm">
-              <Eye className="w-3 h-3 mr-1" />
-              View Details
-            </Button>
-          </Link>
+          {/* Removed 'View Details' action - not needed in this overview card */}
         </div>
       </CardHeader>
       <CardContent>

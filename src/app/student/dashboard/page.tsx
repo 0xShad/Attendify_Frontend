@@ -262,25 +262,40 @@ export default function StudentDashboard() {
 
   // Attendance chart data
   const attendanceChartData = useMemo(() => {
-    // Prefer Today_Schedule_Section when present, otherwise use the
-    // enrolled-classes list returned under Enrolled_Classes_This_Semester.
+    // Prefer the enrolled-classes stats when available because they include
+    // per-class attendance breakdowns (present/late/absent/excused).
+    if (dashboard?.Enrolled_Classes_This_Semester && dashboard.Enrolled_Classes_This_Semester.length) {
+      return dashboard.Enrolled_Classes_This_Semester.map((it: any) => ({
+        name: it.course_name ? String(it.course_name) : (it.class_code ? String(it.class_code) : ''),
+        attendance: Number(it.my_attendance_rate ?? 0),
+        sessions: Number(it.session_attended ?? it.attendance_present ?? 0),
+        total: Number(it.session_total ?? 0),
+        attendance_present: Number(it.attendance_present ?? 0),
+        attendance_late: Number(it.attendance_late ?? 0),
+        attendance_absent: Number(it.attendance_absent ?? 0),
+        attendance_excused: Number(it.attendance_excused ?? 0),
+        raw: it,
+      }));
+    }
+
+    // Fallback: map today's schedule entries (these typically don't include
+    // the detailed attendance counts, so totals may be zero).
     if (dashboard?.Today_Schedule_Section?.length) {
       return dashboard.Today_Schedule_Section.map((it: any) => ({
         // Prefer course_name when available so chart labels show full course title
         name: it.course_name ? String(it.course_name) : (it.class_code ? String(it.class_code) : ''),
         attendance: dashboard.attendance_rate_this_semester ?? 0,
-        sessions: 0,
-        total: 0,
+        sessions: Number(it.session_attended ?? it.attendance_present ?? 0),
+        total: Number(it.session_total ?? 0),
+        attendance_present: Number(it.attendance_present ?? it.session_attended ?? 0),
+        attendance_late: Number(it.attendance_late ?? 0),
+        attendance_absent: Number(it.attendance_absent ?? 0),
+        attendance_excused: Number(it.attendance_excused ?? 0),
+        raw: it,
       }));
     }
 
-    return enrolledClasses.map((cls) => ({
-      // Prefer course name for chart labels
-      name: cls.name || cls.code || '',
-      attendance: Number(cls.attendanceRate ?? 0),
-      sessions: Number(cls.attendedSessions ?? 0),
-      total: Number(cls.totalSessions ?? 0),
-    }));
+    return [];
   }, [dashboard, enrolledClasses]);
 
   const chartConfig = {
