@@ -533,6 +533,47 @@ class AuthAPI {
   }
 
   /**
+   * Change password for currently authenticated user
+   * Calls PUT /users/me/password on the configured AUTH API base URL
+   */
+  async changePassword(payload: {
+    current_password: string;
+    new_password: string;
+    confirm_password?: string | null;
+  }): Promise<any> {
+    if (!payload?.current_password || !payload?.new_password) {
+      throw new ApiError(400, "current_password and new_password are required");
+    }
+
+    // Use same-origin proxy to reach the users service password endpoint.
+    // This ensures the request goes through Next.js API route which handles cookies/authorization.
+    try {
+      const res = await fetch(`/api/users/me/password`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      const text = await res.text();
+      let data: any = text;
+      try {
+        data = text ? JSON.parse(text) : undefined;
+      } catch (_) {}
+
+      if (!res.ok) {
+        const msg = data?.message || data?.detail || `HTTP ${res.status}`;
+        throw new ApiError(res.status, msg, data?.error?.code, data?.error?.details ?? data);
+      }
+
+      return data;
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      throw new ApiError(500, (err as Error)?.message || 'Failed to change password');
+    }
+  }
+
+  /**
    * Get current authenticated user
    */
   async getCurrentUser(): Promise<User> {
@@ -664,3 +705,20 @@ export async function checkAuth(force = false): Promise<boolean> {
     return false;
   }
 }
+
+// ------------------------------------------------------------------
+// Helper: changeMyPassword
+// ------------------------------------------------------------------
+/**
+ * changeMyPassword
+ * Calls same-origin proxy at `/api/users/me/password` which forwards to the auth service.
+ */
+export async function changeMyPassword(payload: {
+  current_password: string;
+  new_password: string;
+  confirm_password?: string | null;
+}) {
+  // Delegate to centralized authAPI instance which uses HttpClient (logging, headers)
+  return authAPI.changePassword(payload);
+}
+

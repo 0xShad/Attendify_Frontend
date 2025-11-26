@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import BasicInfo from "@/components/student-portal/profile/BasicInfo";
 import AcademicInfo from "@/components/student-portal/profile/AcademicInfo";
 import SecuritySettings from "@/components/student-portal/profile/SecuritySettings";
+import { changeMyPassword } from "@/lib/api/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -166,23 +167,46 @@ export default function StudentProfile() {
 
   const handleUpdatePassword = async () => {
     setIsSaving(true);
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast({ title: "Password Mismatch", description: "New password and confirmation don't match.", variant: "destructive" });
-      setIsSaving(false);
-      return;
-    }
+    try {
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        toast({ title: "Password Mismatch", description: "New password and confirmation don't match.", variant: "destructive" });
+        return;
+      }
 
-    if (passwordData.newPassword.length < 8) {
-      toast({ title: "Password Too Short", description: "Password must be at least 8 characters long.", variant: "destructive" });
-      setIsSaving(false);
-      return;
-    }
+      if (passwordData.newPassword.length < 6) {
+        toast({ title: "Password Too Short", description: "Password must be at least 6 characters long.", variant: "destructive" });
+        return;
+      }
 
-    // Simulate server update
-    await new Promise((r) => setTimeout(r, 1000));
-    setIsSaving(false);
-    setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    toast({ title: "Password Updated", description: "Your password has been changed." });
+      // Call centralized helper which delegates to authAPI
+      const result = await changeMyPassword({
+        current_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword,
+        confirm_password: passwordData.confirmPassword,
+      });
+
+      // Success — backend returns updated user; optionally merge into profileData
+      if (result) {
+        // Attempt to merge returned user fields into profileData if shape matches
+        try {
+          const u = (result.data && result.data.user) ? result.data.user : result;
+          if (u && typeof u === 'object') {
+            setProfileData((prev) => ({ ...prev, ...u }));
+          }
+        } catch (e) {
+          // ignore merge errors
+        }
+
+        setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+        toast({ title: "Password Updated", description: "Your password has been changed." });
+      }
+    } catch (err: any) {
+      console.error('Password update failed', err);
+      const msg = err?.message || err?.body?.message || String(err);
+      toast({ title: 'Failed to update password', description: msg, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const startFaceDataUpdate = () => {
