@@ -283,6 +283,54 @@ export async function createAnnouncementForClass(classId: number | string, paylo
 }
 
 /**
+ * Delete an announcement belonging to a class assigned to the current caller.
+ * Calls same-origin proxy: DELETE /api/classes/mine/{classId}/announcements/{announcementId}
+ */
+export async function deleteAnnouncementForClass(classId: number | string, announcementId: number | string): Promise<null> {
+  const path = `/api/classes/mine/${encodeURIComponent(String(classId))}/announcements/${encodeURIComponent(String(announcementId))}`;
+  try {
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(path, { method: 'DELETE' }));
+    if (res.status === 204) return null;
+    if (res.status === 401) throw new Error('Unauthorized');
+    if (res.status === 403) throw new Error('Forbidden');
+    if (res.status === 404) throw new Error('Not Found');
+    if (!res.ok) {
+      const body = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(String(body));
+    }
+    // Some backends might return a JSON body; ignore and return null
+    return null;
+  } catch (err: any) {
+    const msg = err?.message ? String(err.message) : String(err);
+    throw new Error(`Failed to delete announcement ${announcementId} for class ${classId}: ${msg}`);
+  }
+}
+
+/**
+ * Update an existing announcement for a class belonging to the current caller.
+ * Calls same-origin proxy: PUT /api/classes/mine/{classId}/announcements/{announcementId}
+ */
+export async function updateAnnouncementForClass(classId: number | string, announcementId: number | string, payload: { title: string; content: string; }): Promise<any> {
+  const path = `/api/classes/mine/${encodeURIComponent(String(classId))}/announcements/${encodeURIComponent(String(announcementId))}`;
+  try {
+    const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(path, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    }));
+
+    if (res.status === 200) return res.json();
+    const txt = await res.text().catch(() => null);
+    const body = txt && txt.length ? (JSON.parse(txt) || txt) : txt;
+    const msg = body?.detail || body?.message || txt || `HTTP ${res.status}`;
+    throw new Error(String(msg));
+  } catch (err: any) {
+    const msg = err?.message ? String(err.message) : String(err);
+    throw new Error(`Failed to update announcement ${announcementId} for class ${classId}: ${msg}`);
+  }
+}
+
+/**
  * Delete a class owned by the currently authenticated faculty via same-origin proxy.
  * Calls DELETE /api/classes/mine/{id}
  */
@@ -781,4 +829,6 @@ export const classesAPI = {
   getMyClassEnrollees,
   joinMyClass,
   createAnnouncementForClass,
+  updateAnnouncementForClass,
+  deleteAnnouncementForClass,
 };

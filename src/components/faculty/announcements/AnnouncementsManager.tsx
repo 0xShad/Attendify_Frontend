@@ -3,11 +3,10 @@
 import React, { useState, forwardRef, useImperativeHandle } from "react";
 import AnnouncementsList from "./AnnouncementsList";
 import AnnouncementFormDrawer from "./AnnouncementFormDrawer";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
+import AnnouncementEditDrawer from "./AnnouncementEditDrawer";
+import AnnouncementViewDrawer from "./AnnouncementViewDrawer";
+import DeleteAnnouncementDialog from "./DeleteAnnouncementDialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 // priority/status removed — no select or badges needed
 import { useToast } from "@/hooks/use-toast";
 import { classesAPI } from "@/lib/api";
@@ -40,6 +39,10 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
   const [editOpen, setEditOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useImperativeHandle(ref, () => ({
     openNewAnnouncement: () => setAddOpen(true),
@@ -55,6 +58,12 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
     setEditOpen(true);
   };
 
+  // Open confirmation dialog (do not delete immediately)
+  const handleOpenDelete = (a: Announcement) => {
+    setDeleteTarget(a);
+    setDeleteDialogOpen(true);
+  };
+
   const handleDelete = (a: Announcement) => {
     const id = String(a.id);
     setAnnouncements((prev) => prev.filter((x) => String(x.id) !== id));
@@ -64,6 +73,27 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
       setEditOpen(false);
     }
     toast({ title: "Deleted", description: `Announcement removed`, variant: "default" });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      const classId = (deleteTarget.classIds && deleteTarget.classIds[0]) ? deleteTarget.classIds[0] : null;
+      if (!classId) throw new Error('Missing class id for announcement');
+      await classesAPI.deleteAnnouncementForClass(classId, deleteTarget.id);
+      handleDelete(deleteTarget);
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+    } catch (err: any) {
+      console.error('Failed to delete announcement:', err);
+      const msg = err?.message ? String(err.message) : String(err);
+      setDeleteError(msg);
+      toast({ title: 'Failed', description: msg, variant: 'destructive' });
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const handleCreate = async (title: string, content: string, selectedClasses: string[]) => {
@@ -151,6 +181,41 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
     }
   };
 
+  const handleSaveEdit = async (updated: { title: string; content: string; classId?: string }) => {
+    if (!selectedAnnouncement) return;
+    const annId = selectedAnnouncement.id;
+    const classId = updated.classId ?? ((selectedAnnouncement.classIds && selectedAnnouncement.classIds[0]) ? selectedAnnouncement.classIds[0] : null);
+    if (!classId) {
+      toast({ title: 'Error', description: 'Unable to determine class for announcement', variant: 'destructive' });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const res = await classesAPI.updateAnnouncementForClass(classId, annId, { title: updated.title, content: updated.content });
+      // Normalize returned shape
+      const newItem: Announcement = {
+        id: String(res.id ?? annId),
+        title: res.title ?? updated.title,
+        content: res.content ?? updated.content,
+        classIds: [String(res.class_id ?? classId)],
+        createdDate: res.created_at ? String(res.created_at).split('T')[0] : (selectedAnnouncement.createdDate || new Date().toISOString().split('T')[0]),
+        classCode: res.class_code ?? selectedAnnouncement.classCode ?? null,
+        courseName: res.course_name ?? selectedAnnouncement.courseName ?? null,
+      };
+
+      setAnnouncements((prev) => prev.map((p) => (String(p.id) === String(annId) ? newItem : p)));
+      setSelectedAnnouncement(newItem);
+      setEditOpen(false);
+      toast({ title: 'Saved', description: 'Announcement updated' });
+    } catch (err: any) {
+      console.error('Failed to update announcement:', err);
+      toast({ title: 'Failed', description: String(err?.message ?? err), variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Load announcements on mount
   React.useEffect(() => {
     let mounted = true;
@@ -186,7 +251,7 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
         announcements={announcements}
         onEdit={handleEdit}
         onView={handleView}
-        onDelete={handleDelete}
+        onDelete={handleOpenDelete}
       />
 
       <AnnouncementFormDrawer
@@ -196,106 +261,35 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
         onSubmit={handleCreateForClass}
       />
 
+      <DeleteAnnouncementDialog
+        open={deleteDialogOpen}
+        onOpenChange={(v) => { if (!v) { setDeleteError(null); setDeleteTarget(null); } setDeleteDialogOpen(v); }}
+        announcement={deleteTarget}
+        onConfirm={handleConfirmDelete}
+        loading={deleteLoading}
+        error={deleteError}
+      />
+
       {/* View Announcement Drawer */}
-      <Drawer open={viewOpen} onOpenChange={setViewOpen}>
-        <DrawerContent className="max-h-[90vh]">
-          <DrawerHeader>
-            <DrawerTitle>{selectedAnnouncement?.title || "Announcement Details"}</DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-4 space-y-6 overflow-y-auto">
-            {selectedAnnouncement && (
-              <>
-                <div className="space-y-4">
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Content</Label>
-                      <div className="mt-1 p-3 bg-muted/30 rounded-lg">
-                        <p className="text-sm">{selectedAnnouncement.content}</p>
-                      </div>
-                    </div>
+      <AnnouncementViewDrawer
+        open={viewOpen}
+        onOpenChange={(v: boolean) => setViewOpen(v)}
+        announcement={selectedAnnouncement}
+        classes={classes}
+        onEdit={(a: any) => {
+          setSelectedAnnouncement(a);
+          setViewOpen(false);
+          setEditOpen(true);
+        }}
+      />
 
-                    <div className="text-sm">
-                      <Label className="text-sm font-medium text-muted-foreground">Created</Label>
-                      <p className="mt-1">{selectedAnnouncement.createdDate}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Target Classes */}
-                <div className="space-y-4">
-                  <Label className="text-sm font-medium text-muted-foreground">Target Classes ({selectedAnnouncement.classIds.length})</Label>
-                  <div className="space-y-2">
-                    {selectedAnnouncement.classIds.map((classId) => (
-                      <div key={classId} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
-                        <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                          <div>
-                            <div className="text-sm font-medium">{classes.find((c) => c.id === classId)?.name || `Class ${classId}`}</div>
-                            <div className="text-xs text-muted-foreground">{classes.find((c) => c.id === classId)?.code || classId} • {classes.find((c) => c.id === classId)?.enrolledStudents || 0} students</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-          <DrawerFooter>
-            <Button
-              onClick={() => {
-                setViewOpen(false);
-                setEditOpen(true);
-              }}
-              className="w-full"
-            >
-              Edit Announcement
-            </Button>
-            <Button variant="outline" className="w-full" onClick={() => setViewOpen(false)}>
-              Close
-            </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-
-      {/* Edit Announcement Drawer (lightweight) */}
-      <Drawer open={editOpen} onOpenChange={setEditOpen}>
-        <DrawerContent className="max-h-[90vh]">
-          <DrawerHeader>
-            <DrawerTitle>Edit Announcement</DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-4 space-y-4 overflow-y-auto">
-            {selectedAnnouncement && (
-              <>
-                <div>
-                  <Label htmlFor="edit-announcement-title">Title</Label>
-                  <Input id="edit-announcement-title" defaultValue={selectedAnnouncement.title} placeholder="Announcement title" />
-                </div>
-                <div>
-                  <Label htmlFor="edit-announcement-content">Content</Label>
-                  <Textarea id="edit-announcement-content" defaultValue={selectedAnnouncement.content} placeholder="Write your announcement..." rows={4} />
-                </div>
-                {/* priority removed - backend does not provide priority/status */}
-                <div>
-                  <Label>Target Classes</Label>
-                  <div className="space-y-2 mt-2 max-h-40 overflow-y-auto border rounded-lg p-3">
-                    {classes.map((classItem) => (
-                      <div key={classItem.id} className="flex items-center space-x-2">
-                        <input type="checkbox" id={`edit-class-${classItem.id}`} defaultChecked={selectedAnnouncement.classIds.includes(classItem.id)} className="h-4 w-4" />
-                        <Label htmlFor={`edit-class-${classItem.id}`} className="text-sm font-normal flex-1">{classItem.name} ({classItem.code})</Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-          <DrawerFooter>
-            <Button className="w-full">Save Changes</Button>
-            <Button variant="outline" className="w-full" onClick={() => setEditOpen(false)}>Cancel</Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+      <AnnouncementEditDrawer
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        announcement={selectedAnnouncement}
+        classes={classes}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 });

@@ -15,51 +15,42 @@ type Props = {
 };
 
 export default function AnnouncementViewDrawer({ open, onOpenChange, announcement, classes, onEdit }: Props) {
+  const createdAt = announcement?.created_at ? String(announcement.created_at).split('T')[0] : (announcement?.createdDate ?? null);
+  const classCode = announcement?.class_code ?? announcement?.classCode ?? null;
+  const className = announcement?.course_name ?? announcement?.courseName ?? null;
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[90vh]">
         <DrawerHeader>
           <DrawerTitle>{announcement?.title || "Announcement Details"}</DrawerTitle>
+          {(classCode || className) && (
+            <div className="mt-1 text-sm text-muted-foreground">
+              {classCode && <span className="font-medium">{classCode}</span>}
+              {classCode && className && <span className="mx-2">—</span>}
+              {className && <span>{className}</span>}
+            </div>
+          )}
         </DrawerHeader>
+
         <div className="px-4 pb-4 space-y-6 overflow-y-auto">
           {announcement && (
             <>
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Content</Label>
-                    <div className="mt-1 p-3 bg-muted/30 rounded-lg">
-                      <p className="text-sm">{announcement.content}</p>
-                    </div>
-                  </div>
-
-                  <div className="text-sm">
-                    <Label className="text-sm font-medium text-muted-foreground">Created</Label>
-                    <p className="mt-1">{announcement.createdDate}</p>
-                  </div>
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Content</Label>
+                <div className="mt-1 p-3 bg-muted/30 rounded-lg">
+                  <p className="text-sm">{announcement.content}</p>
                 </div>
               </div>
 
-              {/* Target Classes */}
-              <div className="space-y-4">
-                <Label className="text-sm font-medium text-muted-foreground">Target Classes ({announcement.classIds.length})</Label>
-                <div className="space-y-2">
-                  {announcement.classIds.map((classId: string) => (
-                    <div key={classId} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-blue-500" />
-                        <div>
-                          <div className="text-sm font-medium">{classes.find((c) => c.id === classId)?.name || `Class ${classId}`}</div>
-                          <div className="text-xs text-muted-foreground">{classes.find((c) => c.id === classId)?.code || classId} • {classes.find((c) => c.id === classId)?.enrolledStudents || 0} students</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="text-sm">
+                <Label className="text-sm font-medium text-muted-foreground">Created</Label>
+                <p className="mt-1">{createdAt}</p>
               </div>
             </>
           )}
         </div>
+
         <DrawerFooter>
           <Button
             onClick={() => {
