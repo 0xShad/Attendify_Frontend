@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
 import { listMyExcusalRequests, ExcusalRequestOut } from '@/lib/api/attendance';
-import ExcusalDetailDrawer from '@/components/student-portal/attendance/ExcusalDetailDrawer';
+import RequestedExcusalModal from './RequestedExcusalModal';
 
 type Props = {
   classId?: number | null;
@@ -85,7 +85,7 @@ export default function RequestedExcusesTab({ classId }: Props) {
         </div>
       )}
 
-      <ExcusalDetailDrawer open={viewOpen} onOpenChange={setViewOpen} request={viewItem} />
+      <RequestedExcusalModal open={viewOpen} onOpenChange={setViewOpen} request={viewItem} />
     </div>
   );
 }

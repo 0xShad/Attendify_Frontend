@@ -239,6 +239,9 @@ export interface ExcusalRequestOut {
   reviewed_by?: number | null;
   reviewed_at?: string | null;
   review_notes?: string | null;
+  // Optional enrichment fields returned for faculty views
+  full_name?: string | null;
+  avatar_url?: string | null;
 }
 
 /**
