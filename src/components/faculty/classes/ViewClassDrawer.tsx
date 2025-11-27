@@ -10,6 +10,7 @@ import type { Class } from "@/components/classes/types";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import StudentsTab from "@/components/faculty/classes/StudentsTab";
 import SchedulesTab from "@/components/faculty/classes/SchedulesTab";
+import RequestedExcusesTab from "@/components/faculty/classes/RequestedExcusesTab";
 
 type Props = {
   open: boolean;
@@ -256,6 +257,7 @@ export default function ViewClassDrawer({ open, classId, selectedClass: selClass
                 <TabsList>
                   <TabsTrigger value="students">Students</TabsTrigger>
                   <TabsTrigger value="schedules">Schedules</TabsTrigger>
+                  <TabsTrigger value="requested-excuses">Requested Excuses</TabsTrigger>
                 </TabsList>
                 <TabsContent value="students">
                   <div className="pt-2">
@@ -265,6 +267,11 @@ export default function ViewClassDrawer({ open, classId, selectedClass: selClass
                 <TabsContent value="schedules">
                   <div className="pt-2">
                     <SchedulesTab classId={data.id ?? undefined} onClassChanged={onClassChanged} />
+                  </div>
+                </TabsContent>
+                <TabsContent value="requested-excuses">
+                  <div className="pt-2">
+                    <RequestedExcusesTab classId={data.id ?? undefined} />
                   </div>
                 </TabsContent>
                 </Tabs>
