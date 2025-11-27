@@ -9,7 +9,9 @@ import ActiveSessions from "@/components/student-portal/attendance/ActiveSession
 import AttendanceHistory from "@/components/student-portal/attendance/AttendanceHistory";
 import AttendanceStats from "@/components/student-portal/attendance/AttendanceStats";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose, DrawerFooter } from "@/components/ui/drawer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import SubmitExcuseModal from "@/components/student-portal/attendance/SubmitExcuseModal";
 
 type AttendanceSession = {
   id: string;
@@ -39,6 +41,7 @@ export default function StudentAttendance() {
   
   const [cameraActive, setCameraActive] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [excusalOpen, setExcusalOpen] = useState(false);
 
   // attendanceHistory is now handled inside `AttendanceHistory` via API
 
@@ -126,10 +129,17 @@ export default function StudentAttendance() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Attendance</h1>
-        <p className="text-muted-foreground">Record attendance and view your attendance history</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Attendance</h1>
+          <p className="text-muted-foreground">Record attendance and view your attendance history</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setExcusalOpen(true)}>Submit an Excuse</Button>
+        </div>
       </div>
+
+      <SubmitExcuseModal open={excusalOpen} onOpenChange={setExcusalOpen} />
 
       {/* Location/camera permission messaging removed — coordinates are no longer used */}
 

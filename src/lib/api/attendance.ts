@@ -189,6 +189,38 @@ export async function markPresentF2F(payload: MarkPresentIn): Promise<any> {
   }
 }
 
+export interface ExcusalRequestIn {
+  class_id: number;
+  excusal_type: 'early' | 'late' | 'absence';
+  session_id?: number | null;
+  requested_date?: string | null; // YYYY-MM-DD
+  requested_start_time?: string | null; // HH:MM:SS
+  requested_end_time?: string | null; // HH:MM:SS
+  reason?: string | null;
+}
+
+/**
+ * Create an excusal request for the current user (proxy -> backend).
+ * Endpoint: POST /api/attendance/mine/excusal-requests (proxied)
+ */
+export async function createExcusalRequest(payload: ExcusalRequestIn): Promise<any> {
+  const isBrowser = typeof window !== 'undefined';
+  const proxyUrl = `/api/attendance/mine/excusal-requests`;
+  const url = isBrowser ? proxyUrl : `${API_BASE_URL}/attendance/mine/excusal-requests`;
+
+  try {
+    const body: any = { ...payload };
+    // Ensure optional nulls are omitted when undefined
+    const res = await import('./fetchClient').then(m => m.fetchWithAuth(url, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }));
+    return res;
+  } catch (err) {
+    throw err;
+  }
+}
+
 /**
  * Fetch attendance logs for the current user (or faculty) via the proxy.
  * Accepts optional filters: skip, limit, class_id, session_id, profile_id
