@@ -286,6 +286,33 @@ export async function cancelMyExcusalRequest(requestId: number): Promise<Excusal
   }
 }
 
+export interface ExcusalReviewIn {
+  decision: string; // approve/reject (case-insensitive, synonyms allowed client-side)
+  review_notes?: string | null;
+}
+
+/**
+ * Review (approve/reject) an excusal request as the assigned faculty.
+ * Endpoint (proxied): POST /api/attendance/mine/excusal-requests/{request_id}/review
+ */
+export async function reviewMyExcusalRequest(requestId: number, payload: ExcusalReviewIn): Promise<ExcusalRequestOut> {
+  const isBrowser = typeof window !== 'undefined';
+  const proxyUrl = `/api/attendance/mine/excusal-requests/${encodeURIComponent(String(requestId))}/review`;
+  const url = isBrowser ? proxyUrl : `${API_BASE_URL}/attendance/mine/excusal-requests/${encodeURIComponent(String(requestId))}/review`;
+
+  try {
+    const body: any = { ...payload };
+    const res = await import('./fetchClient').then(m => m.fetchWithAuth(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }));
+    return res as ExcusalRequestOut;
+  } catch (err) {
+    throw err;
+  }
+}
+
 /**
  * Fetch attendance logs for the current user (or faculty) via the proxy.
  * Accepts optional filters: skip, limit, class_id, session_id, profile_id

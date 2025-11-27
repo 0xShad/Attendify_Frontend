@@ -18,6 +18,20 @@ export default function RequestedExcusesTab({ classId }: Props) {
   const [viewOpen, setViewOpen] = React.useState(false);
   const [viewItem, setViewItem] = React.useState<ExcusalRequestOut | null>(null);
 
+  const reload = React.useCallback(async () => {
+    if (!classId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await listMyExcusalRequests({ class_id: Number(classId), limit: 50 });
+      setItems(Array.isArray(res) ? res : []);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load excusal requests');
+    } finally {
+      setLoading(false);
+    }
+  }, [classId]);
+
   React.useEffect(() => {
     let mounted = true;
     if (!classId) {
@@ -26,23 +40,21 @@ export default function RequestedExcusesTab({ classId }: Props) {
       return () => { mounted = false; };
     }
 
-    setLoading(true);
-    setError(null);
+    // initial load via reload helper
     (async () => {
-      try {
-        const res = await listMyExcusalRequests({ class_id: Number(classId), limit: 50 });
-        if (!mounted) return;
-        setItems(Array.isArray(res) ? res : []);
-      } catch (err: any) {
-        if (!mounted) return;
-        setError(err?.message || 'Failed to load excusal requests');
-      } finally {
-        if (mounted) setLoading(false);
-      }
+      await reload();
     })();
 
     return () => { mounted = false; };
-  }, [classId]);
+  }, [classId, reload]);
+
+  const handleReviewed = React.useCallback(async (updated: ExcusalRequestOut) => {
+    // After a successful review, reload the list to reflect server state
+    await reload();
+    // if the modal is still open with this item, close it and clear selection
+    setViewOpen(false);
+    setViewItem(null);
+  }, [reload]);
 
   return (
     <div className="space-y-3">
@@ -85,7 +97,7 @@ export default function RequestedExcusesTab({ classId }: Props) {
         </div>
       )}
 
-      <RequestedExcusalModal open={viewOpen} onOpenChange={setViewOpen} request={viewItem} />
+      <RequestedExcusalModal open={viewOpen} onOpenChange={setViewOpen} request={viewItem} onReviewed={handleReviewed} />
     </div>
   );
 }

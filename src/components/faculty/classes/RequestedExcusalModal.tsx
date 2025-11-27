@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
+import { useToast } from '@/hooks/use-toast';
+import { reviewMyExcusalRequest, ExcusalRequestOut } from '@/lib/api/attendance';
 
 type Excusal = any;
 
@@ -11,9 +13,12 @@ type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   request: Excusal | null;
+  onReviewed?: (updated: ExcusalRequestOut) => void;
 };
 
-export default function RequestedExcusalModal({ open, onOpenChange, request }: Props) {
+export default function RequestedExcusalModal({ open, onOpenChange, request, onReviewed }: Props) {
+  const { toast } = useToast();
+  const [loading, setLoading] = React.useState(false);
   if (!request) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -30,6 +35,25 @@ export default function RequestedExcusalModal({ open, onOpenChange, request }: P
     );
   }
   const avatar = resolveAvatarUrl(request.avatar_url);
+
+  const handleDecision = async (decision: 'approve' | 'reject') => {
+    if (!request) return;
+    setLoading(true);
+    try {
+      const payload = { decision };
+      const updated = await reviewMyExcusalRequest(Number(request.id), payload as any);
+      toast({ title: `Request ${decision === 'approve' ? 'approved' : 'rejected'}`, description: 'Updated successfully.' });
+      onOpenChange(false);
+      if (typeof onReviewed === 'function') {
+        try { onReviewed(updated as ExcusalRequestOut); } catch (e) { /* ignore */ }
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to review request';
+      toast({ title: 'Error', description: msg });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -89,8 +113,8 @@ export default function RequestedExcusalModal({ open, onOpenChange, request }: P
         <DialogFooter>
           {String(request.status)?.toLowerCase() === 'pending' ? (
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => { console.log('accept', request.id); onOpenChange(false); }}>Accept</Button>
-              <Button variant="destructive" onClick={() => { console.log('reject', request.id); onOpenChange(false); }}>Reject</Button>
+              <Button variant="secondary" disabled={loading} onClick={() => handleDecision('approve')}>Accept</Button>
+              <Button variant="destructive" disabled={loading} onClick={() => handleDecision('reject')}>Reject</Button>
             </div>
           ) : null}
         </DialogFooter>
