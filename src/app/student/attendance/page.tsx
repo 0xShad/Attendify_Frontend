@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActiveSessions from "@/components/student-portal/attendance/ActiveSessions";
 import AttendanceHistory from "@/components/student-portal/attendance/AttendanceHistory";
 import AttendanceStats from "@/components/student-portal/attendance/AttendanceStats";
+import RequestedExcuses from "@/components/student-portal/attendance/RequestedExcuses";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose, DrawerFooter } from "@/components/ui/drawer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -144,9 +145,10 @@ export default function StudentAttendance() {
       {/* Location/camera permission messaging removed — coordinates are no longer used */}
 
       <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v)} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="active">Active Sessions</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="requested">Requested Excuses</TabsTrigger>
           <TabsTrigger value="stats">Statistics</TabsTrigger>
         </TabsList>
 
@@ -163,6 +165,10 @@ export default function StudentAttendance() {
 
         <TabsContent value="stats" className="space-y-4">
           <AttendanceStats />
+        </TabsContent>
+
+        <TabsContent value="requested" className="space-y-4">
+          <RequestedExcuses />
         </TabsContent>
       </Tabs>
     </div>

@@ -221,6 +221,68 @@ export async function createExcusalRequest(payload: ExcusalRequestIn): Promise<a
   }
 }
 
+export interface ExcusalRequestOut {
+  id: number;
+  class_id: number;
+  class_code?: string | null;
+  course_id?: number | null;
+  course_name?: string | null;
+  program_id?: number | null;
+  program_name?: string | null;
+  session_id?: number | null;
+  profile_id: number;
+  excusal_type: 'early' | 'late' | 'absence';
+  status: string;
+  requested_date?: string | null;
+  reason?: string | null;
+  submitted_at: string;
+  reviewed_by?: number | null;
+  reviewed_at?: string | null;
+  review_notes?: string | null;
+}
+
+/**
+ * List excusal requests for the current user (or faculty as allowed).
+ */
+export async function listMyExcusalRequests(params?: { skip?: number; limit?: number; class_id?: number; profile_id?: number; status?: string }): Promise<ExcusalRequestOut[]> {
+  const isBrowser = typeof window !== 'undefined';
+  const proxyUrl = `/api/attendance/mine/excusal-requests`;
+  const url = isBrowser ? proxyUrl : `${API_BASE_URL}/attendance/mine/excusal-requests`;
+
+  try {
+    const qs: string[] = [];
+    if (params) {
+      if (typeof params.skip === 'number') qs.push(`skip=${encodeURIComponent(String(params.skip))}`);
+      if (typeof params.limit === 'number') qs.push(`limit=${encodeURIComponent(String(params.limit))}`);
+      if (typeof params.class_id === 'number') qs.push(`class_id=${encodeURIComponent(String(params.class_id))}`);
+      if (typeof params.profile_id === 'number') qs.push(`profile_id=${encodeURIComponent(String(params.profile_id))}`);
+      if (typeof params.status === 'string' && params.status) qs.push(`status=${encodeURIComponent(params.status)}`);
+    }
+    const finalUrl = qs.length ? `${url}?${qs.join('&')}` : url;
+    const res = await import('./fetchClient').then(m => m.fetchWithAuth(finalUrl, { method: 'GET' }));
+    return Array.isArray(res) ? res as ExcusalRequestOut[] : [];
+  } catch (err) {
+    throw err;
+  }
+}
+
+/**
+ * Cancel an excusal request owned by the current user.
+ * Endpoint: DELETE /api/attendance/mine/excusal-requests/{request_id}
+ */
+export async function cancelMyExcusalRequest(requestId: number): Promise<ExcusalRequestOut> {
+  const isBrowser = typeof window !== 'undefined';
+  const proxyUrl = `/api/attendance/mine/excusal-requests/${encodeURIComponent(String(requestId))}`;
+  const url = isBrowser ? proxyUrl : `${API_BASE_URL}/attendance/mine/excusal-requests/${encodeURIComponent(String(requestId))}`;
+
+  try {
+    const res = await import('./fetchClient').then(m => m.fetchWithAuth(url, { method: 'DELETE' }));
+    return res as ExcusalRequestOut;
+  } catch (err) {
+    throw err;
+  }
+}
+
 /**
  * Fetch attendance logs for the current user (or faculty) via the proxy.
  * Accepts optional filters: skip, limit, class_id, session_id, profile_id
