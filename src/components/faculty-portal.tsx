@@ -73,6 +73,7 @@ import {
 } from "@/components/ui/card";
 import ClassesManagement from "@/components/faculty/classes/ClassesManagement";
 import ActiveSessions from "@/components/faculty/classes/ActiveSessions";
+import AttendanceTab from '@/components/faculty/attendance/AttendanceTab';
 import { classesAPI } from "@/lib/api";
 import { checkAuth } from "@/lib/clientAuth";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -1121,70 +1122,25 @@ export function FacultyPortal() {
 
             {/* Attendance Management */}
             {activeTab === "attendance" && (
-              <div className="space-y-4 md:space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <h3 className="text-lg font-medium">
-                      Attendance Management
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Monitor sessions, mark attendance, and manage real-time
-                      attendance
-                    </p>
-                  </div>
-                  <Button
-                    onClick={() => setManualAttendanceOpen(true)}
-                    variant="outline"
-                  >
-                    <IconEdit className="w-4 h-4 mr-2" />
-                    Manual Attendance
-                  </Button>
-                </div>
-
-                      <ActiveSessions
-                        sessions={activeSessions}
-                        variant="detailed"
-                        onEndSession={handleEndSession}
-                        onManualEdit={(session) => {
-                          setSelectedSession(session);
-                          setManualAttendanceOpen(true);
-                        }}
-                        onViewStudent={(student) => {
-                          setSelectedStudent((prev) => ({
-                            id: student.id,
-                            name: student.name,
-                            email: student.email,
-                            studentId: student.id,
-                            classId: student.classId || selectedClass?.id || "",
-                            enrollmentStatus: "Enrolled",
-                            attendanceRate: 90,
-                            totalSessions: 15,
-                            presentSessions: 14,
-                          }));
-                          setViewStudentOpen(true);
-                        }}
-                      />
-
-                {/* Recent Sessions */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Sessions</CardTitle>
-                    <CardDescription>
-                      Previously completed attendance sessions
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {/* This would be populated with completed sessions */}
-                      <div className="text-center py-4 text-muted-foreground">
-                        <p className="text-sm">
-                          Recent session history will appear here
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <AttendanceTab
+                activeSessions={activeSessions}
+                onEndSession={handleEndSession}
+                onStartSession={handleStartSession}
+                onOpenManualAttendance={() => setManualAttendanceOpen(true)}
+                onManualEdit={(session) => { setSelectedSession(session); setManualAttendanceOpen(true); }}
+                onViewStudent={(student) => { setSelectedStudent((prev) => ({
+                  id: student.id,
+                  name: student.name,
+                  email: student.email,
+                  studentId: student.id,
+                  classId: student.classId || selectedClass?.id || "",
+                  enrollmentStatus: "Enrolled",
+                  attendanceRate: 90,
+                  totalSessions: 15,
+                  presentSessions: 14,
+                })); setViewStudentOpen(true); }}
+                handleExportReport={handleExportReport}
+              />
             )}
 
             {/* Reports */}
