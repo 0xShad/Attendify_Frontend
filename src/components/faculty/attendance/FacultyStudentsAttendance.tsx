@@ -48,6 +48,21 @@ function formatMode(mode?: string | null): string {
   return parts.map(w => (/[0-9]/.test(w) ? w.toUpperCase() : (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()))).join(' ');
 }
 
+function formatStatus(status?: string | null): string {
+  if (!status) return '—';
+  const s = String(status).trim();
+  if (!s) return '—';
+  // common normalization: map known short values to nicer labels
+  const lower = s.toLowerCase();
+  if (lower === 'f2f') return 'F2F';
+  if (lower === 'present') return 'Present';
+  if (lower === 'late') return 'Late';
+  if (lower === 'excused') return 'Excused';
+  if (lower === 'absent') return 'Absent';
+  // Title case for other values, replace _ and - with spaces
+  return s.replace(/[_-]+/g, ' ').split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
 export default function FacultyStudentsAttendance({
   // keep legacy props to avoid breaking callers — we focus on fetching logs instead
   sessions = [],
@@ -149,7 +164,7 @@ export default function FacultyStudentsAttendance({
                     <div className="flex items-center gap-4 flex-wrap md:flex-nowrap w-full md:w-auto">
                       <div className="text-sm text-muted-foreground">{formatMode(l.mode)}</div>
                       <div className="text-sm">
-                        <Badge variant="secondary">{formatMode(l.status)}</Badge>
+                        <Badge variant="secondary">{formatStatus(l.status)}</Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">{l.timestamp ? new Date(l.timestamp).toLocaleString() : '—'}</div>
                     </div>
