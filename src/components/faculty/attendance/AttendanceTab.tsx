@@ -12,13 +12,6 @@ export default function AttendanceTab() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Attendance</h1>
-          <p className="text-muted-foreground">Record attendance and view attendance history (faculty)</p>
-        </div>
-      </div>
-
       <Tabs defaultValue="active" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="active">Recent Attendance</TabsTrigger>
