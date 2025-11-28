@@ -86,25 +86,45 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
         // ignore localStorage errors
       }
     }
-    runningRef.current = true;
+    let stopRequested = false;
     const start = async () => {
       setError(null);
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        if (stopRequested) {
+          try { const tracks = (stream as MediaStream).getTracks(); tracks.forEach(t => t.stop()); } catch (e) {}
+          return;
+        }
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           try { await videoRef.current.play(); } catch {}
           setStreaming(true);
         }
+        runningRef.current = true;
       } catch (err: any) {
         setError('Unable to access camera.');
       }
     };
-    start();
+
+    if (active) {
+      start();
+    } else {
+      // ensure cleaned up
+      runningRef.current = false;
+      if (successTimeoutRef.current) {
+        try { window.clearTimeout(successTimeoutRef.current as number); } catch (e) {}
+        successTimeoutRef.current = null;
+      }
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+        tracks.forEach(t => t.stop());
+        videoRef.current.srcObject = null;
+      }
+    }
 
     return () => {
+      stopRequested = true;
       runningRef.current = false;
-      // clear any pending success timeout
       if (successTimeoutRef.current) {
         try { window.clearTimeout(successTimeoutRef.current as number); } catch (e) {}
         successTimeoutRef.current = null;
@@ -115,7 +135,7 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
         videoRef.current.srcObject = null;
       }
     };
-  }, []);
+  }, [active]);
 
   // detection loop
   useEffect(() => {

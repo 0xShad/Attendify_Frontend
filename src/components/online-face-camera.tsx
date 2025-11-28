@@ -16,6 +16,7 @@ export interface OnlineFaceCameraProps {
   width?: number;
   height?: number;
   className?: string;
+  active?: boolean;
 }
 
 export default function OnlineFaceCamera({
@@ -27,6 +28,7 @@ export default function OnlineFaceCamera({
   width = 320,
   height = 240,
   className = "",
+  active = true,
 }: OnlineFaceCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -66,12 +68,16 @@ export default function OnlineFaceCamera({
     setStreaming(false);
   };
 
-  // start camera when component mounts
+  // start/stop camera when component mounts or when `active` changes
   useEffect(() => {
-    startCamera();
-    return () => stopCamera();
+    if (active) {
+      startCamera();
+      return () => stopCamera();
+    }
+    // if not active ensure camera is stopped
+    stopCamera();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [active]);
 
   // blink -> countdown -> capture flow (copied logic simplified)
   useEffect(() => {
