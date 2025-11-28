@@ -442,14 +442,14 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
                   const isOnline = modes.includes('online');
                   const isHybrid = modes.includes('hybrid');
                   if (isOnline) {
-                    return <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={false} />;
+                    return <FaceCamera active={open} onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={false} />;
                   }
 
                   if (modes.includes('face_to_face') || modes.includes('f2f') ) {
                     // For face-to-face mode, use the F2F detector which auto-submits on recognition
                     return (
                       <div className="w-full">
-                        <F2FFaceCamera onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} bypassFilters={false} />
+                        <F2FFaceCamera active={open} onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} bypassFilters={false} />
                         <div className="text-xs text-muted-foreground mt-2">Face-to-face mode: camera will automatically scan and record attendance when a face is recognized.</div>
                       </div>
                     );
@@ -482,7 +482,7 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
                         )}
                         {locationConfirmed ? (
                           <div className="mt-4">
-                            <FaceCamera onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={false} />
+                            <FaceCamera active={open} onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={false} />
                           </div>
                         ) : (
                           <div className="mt-4 text-xs text-muted-foreground">Camera will be available after location is obtained. If your browser blocks location access, allow it or retry.</div>

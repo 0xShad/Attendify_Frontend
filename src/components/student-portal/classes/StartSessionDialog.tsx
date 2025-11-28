@@ -641,7 +641,7 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
                       <div className="text-sm font-medium mb-2">Secretary verification</div>
                       <div className="text-sm text-muted-foreground mb-3">Follow the instructions and blink naturally to capture your face.</div>
                       <div className="rounded-md overflow-hidden bg-gray-50 p-3 flex items-center justify-center">
-                        <OnlineFaceCamera onCapture={submitCapturedFace} />
+                        <OnlineFaceCamera active={open} onCapture={submitCapturedFace} />
                       </div>
                       {/* Capture auto-submits; controls removed for secretary flow */}
                     </div>

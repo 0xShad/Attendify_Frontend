@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 
 interface FaceBox { x: number; y: number; width: number; height: number }
 
-interface F2FFaceCameraProps {
+export interface F2FFaceCameraProps {
   onRecognized: (dataUrl: string, box: FaceBox, faceHash: string) => Promise<boolean | void> | boolean | void;
   debounceMinutes?: number; // minutes to skip the same face after success
   width?: number;

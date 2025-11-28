@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { useBlinkLiveness } from "./use-blink-liveness";
 import { Button } from "@/components/ui/button";
 
-interface OnlineFaceCameraProps {
+export interface OnlineFaceCameraProps {
   onCapture: (dataUrl: string) => void;
   onRetake?: () => void;
   onValidate?: (dataUrl: string, width: number, height: number) => Promise<{
