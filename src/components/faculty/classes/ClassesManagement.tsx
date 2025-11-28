@@ -14,6 +14,8 @@ import StartSessionDialog from "./StartSessionDialog";
 import SearchBar from "./SearchBar";
 import ClassesFilters from "./ClassesFilters";
 import DeleteClassDialog from "./DeleteClassDialog";
+import EndSessionDialog from "./EndSessionDialog";
+import { endMySession } from "@/lib/api/attendance";
 
 export default function ClassesManagement({ onClassChanged, addClassOpen: addClassOpenProp, setAddClassOpen: setAddClassOpenProp }: { onClassChanged?: (classId: number) => void, addClassOpen?: boolean, setAddClassOpen?: (v: boolean) => void } = {}) {
   const { toast } = useToast();
@@ -46,6 +48,11 @@ export default function ClassesManagement({ onClassChanged, addClassOpen: addCla
   const [classToDelete, setClassToDelete] = useState<ClassItem | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // End session dialog state
+  const [endDialogOpen, setEndDialogOpen] = useState(false);
+  const [endClassId, setEndClassId] = useState<string | null>(null);
+  const [ending, setEnding] = useState(false);
 
   // Create form states (faculty drawer expects these props)
   const [newCourseId, setNewCourseId] = useState("");
@@ -339,6 +346,7 @@ export default function ClassesManagement({ onClassChanged, addClassOpen: addCla
             // Active session metadata from backend
             session_active: Boolean(d.session_active),
             active_session_id: d.active_session_id ?? null,
+            session_ended_today: Boolean(d.session_ended_today),
             enrolledStudents: d.enrolled_students ?? d.students_count ?? 0,
             attendanceRate: typeof d.attendance_rate === 'number' ? d.attendance_rate : (d.attendance_rate ? Number(d.attendance_rate) : 0),
             status: d.status ?? 'Active',
@@ -397,6 +405,7 @@ export default function ClassesManagement({ onClassChanged, addClassOpen: addCla
         current_schedule_type: d.current_schedule_type ?? null,
         session_active: Boolean(d.session_active),
         active_session_id: d.active_session_id ?? null,
+        session_ended_today: Boolean(d.session_ended_today),
         student_count: d.enrolled_students ?? d.students_count ?? 0,
         attendance_rate: typeof d.attendance_rate === 'number' ? d.attendance_rate : (d.attendance_rate ? Number(d.attendance_rate) : 0),
         status: d.status ?? 'Active',
@@ -526,6 +535,7 @@ export default function ClassesManagement({ onClassChanged, addClassOpen: addCla
         setViewClassOpen={setViewClassOpen}
         setEditClassOpen={setEditClassOpen}
         handleStartSession={(classId: string) => { setStartClassId(classId); setStartDialogOpen(true); }}
+        handleEndSession={(classId: string) => { setEndClassId(classId); setEndDialogOpen(true); }}
         onDelete={(c) => {
           setClassToDelete(c);
           setDeleteError(null);
@@ -542,6 +552,29 @@ export default function ClassesManagement({ onClassChanged, addClassOpen: addCla
         onCreated={async (session) => {
           // refresh list to reflect created session / attendance metadata
           try { await refresh(); } catch (e) {}
+        }}
+      />
+
+      <EndSessionDialog
+        open={endDialogOpen}
+        onOpenChange={(v) => setEndDialogOpen(v)}
+        classId={endClassId}
+        onConfirm={async (id) => {
+          if (!id) return;
+          setEnding(true);
+          try {
+            await endMySession(Number(id));
+            try { toast({ title: 'Session ended', description: 'The session has been ended.' }); } catch (e) {}
+            // refresh list to reflect ended session
+            try { await fetchClasses(); } catch (e) {}
+          } catch (err: any) {
+            try { toast({ title: 'Failed to end session', description: String(err?.message ?? err), variant: 'destructive' }); } catch (e) {}
+            throw err;
+          } finally {
+            setEnding(false);
+            setEndDialogOpen(false);
+            setEndClassId(null);
+          }
         }}
       />
 

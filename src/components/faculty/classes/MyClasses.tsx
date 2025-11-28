@@ -32,6 +32,7 @@ interface Props {
   setViewClassOpen: (open: boolean) => void;
   setEditClassOpen: (open: boolean) => void;
   handleStartSession: (classId: string) => void;
+  handleEndSession?: (classId: string) => void;
   onDelete?: (c: ClassItem) => void;
 }
 
@@ -42,6 +43,7 @@ export default function MyClasses({
   setViewClassOpen,
   setEditClassOpen,
   handleStartSession,
+  handleEndSession,
   onDelete,
 }: Props) {
   return (
@@ -76,6 +78,7 @@ export default function MyClasses({
             }}
             // enroll feature removed
             onStartSession={handleStartSession}
+            onEndSession={handleEndSession}
             onDelete={(c) => onDelete?.(c)}
           />
         ))}

@@ -70,6 +70,7 @@ interface Props {
   onView: (c: ClassItem) => void;
   onEdit: (c: ClassItem) => void;
   onStartSession: (classId: string) => void;
+  onEndSession?: (classId: string) => void;
   onDelete?: (c: ClassItem) => void;
 }
 
@@ -78,6 +79,7 @@ export default function ClassCard({
   onView,
   onEdit,
   onStartSession,
+  onEndSession,
   onDelete,
 }: Props) {
   return (
@@ -210,6 +212,24 @@ export default function ClassCard({
                     <Edit className="w-4 h-4 mr-2" />
                     Edit Class
                   </DropdownMenuItem>
+
+                  {classItem.session_active ? (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        try {
+                          if (typeof onEndSession === 'function') {
+                            onEndSession(classItem.id);
+                          } else if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new CustomEvent('classes:end-session', { detail: { classId: classItem.id } }));
+                          }
+                        } catch (e) {}
+                      }}
+                    >
+                      <Clock className="w-4 h-4 mr-2" />
+                      End Session
+                    </DropdownMenuItem>
+                  ) : null}
+
                   {/* Enroll removed */}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-red-600" onClick={() => onDelete && onDelete(classItem)}>

@@ -503,6 +503,16 @@ export default function ClassCard({
                     // Determine whether this session is effectively face-to-face (either backend flag or schedule mode)
                     const isF2FMode = Boolean(resp?.f2f_activated) || modes.includes('face_to_face') || modes.includes('face-to-face') || modes.includes('f2f');
 
+                    // Respect explicit server-side `session_ended_today` flag.
+                    // If the backend reports the session was ended today, do not allow
+                    // opening the StartSessionDialog even if an active session id exists.
+                    const sessionEndedFlag = Boolean(resp?.session_ended_today ?? resp?.sessionEndedToday ?? (classItem as any)?.session_ended_today);
+                    if (sessionEndedFlag) {
+                      // Prefer a helpful message instead of opening the dialog.
+                      toast({ title: 'Session ended', description: 'Attendance session for this class has already ended today.', variant: 'destructive' });
+                      return;
+                    }
+
                     // If backend reports the user already submitted attendance, normally surface that and don't open the modal.
                     // However, allow secretary devices when the session is face-to-face so the secretary can still open
                     // the StartSessionDialog (pre-populated) and scan students.

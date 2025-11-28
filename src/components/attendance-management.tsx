@@ -168,6 +168,13 @@ export function AttendanceManagement({
       return;
     }
 
+    // Prevent starting a session when backend/metadata indicates it was ended today
+    const cls = classes.find((c) => c.id === selectedClass) as any | undefined;
+    if (cls && Boolean(cls.session_ended_today ?? cls.sessionEndedToday ?? false)) {
+      toast({ title: 'Session ended', description: 'Attendance session for this class has already ended today.', variant: 'destructive' });
+      return;
+    }
+
     onStartSession(selectedClass);
     setSelectedClass("");
     toast({
