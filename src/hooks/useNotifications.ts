@@ -260,7 +260,7 @@ export function useNotifications() {
     };
   }, [clearPendingTimer]);
 
-  return { items, loading, markRead: batchedMarkRead };
+  return { items, loading, markRead: batchedMarkRead, refresh: fetchInitial };
 }
 
 export default useNotifications;

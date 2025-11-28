@@ -19,6 +19,25 @@ export async function POST(request: Request) {
   const cookie = request.headers.get('cookie') || null;
   const clientAuth = request.headers.get('authorization');
 
+  // If the request came from an auth/login flow (e.g. login/signup pages),
+  // don't request a backend WS ticket — that can trigger 401s while the
+  // user is still authenticating. Use the Referer/Origin to detect auth routes
+  // and short-circuit with a 204 No Content.
+  try {
+    const referer = (request.headers.get('referer') || request.headers.get('origin') || '').toString();
+    if (referer) {
+      try {
+        const r = new URL(referer);
+        const p = (r.pathname || '').toLowerCase();
+        if (/^\/(auth|login|signup|oauth|callback)\b/.test(p) || p.includes('/auth/')) {
+          return NextResponse.json({}, { status: 204 });
+        }
+      } catch (e) {
+        // ignore malformed referer
+      }
+    }
+  } catch (e) {}
+
   const forwardedHeaders: Record<string, string> = {};
   if (clientAuth) forwardedHeaders['authorization'] = clientAuth;
   else {

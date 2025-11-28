@@ -14,7 +14,7 @@ import type { NotificationEntry } from '@/types/notifications';
 import NotificationsModal from '@/components/NotificationsViewAll';
 
 export default function NotificationBell() {
-  const { items, loading, markRead } = useNotifications();
+  const { items, loading, markRead, refresh } = useNotifications();
   const [open, setOpen] = useState(false);
 
   const autoMarkTimer = useRef<number | null>(null);
@@ -84,7 +84,13 @@ export default function NotificationBell() {
   }, [open]);
 
   return (
-    <DropdownMenu open={open} onOpenChange={(val) => setOpen(val)}>
+    <DropdownMenu open={open} onOpenChange={(val) => {
+        setOpen(val);
+        if (val && typeof refresh === 'function') {
+          // refresh notifications list when the dropdown opens
+          void refresh().catch(() => {});
+        }
+      }}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="w-5 h-5" />
