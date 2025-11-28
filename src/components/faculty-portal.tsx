@@ -125,10 +125,47 @@ function NotificationMenu() {
 // Minimal Sidebar user menu used in faculty portal
 function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean) => void }) {
   const router = useRouter();
-  const { user } = useAuthContext();
+  const { user, logout } = useAuthContext();
+  const [enrichment, setEnrichment] = useState<{
+    full_name?: string | null;
+    email?: string | null;
+    username?: string | null;
+  } | null>(null);
+  const [enrichmentTried, setEnrichmentTried] = useState(false);
 
-  const displayName = (user && (user.firstName || user.username || user.email)) || 'User';
+  useEffect(() => {
+    let mounted = true;
+    if (enrichmentTried) return;
+
+    // If we already have both a sensible display name AND email in the auth context, skip enrichment.
+    // Otherwise fetch best-effort enrichment (either name or email may be missing).
+    if (user && user.firstName && user.email) {
+      setEnrichmentTried(true);
+      return;
+    }
+
+    (async () => {
+      try {
+        const res = await fetch('/api/session/enrichment', { credentials: 'same-origin' });
+        if (!mounted) return;
+        if (!res.ok) return;
+        const data = await res.json();
+        setEnrichment(data || null);
+      } catch (_) {
+        // ignore enrichment failures; UI will fall back to available fields
+      } finally {
+        setEnrichmentTried(true);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user, enrichmentTried]);
+
+  const displayName = (enrichment?.full_name || user?.firstName || user?.username || enrichment?.username || user?.email) || 'User';
   const initial = String(displayName).charAt(0).toUpperCase() || 'U';
+  const displayEmail = enrichment?.email ?? user?.email ?? '';
 
   return (
     <SidebarMenu>
@@ -141,7 +178,7 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight ml-2">
                 <span className="truncate font-medium">{displayName}</span>
-                <span className="text-muted-foreground truncate text-xs">{user?.email ?? ''}</span>
+                <span className="text-muted-foreground truncate text-xs">{displayEmail}</span>
               </div>
               <IconDots className="ml-auto" />
             </SidebarMenuButton>
@@ -155,7 +192,7 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{displayName}</span>
-                  <span className="text-muted-foreground truncate text-xs">{user?.email ?? ''}</span>
+                  <span className="text-muted-foreground truncate text-xs">{displayEmail}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -164,7 +201,16 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
               <IconSettings className="w-4 h-4 mr-2" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push('/auth/logout')}>
+            <DropdownMenuItem
+              onClick={() => {
+                // prefer AuthContext logout handler; fallback to client-side redirect
+                try {
+                  logout?.();
+                } catch (err) {
+                  router.push('/auth/logout');
+                }
+              }}
+            >
               <IconLogout className="w-4 h-4 mr-2" />
               Log out
             </DropdownMenuItem>

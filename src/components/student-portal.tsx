@@ -80,6 +80,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -236,6 +237,42 @@ function SidebarUserMenu({
   setSettingsOpen: (open: boolean) => void;
 }) {
   const { isMobile } = useSidebar();
+  const { user, logout } = useAuthContext();
+  const [enrichment, setEnrichment] = useState<{
+    profileId?: number | null;
+    email?: string | null;
+    username?: string | null;
+    full_name?: string | null;
+    role?: string | null;
+  } | null>(null);
+
+  const displayName =
+    (user && ((user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : (user.username || user.email))) ||
+    enrichment?.full_name ||
+    "Guest";
+  const displayEmail = (user && (user.email || user.username)) || enrichment?.email || "";
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchEnrichment() {
+      try {
+        const res = await fetch('/api/session/enrichment');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+        setEnrichment(data);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Only fetch if user info is missing
+    if (!user || !(user.firstName && user.lastName) && !(user.email || user.username)) {
+      fetchEnrichment();
+    }
+
+    return () => { mounted = false; };
+  }, [user]);
 
   return (
     <SidebarMenu>
@@ -253,9 +290,9 @@ function SidebarUserMenu({
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Alex Johnson</span>
+                <span className="truncate font-medium">{displayName}</span>
                 <span className="text-muted-foreground truncate text-xs">
-                  alex.johnson@student.edu
+                  {displayEmail}
                 </span>
               </div>
               <MoreHorizontal className="ml-auto size-4" />
@@ -276,9 +313,9 @@ function SidebarUserMenu({
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Alex Johnson</span>
+                  <span className="truncate font-medium">{displayName}</span>
                   <span className="text-muted-foreground truncate text-xs">
-                    alex.johnson@student.edu
+                    {displayEmail}
                   </span>
                 </div>
               </div>
@@ -288,7 +325,7 @@ function SidebarUserMenu({
               <Settings className="w-4 h-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => logout()}>
               <LogOut className="w-4 h-4" />
               Log out
             </DropdownMenuItem>
