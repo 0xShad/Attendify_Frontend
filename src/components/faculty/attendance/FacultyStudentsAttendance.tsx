@@ -122,7 +122,7 @@ export default function FacultyStudentsAttendance({
         <div className="flex items-start justify-between w-full">
           <div>
             <CardTitle>Student Attendance Logs</CardTitle>
-            <CardDescription>Logs for student profiles in your assigned classes</CardDescription>
+            <CardDescription>Attendance of students in your assigned classes</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" aria-label="Refresh attendance logs" onClick={() => { setSkip(0); setRefreshToken((p) => p + 1); }}>

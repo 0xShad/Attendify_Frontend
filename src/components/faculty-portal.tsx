@@ -1122,25 +1122,7 @@ export function FacultyPortal() {
 
             {/* Attendance Management */}
             {activeTab === "attendance" && (
-              <AttendanceTab
-                activeSessions={activeSessions}
-                onEndSession={handleEndSession}
-                onStartSession={handleStartSession}
-                onOpenManualAttendance={() => setManualAttendanceOpen(true)}
-                onManualEdit={(session) => { setSelectedSession(session); setManualAttendanceOpen(true); }}
-                onViewStudent={(student) => { setSelectedStudent((prev) => ({
-                  id: student.id,
-                  name: student.name,
-                  email: student.email,
-                  studentId: student.id,
-                  classId: student.classId || selectedClass?.id || "",
-                  enrollmentStatus: "Enrolled",
-                  attendanceRate: 90,
-                  totalSessions: 15,
-                  presentSessions: 14,
-                })); setViewStudentOpen(true); }}
-                handleExportReport={handleExportReport}
-              />
+              <AttendanceTab />
             )}
 
             {/* Reports */}
