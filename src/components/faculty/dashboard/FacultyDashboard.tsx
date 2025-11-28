@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import StartSessionDialog from "@/components/faculty/classes/StartSessionDialog";
 import AttendanceTake from "@/components/student-portal/attendance/TakeAttendance";
+import TakeAttendanceF2F from "@/components/student-portal/attendance/TakeAttendanceF2F";
 import {
   Dialog,
   DialogContent,
@@ -113,10 +114,24 @@ export default function FacultyDashboard({
   const [attendanceDialogOpen, setAttendanceDialogOpen] = useState<boolean>(false);
   const [attendanceClassItem, setAttendanceClassItem] = useState<any | null>(null);
   const [attendanceSessionInfo, setAttendanceSessionInfo] = useState<any | null>(null);
+  // Face-to-face attendance dialog control
+  const [f2fDialogOpen, setF2fDialogOpen] = useState<boolean>(false);
+  const [f2fClassItem, setF2fClassItem] = useState<any | null>(null);
+  const [f2fSessionInfo, setF2fSessionInfo] = useState<any | null>(null);
   // End confirmation dialog control
   const [endConfirmOpen, setEndConfirmOpen] = useState<boolean>(false);
   const [endConfirmClass, setEndConfirmClass] = useState<any | null>(null);
   const { toast } = useToast();
+  const refreshTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimer.current) {
+        try { clearTimeout(refreshTimer.current); } catch (e) { /* ignore */ }
+        refreshTimer.current = null;
+      }
+    };
+  }, []);
 
   const handleStartDialogCreated = (session: any) => {
     // notify parent that a session has started for the selected class
@@ -135,9 +150,10 @@ export default function FacultyDashboard({
     void fetchDashboard();
   };
 
-  // Fetch dashboard data (reusable)
-  const fetchDashboard = async () => {
-    setLoading(true);
+  // Fetch dashboard data (reusable). Pass { silent: true } to avoid toggling global loading
+  const fetchDashboard = async (opts?: { silent?: boolean }) => {
+    const silent = Boolean(opts?.silent);
+    if (!silent) setLoading(true);
     try {
       const res = await getFacultyDashboardEnhanced();
       setData(res);
@@ -146,7 +162,7 @@ export default function FacultyDashboard({
       console.error("Failed to load dashboard", err);
       setError(err?.message || String(err));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -480,7 +496,7 @@ export default function FacultyDashboard({
                                 <Button
                                   size="sm"
                                   onClick={() => {
-                                    // Open the Take Attendance dialog for this class/session
+                                    // Open the appropriate Take Attendance dialog for this class/session
                                     try {
                                       // construct a lightweight class object expected by TakeAttendance
                                       const classItemObj = {
@@ -494,9 +510,20 @@ export default function FacultyDashboard({
                                       // attach class info into sessionInfo when available so the attendance dialog
                                       // has the `sessionInfo.class.id` shape it expects without round-tripping.
                                       const sessionInfoAug = sessionObj ? { ...sessionObj, class: classItemObj } : null;
-                                      setAttendanceClassItem(classItemObj);
-                                      setAttendanceSessionInfo(sessionInfoAug);
-                                      setAttendanceDialogOpen(true);
+
+                                      // Determine if this session should use face-to-face flow
+                                      const modeVal = String((cls.mode ?? cls.override_mode ?? '')).toLowerCase();
+                                      const isF2F = /f2f|face/.test(modeVal);
+
+                                      if (isF2F) {
+                                        setF2fClassItem(classItemObj);
+                                        setF2fSessionInfo(sessionInfoAug);
+                                        setF2fDialogOpen(true);
+                                      } else {
+                                        setAttendanceClassItem(classItemObj);
+                                        setAttendanceSessionInfo(sessionInfoAug);
+                                        setAttendanceDialogOpen(true);
+                                      }
                                     } catch (e) {
                                       if (typeof (onStartSession as any) === 'function') {
                                         try { onStartSession(String(cls.class_id ?? '')); } catch { /* ignore */ }
@@ -739,10 +766,19 @@ export default function FacultyDashboard({
         open={attendanceDialogOpen}
         onOpenChange={(v: boolean) => {
           setAttendanceDialogOpen(v);
-          if (!v) {
-            setAttendanceClassItem(null);
-            setAttendanceSessionInfo(null);
+          if (v) {
+            // dialog opened — cancel any pending refresh
+            if (refreshTimer.current) { clearTimeout(refreshTimer.current); refreshTimer.current = null; }
+            return;
           }
+          // dialog closed — clear local refs and schedule refresh after short delay
+          setAttendanceClassItem(null);
+          setAttendanceSessionInfo(null);
+          if (refreshTimer.current) { clearTimeout(refreshTimer.current); refreshTimer.current = null; }
+          refreshTimer.current = window.setTimeout(() => {
+            void fetchDashboard();
+            refreshTimer.current = null;
+          }, 500) as unknown as number;
         }}
         classItem={attendanceClassItem ?? undefined}
         sessionInfo={attendanceSessionInfo ?? undefined}
@@ -751,7 +787,37 @@ export default function FacultyDashboard({
           setAttendanceDialogOpen(false);
           setAttendanceClassItem(null);
           setAttendanceSessionInfo(null);
-          void fetchDashboard();
+        }}
+      />
+
+      {/* Face-to-Face Take Attendance dialog */}
+      <TakeAttendanceF2F
+        open={f2fDialogOpen}
+        onOpenChange={(v: boolean) => {
+          setF2fDialogOpen(v);
+          if (v) {
+            if (refreshTimer.current) { clearTimeout(refreshTimer.current); refreshTimer.current = null; }
+            return;
+          }
+          setF2fClassItem(null);
+          setF2fSessionInfo(null);
+          if (refreshTimer.current) { clearTimeout(refreshTimer.current); refreshTimer.current = null; }
+          refreshTimer.current = window.setTimeout(() => {
+            void fetchDashboard();
+            refreshTimer.current = null;
+          }, 500) as unknown as number;
+        }}
+        classItem={f2fClassItem ?? undefined}
+        sessionInfo={f2fSessionInfo ?? undefined}
+        onRecorded={(rec: any) => {
+          // keep dialog open for F2F scanning; callers may close explicitly
+          // do not refresh here; wait until modal closes to refresh the dashboard
+          if (typeof rec !== 'undefined' && rec) {
+            // notify parent if provided (no-op for now)
+            if (typeof (onStartSession as any) === 'function') {
+              try { /* no-op */ } catch {}
+            }
+          }
         }}
       />
 

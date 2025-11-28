@@ -31,6 +31,7 @@ interface F2FFaceCameraProps {
   cropPaddingHeightMultiplier?: number; // multiplier to make vertical padding slightly larger than horizontal
   debounceStorageKey?: string; // optional localStorage key suffix to persist debounce map (e.g. `${classId}_${sessionId}`)
   debug?: boolean; // enable debug logging for troubleshooting
+  active?: boolean; // if false, camera/detection should be stopped
 }
 
 // simple djb2 string hash for small base64 blobs
@@ -41,7 +42,7 @@ function hashString(s: string) {
 }
 
 
-export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width = 420, height = 320, className = "", initialDelayMs = 0, requestIntervalMs = 3000, minProbability = 0.75, minBoxWidth = 30, minBoxHeight = 30, consecutiveDetections = 1, minBoxAreaRatio = 0.005, centerBias = 0.04, minAspectRatio = 0.45, maxAspectRatio = 2.2, edgeMarginRatio = 0.02, modelsUrl = '/models', tinyInputSize = 320, scoreThreshold = 0.5, bypassFilters = false, cropPaddingRatio = 0.35, cropPaddingMin = 20, cropPaddingHeightMultiplier = 1.15, debounceStorageKey, debug = false }: F2FFaceCameraProps) {
+export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width = 420, height = 320, className = "", initialDelayMs = 0, requestIntervalMs = 3000, minProbability = 0.75, minBoxWidth = 30, minBoxHeight = 30, consecutiveDetections = 1, minBoxAreaRatio = 0.005, centerBias = 0.04, minAspectRatio = 0.45, maxAspectRatio = 2.2, edgeMarginRatio = 0.02, modelsUrl = '/models', tinyInputSize = 320, scoreThreshold = 0.5, bypassFilters = false, cropPaddingRatio = 0.35, cropPaddingMin = 20, cropPaddingHeightMultiplier = 1.15, debounceStorageKey, debug = false, active = true }: F2FFaceCameraProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [streaming, setStreaming] = useState(false);
