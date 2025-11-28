@@ -85,6 +85,8 @@ export default function FacultyDashboard({
   onOpenAddClass,
   onOpenNewAnnouncement,
   onOpenClasses,
+  onStartSession,
+  onEndSession,
 }: Props) {
   const [data, setData] = useState<FacultyDashboardEnhanced | null>(null);
   const [activeTab, setActiveTab] = useState<string>("comparison");
@@ -177,6 +179,28 @@ export default function FacultyDashboard({
     return `Started ${remMinutes}m ago`;
   }
 
+  // Helper: normalize/format a time value for display (handles HH:MM, ISO datetimes, etc.)
+  function formatTimeLabel(value?: string | null) {
+    if (!value) return '';
+    try {
+      // If it's an ISO datetime or contains 'T', parse to Date
+      if (value.includes('T')) {
+        const d = new Date(value);
+        if (!isNaN(d.getTime())) return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      }
+      // If it looks like HH:MM or HH:MM:SS
+      if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(value)) {
+        return value.substring(0,5);
+      }
+      // If it's a full date string, try to parse
+      const parsed = Date.parse(value);
+      if (!isNaN(parsed)) {
+        return new Date(parsed).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      }
+      return String(value).substring(0,5);
+    } catch { return String(value).substring(0,5); }
+  }
+
   // Helper: find class info by schedule_id in students_by_class
   function findClassForSchedule(scheduleId?: number | null) {
     if (!data?.students_by_class || !scheduleId) return null;
@@ -208,6 +232,30 @@ export default function FacultyDashboard({
       </div>
     );
   }
+
+  const activeCount = data?.students_by_class?.filter((c: any) => Boolean(c.is_active)).length || 0;
+  const hasActive = (data?.students_by_class || []).some((c: any) => Boolean(c.is_active));
+  const hasOngoing = (data?.students_by_class || []).some((c: any) => Boolean(c.session_started));
+  const sessionStatusLabel = hasActive ? 'Active' : hasOngoing ? 'Ongoing' : 'No Active';
+  const sessionStatusClass = hasActive ? 'bg-emerald-600 text-white' : hasOngoing ? 'bg-amber-500 text-white' : 'bg-stone-200 text-stone-600';
+
+  // Header session times: pick a representative active/ongoing class to show its start/end
+  const representativeClass = (data?.students_by_class || []).find((c: any) => Boolean(c.is_active) || Boolean(c.session_started)) || null;
+  let headerSessionObj: any = null;
+  if (representativeClass) {
+    const rep: any = representativeClass as any;
+    headerSessionObj = rep.active_session || rep.current_session || rep.session || rep.activeSession || null;
+    if (!headerSessionObj && Array.isArray(rep?.upcoming_sessions) && rep.upcoming_sessions.length > 0) {
+      headerSessionObj = rep.upcoming_sessions[0];
+    }
+    if (!headerSessionObj && Array.isArray((data as any)?.active_sessions)) {
+      headerSessionObj = (data as any).active_sessions.find((s: any) => s && (s.class_id === rep.class_id || s.class_code === rep.class_code)) || null;
+    }
+  }
+  const headerStartRaw = headerSessionObj?.start_time || headerSessionObj?.startTime || headerSessionObj?.start || headerSessionObj?.from_time || (representativeClass as any)?.start_time || (representativeClass as any)?.startTime || '';
+  const headerEndRaw = headerSessionObj?.end_time || headerSessionObj?.endTime || headerSessionObj?.end || headerSessionObj?.to_time || (representativeClass as any)?.end_time || (representativeClass as any)?.endTime || '';
+  const headerStartLabel = formatTimeLabel(headerStartRaw || null);
+  const headerEndLabel = formatTimeLabel(headerEndRaw || null);
 
   return (
     <div className="space-y-6 p-2 md:p-6 bg-stone-50/50 min-h-screen">
@@ -247,7 +295,6 @@ export default function FacultyDashboard({
           value={`${((data?.overall_students?.attendance_rate || 0) * 100).toFixed(1)}%`} 
           icon={TrendingUp} 
           subtext="Overall engagement rate"
-          trend={(data?.overall_students?.attendance_rate || 0) > 0.85 ? "up" : "down"}
         />
         <StatCard 
           title="Pending Excusals" 
@@ -262,25 +309,122 @@ export default function FacultyDashboard({
         {/* Left Column: Analytics (4 cols) */}
         <div className="lg:col-span-4 space-y-6">
           <Card className="col-span-4">
-            <CardHeader>
-              <CardTitle>Current Session</CardTitle>
-              <CardDescription>Start or take attendance for the active class session</CardDescription>
+            <CardHeader className="flex items-start justify-between">
+              <div>
+                <CardTitle>Current Session</CardTitle>
+                <CardDescription>Start or take attendance for the active class session.</CardDescription>
+              </div>
+              <div className="ml-2 flex flex-col items-end">
+                <Badge className={sessionStatusClass}>
+                  {sessionStatusLabel}
+                </Badge>
+                {(headerStartLabel || headerEndLabel) && (
+                  <div className="text-xs text-stone-500 mt-1">
+                    {headerStartLabel || 'TBD'}{headerEndLabel ? ` - ${headerEndLabel}` : ''}
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="pl-2">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <p className="text-sm text-stone-600">No active session</p>
-                  <p className="text-xs text-stone-400 mt-2">Use the controls to start a session or record attendance. (Placeholder)</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button onClick={() => alert('Start Session (placeholder)')} variant="outline" className="gap-2">
-                    <Clock className="h-4 w-4" /> Start Session
-                  </Button>
-                  <Button onClick={() => alert('Take Attendance (placeholder)')} className="gap-2 bg-stone-900 text-white hover:bg-stone-800">
-                    <CheckCircle2 className="h-4 w-4" /> Take Attendance
-                  </Button>
-                </div>
-              </div>
+              {(() => {
+                const activeClasses = (data?.students_by_class || []).filter((c: any) => Boolean(c.is_active));
+                if (!activeClasses || activeClasses.length === 0) {
+                  return (
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-stone-600">No active session</p>
+                        <p className="text-xs text-stone-400 mt-2">Use the controls to start a session or record attendance. (Placeholder)</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button onClick={() => alert('Start Session (placeholder)')} variant="outline" className="gap-2">
+                          <Clock className="h-4 w-4" /> Start Session
+                        </Button>
+                        <Button onClick={() => alert('Take Attendance (placeholder)')} className="gap-2 bg-stone-900 text-white hover:bg-stone-800">
+                          <CheckCircle2 className="h-4 w-4" /> Take Attendance
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {activeClasses.map((cls: any) => {
+                      // Try to find a session object attached to the class first
+                      const activeSession = cls.active_session || cls.current_session || cls.session || cls.activeSession || null;
+                      // Fallback: prefer a session object attached to the class, else:
+                      // 1) look into the class's `upcoming_sessions` (common in the enhanced payload),
+                      // 2) then look into top-level `data.active_sessions` if present.
+                      let sessionObj = activeSession || null;
+
+                      // If class has upcoming_sessions, try to pick the matching one (by session_id or schedule_id)
+                      if (!sessionObj && Array.isArray((cls as any)?.upcoming_sessions) && (cls as any).upcoming_sessions.length > 0) {
+                        const byId = (cls as any).upcoming_sessions.find((s: any) => s && (s.session_id === (activeSession?.session_id) || s.session_id === (cls.session_id)));
+                        const bySchedule = (cls as any).upcoming_sessions.find((s: any) => s && s.schedule_id === (cls.schedule_id));
+                        sessionObj = byId || bySchedule || (cls as any).upcoming_sessions[0] || null;
+                      }
+
+                      // Next fallback: top-level active_sessions list returned by some backends
+                      if (!sessionObj && Array.isArray((data as any)?.active_sessions)) {
+                        sessionObj = (data as any).active_sessions.find((s: any) => {
+                          return s && (s.class_id === cls.class_id || s.class_code === cls.class_code || s.schedule_id === cls.schedule_id || s.session_id === cls.session_id);
+                        }) || null;
+                      }
+
+                      const startRaw = sessionObj?.start_time || sessionObj?.startTime || sessionObj?.start || sessionObj?.from_time || cls.start_time || cls.startTime || cls.start || '';
+                      const endRaw = sessionObj?.end_time || sessionObj?.endTime || sessionObj?.end || sessionObj?.to_time || cls.end_time || cls.endTime || cls.end || '';
+                      const startLabel = formatTimeLabel(startRaw || null);
+                      const endLabel = formatTimeLabel(endRaw || null);
+
+                      return (
+                        <div key={String(cls.class_id ?? cls.class_code ?? cls.course_name)} className="flex items-center justify-between p-3 bg-stone-50 rounded">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-lg font-semibold text-stone-900 line-clamp-1">{cls.course_name || 'Untitled Course'}</p>
+                              {cls.f2f_activated && <Badge variant="secondary">F2F</Badge>}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <p className="text-sm text-stone-500">{cls.class_code || ''}</p>
+                            </div>
+                            {cls.mode && (
+                                <span className="text-xs text-stone-500 capitalize">{String(cls.mode)}</span>
+                              )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                if (typeof (onStartSession as any) === 'function') {
+                                  try { onStartSession(String(cls.class_id ?? '')); } catch { /* ignore */ }
+                                } else {
+                                  alert('Take Attendance (placeholder)');
+                                }
+                              }}
+                              className="gap-2 bg-stone-900 text-white hover:bg-stone-800"
+                            >
+                              <CheckCircle2 className="h-4 w-4" /> Take Attendance
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                if (typeof (onEndSession as any) === 'function') {
+                                  try { onEndSession(String(cls.class_id ?? '')); } catch { /* ignore */ }
+                                } else {
+                                  alert('End Session (placeholder)');
+                                }
+                              }}
+                            >
+                              End
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
 
@@ -327,7 +471,7 @@ export default function FacultyDashboard({
                   ))}
                 </div>
 
-                <div className="relative border-l border-stone-200 ml-3 pl-6 space-y-4">
+                <div className="relative border-l border-stone-200 pl-6 space-y-4">
                   {Array.isArray(data?.upcoming_sessions_overall) ? (
                     (() => {
                       const sessions = data!.upcoming_sessions_overall.filter((s: any) => {
@@ -342,28 +486,29 @@ export default function FacultyDashboard({
                         const cls = findClassForSchedule(session.schedule_id || session.session_id);
                         const courseName = cls?.course_name || session.course_name || "Unknown Course";
                         const classCode = cls?.class_code || session.class_code || "";
-                        return (
-                          <div key={i} className="relative min-h-16 grid grid-cols-[1fr_auto] gap-2 items-start">
-                            <span className="absolute -left-[31px] top-2 h-2.5 w-2.5 rounded-full bg-stone-300 ring-4 ring-white" />
-                            <div>
-                              <p className="text-sm font-medium text-stone-900 line-clamp-1">{courseName}</p>
-                              {classCode && <p className="text-xs text-stone-500">{classCode}</p>}
-                              <p className="text-xs text-stone-400 mt-1">{new Date(session.session_date || "").toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
-                            </div>
+                        const start = session.start_time || session.startTime || session.start || session.from_time || '';
+                        const end = session.end_time || session.endTime || session.finish_time || session.to_time || '';
+                        const startLabel = start ? String(start).substring(0,5) : '';
+                        const endLabel = end ? String(end).substring(0,5) : '';
 
-                            <div className="self-end flex flex-col items-end gap-1 text-right">
-                              {(() => {
-                                const start = session.start_time || session.startTime || session.start || session.from_time || '';
-                                const end = session.end_time || session.endTime || session.finish_time || session.to_time || '';
-                                const startLabel = start ? start.substring(0,5) : '';
-                                const endLabel = end ? end.substring(0,5) : '';
-                                return (
-                                  <>
-                                    <Badge variant="secondary">{formatTimeRemaining(session.session_date, start || null)}</Badge>
-                                    <span className="text-xs text-stone-500">{startLabel || 'TBD'}{endLabel ? ` - ${endLabel}` : ''}</span>
-                                  </>
-                                );
-                              })()}
+                        return (
+                          <div key={i} className="relative">
+                            <span className="absolute -left-3 top-3 h-2.5 w-2.5 rounded-full bg-stone-300 ring-4 ring-white" />
+                            <div className="flex items-center justify-between gap-2 pl-2">
+                              <div>
+                                <p className="text-sm font-medium text-stone-900 line-clamp-1">{courseName}</p>
+                                {classCode && <p className="text-xs text-stone-500">{classCode}</p>}
+                                <p className="text-xs text-stone-400 mt-1">{new Date(session.session_date || "").toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
+                              </div>
+
+                              <div className="flex flex-col items-end gap-1 text-right">
+                                
+                                <span className="text-xs text-stone-500">{startLabel || 'TBD'}{endLabel ? ` - ${endLabel}` : ''}</span>
+                                {((cls as any)?.mode) && (
+                                  <p className="text-xs text-stone-400 mt-1 mb-1 capitalize">{String((cls as any).mode)}</p>
+                                )}
+                                <Badge variant="secondary">{formatTimeRemaining(session.session_date, start || null)}</Badge>
+                              </div>
                             </div>
                           </div>
                         );
@@ -486,13 +631,13 @@ function ClassCard({ data }: { data: any }) {
 
   return (
     <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="p-4 pb-2">
+            <CardHeader className="p-4 pb-2">
         <div className="flex justify-between items-start">
             <div>
-            <CardTitle className="text-base font-semibold line-clamp-1" title={data.course_name}>
+            <CardTitle className="text-lg font-semibold line-clamp-1" title={data.course_name}>
               {data.course_name || "Untitled Course"}
             </CardTitle>
-            <CardDescription>{data.class_code}</CardDescription>
+            <CardDescription className="text-sm">{data.class_code}</CardDescription>
             <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
               <Users className="w-3 h-3" />
               <span>{data.enrolled_count ?? 0} students</span>

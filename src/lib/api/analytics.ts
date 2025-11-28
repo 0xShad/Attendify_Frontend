@@ -107,6 +107,17 @@ export type FacultyDashboardEnhanced = {
     start_time: string | null;
     end_time: string | null;
   }>;
+  // Optional active sessions list returned by the backend for currently-running sessions
+  active_sessions?: Array<{
+    session_id: number | null;
+    session_date?: string | null;
+    schedule_id?: number | null;
+    class_id?: number | null;
+    class_code?: string | null;
+    start_time?: string | null;
+    end_time?: string | null;
+    is_active?: boolean;
+  }>;
 };
 
 /**
