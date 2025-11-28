@@ -6,71 +6,17 @@ import Image from "next/image";
 import {
   IconHome,
   IconUsers,
-  IconList,
   IconSettings,
   IconPlus,
-  IconCheck,
-  IconLoader2,
-  IconX,
-  
   IconBell,
-  IconSearch,
-  IconCalendar,
-  IconTrendingUp,
-  IconTrendingDown,
-  IconEye,
-  IconEdit,
-  IconTrash,
-  
-  IconFilter,
-  IconRefresh,
-  IconMenu2,
-  IconChevronRight,
-  IconChevronDown,
   IconDots,
   IconLogout,
-  IconCreditCard,
-  IconNotification,
-  IconUserCheck,
-  IconClockHour4,
-  IconSchool,
-  IconUser,
   IconBook,
-  IconChalkboard,
+  IconUserCheck,
   IconClock,
   IconSpeakerphone,
-  IconPlaystationCircle,
-  IconPlayerPlay,
-  IconPlayerStop,
 } from "@tabler/icons-react";
-import {
-  Trash2,
-  Eye,
-  Edit,
-  User,
-  Users,
-  Book,
-  Clock,
-  MessageSquare,
-  Play,
-  Square,
-  CheckCircle,
-  MoreVertical,
-  UserPlus,
-  Settings,
-  Send,
-  X,
-} from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
 import ClassesManagement from "@/components/faculty/classes/ClassesManagement";
-import ActiveSessions from "@/components/faculty/classes/ActiveSessions";
 import AttendanceTab from '@/components/faculty/attendance/AttendanceTab';
 import { classesAPI } from "@/lib/api";
 import { checkAuth } from "@/lib/clientAuth";
@@ -80,34 +26,14 @@ import { Input } from "@/components/ui/input";
 import AnnouncementsManager from "@/components/faculty/announcements/AnnouncementsManager";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   Sidebar,
@@ -124,6 +50,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
+import FacultyDashboard from "@/components/faculty/dashboard/FacultyDashboard";
 
 // --- Types used by the faculty portal (kept local during modularization) ---
 interface Class {
@@ -407,19 +334,10 @@ export function FacultyPortal() {
   // Sheet and Drawer states
   const [addClassOpen, setAddClassOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [startSessionOpen, setStartSessionOpen] = useState(false);
-  const [manualAttendanceOpen, setManualAttendanceOpen] = useState(false);
-  const [viewClassOpen, setViewClassOpen] = useState(false);
-  const [editClassOpen, setEditClassOpen] = useState(false);
-  const [enrollStudentOpen, setEnrollStudentOpen] = useState(false);
-  const [viewStudentOpen, setViewStudentOpen] = useState(false);
-  const [viewSessionOpen, setViewSessionOpen] = useState(false);
 
-  // Selected items for viewing/editing
-  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [selectedSession, setSelectedSession] =
-    useState<AttendanceSession | null>(null);
+  // NOTE: modal/drawer state for per-class or per-session actions
+  // have been moved into modular components (ClassesManagement, AttendanceTab).
+  // Keep only top-level sheet flags here; nested components manage their own state.
 
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
@@ -438,43 +356,7 @@ export function FacultyPortal() {
   const { user } = useAuthContext();
   const announcementsRef = React.useRef<{ openNewAnnouncement?: () => void } | null>(null);
 
-  const [students, setStudents] = useState<Student[]>([
-    {
-      id: "S001",
-      name: "Alice Cooper",
-      email: "alice.cooper@student.edu",
-      studentId: "ST001",
-      classId: "CS101",
-      enrollmentStatus: "Enrolled",
-      attendanceRate: 95.2,
-      totalSessions: 32,
-      presentSessions: 30,
-      lastAttendance: "2025-10-15",
-    },
-    {
-      id: "S002",
-      name: "Bob Wilson",
-      email: "bob.wilson@student.edu",
-      studentId: "ST002",
-      classId: "CS101",
-      enrollmentStatus: "Enrolled",
-      attendanceRate: 87.5,
-      totalSessions: 32,
-      presentSessions: 28,
-      lastAttendance: "2025-10-14",
-    },
-    {
-      id: "S003",
-      name: "Carol Smith",
-      email: "carol.smith@student.edu",
-      studentId: "ST003",
-      classId: "CS101",
-      enrollmentStatus: "Pending",
-      attendanceRate: 0,
-      totalSessions: 0,
-      presentSessions: 0,
-    },
-  ]);
+  // Real data will be loaded from backend by child components; remove demo students state.
 
   // Load classes from backend for the current faculty user
   useEffect(() => {
@@ -490,11 +372,11 @@ export function FacultyPortal() {
         // and ownership checks behave correctly (mirrors AdminPortal behavior).
         try {
           const ok = await checkAuth();
-                    <AvatarFallback className="rounded-lg bg-green-500 text-white">{initial}</AvatarFallback>
+          if (!ok) {
             const redirectTo = encodeURIComponent(window.location.pathname || '/');
             router.push(`/auth/login?redirect=${redirectTo}`);
             return;
-                    <span className="truncate font-medium">{displayName}</span>
+          }
         } catch (err) {
           // On network/auth check error, redirect to login as a safe fallback.
           const redirectTo = encodeURIComponent(window.location.pathname || '/');
@@ -505,11 +387,9 @@ export function FacultyPortal() {
         setIsLoading(true);
         const backend = await classesAPI.listClassesForFaculty(Number(user.id));
         if (!mounted) return;
-                      <AvatarFallback className="rounded-lg bg-green-500 text-white">{initial}</AvatarFallback>
         const mapped: Class[] = Array.isArray(backend)
-          ? backend.map((c: any) => {
+            ? backend.map((c: any) => {
               const schedules: any[] = Array.isArray(c.schedules) ? c.schedules : [];
-                      <span className="truncate font-medium">{displayName}</span>
               // Build a human-friendly schedule string
               const scheduleStr = schedules
                 .map((s) => {
@@ -618,20 +498,8 @@ export function FacultyPortal() {
     }
   };
 
-  const [activeSessions, setActiveSessions] = useState<AttendanceSession[]>([
-    {
-      id: "SESSION001",
-      classId: "CS101",
-      className: "Introduction to Computer Science",
-      date: "2025-10-16",
-      startTime: "09:00",
-      endTime: "10:30",
-      status: "Active",
-      presentCount: 42,
-      totalStudents: 45,
-      location: "Room 202",
-    },
-  ]);
+  // Start with no active sessions; real sessions are loaded from backend.
+  const [activeSessions, setActiveSessions] = useState<AttendanceSession[]>([]);
 
   
 
@@ -835,10 +703,7 @@ export function FacultyPortal() {
 
   
 
-  React.useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 1000);
-  }, []);
+  // Loading state is driven by real data fetches; remove demo timeout.
 
   return (
     <SidebarProvider>
@@ -950,153 +815,31 @@ export function FacultyPortal() {
 
           {/* Page Content */}
           <div className="p-4 md:p-6 space-y-4 md:space-y-6 safe-area-bottom relative">
-            {/* Dashboard */}
+            {/* Dashboard (modularized) */}
             {activeTab === "dashboard" && (
-              <div className="space-y-4 md:space-y-6">
-                {isLoading ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {[...Array(4)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="animate-pulse h-32 bg-stone-200 rounded-lg"
-                        />
-                      ))}
-                    </div>
-                    <div className="animate-pulse h-64 bg-stone-200 rounded-lg" />
-                  </div>
-                ) : (
-                  <>
-                    {/* Dashboard Metrics Cards */}
-                    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-                      {metricCards.map((metric, index) => (
-                        <Card key={index} className="@container/card">
-                          <CardHeader>
-                            <CardDescription>{metric.title}</CardDescription>
-                            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                              {metric.value}
-                            </CardTitle>
-                            <div className="flex items-center gap-2 mt-2">
-                              <Badge
-                                variant="outline"
-                                className={
-                                  metric.trend === "up"
-                                    ? "border-green-200 text-green-700 bg-green-50"
-                                    : metric.trend === "down"
-                                    ? "border-red-200 text-red-700 bg-red-50"
-                                    : "border-gray-200 text-gray-700 bg-gray-50"
-                                }
-                              >
-                                {metric.trend === "up" && (
-                                  <IconTrendingUp className="w-3 h-3" />
-                                )}
-                                {metric.trend === "down" && (
-                                  <IconTrendingDown className="w-3 h-3" />
-                                )}
-                                {metric.change}
-                              </Badge>
-                            </div>
-                          </CardHeader>
-                        </Card>
-                      ))}
-                    </div>
-
-                    {/* Quick Actions and Active Sessions */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-                      {/* Quick Actions */}
-                      <Card className="border shadow-sm bg-stone-50/40 supports-backdrop-filter:backdrop-blur-md border-stone-200/50">
-                        <CardHeader className="pb-4">
-                          <CardTitle className="text-lg">
-                            Quick Actions
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <Button
-                            onClick={() => setAddClassOpen(true)}
-                            className="w-full justify-start"
-                            variant="outline"
-                          >
-                            <IconPlus className="w-4 h-4 mr-2" />
-                            Create New Class
-                          </Button>
-                              <Button
-                                onClick={() => announcementsRef.current?.openNewAnnouncement?.()}
-                                className="w-full justify-start"
-                                variant="outline"
-                              >
-                                <IconSpeakerphone className="w-4 h-4 mr-2" />
-                                New Announcement
-                              </Button>
-                          
-                        </CardContent>
-                      </Card>
-
-                      <ActiveSessions
-                        sessions={activeSessions}
-                        variant="compact"
-                        onEndSession={handleEndSession}
-                        onStartSession={handleStartSession}
-                      />
-                    </div>
-
-                    {/* Recent Classes Overview */}
-                    <Card className="border shadow-sm bg-stone-50/40 supports-backdrop-filter:backdrop-blur-md border-stone-200/50">
-                      <CardHeader className="pb-4">
-                        <CardTitle className="text-lg">Your Classes</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {classes.slice(0, 6).map((classItem) => (
-                            <div
-                              key={classItem.id}
-                              className="p-4 rounded-lg bg-white/50 border border-stone-200/50 hover:bg-white/70 transition-colors cursor-pointer"
-                              onClick={() => setActiveTab("classes")}
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium truncate">
-                                    {classItem.name}
-                                  </h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    {classItem.code}
-                                  </p>
-                                </div>
-                                <Badge
-                                  variant="outline"
-                                  className={
-                                    classItem.status === "Active"
-                                      ? "border-green-200 text-green-700 bg-green-50"
-                                      : "border-gray-200 text-gray-700 bg-gray-50"
-                                  }
-                                >
-                                  {classItem.status}
-                                </Badge>
-                              </div>
-                              <div className="space-y-1 text-sm">
-                                <p className="text-muted-foreground">
-                                  <Users className="w-3 h-3 inline mr-1" />
-                                  {classItem.enrolledStudents} students
-                                </p>
-                                <p className="text-muted-foreground">
-                                  <Clock className="w-3 h-3 inline mr-1" />
-                                  {classItem.schedule}
-                                </p>
-                                <p className="text-muted-foreground">
-                                  Attendance: {classItem.attendanceRate}%
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </>
-                )}
-              </div>
+              <FacultyDashboard
+                isLoading={isLoading}
+                metricCards={metricCards}
+                classes={classes}
+                activeSessions={activeSessions}
+                onStartSession={handleStartSession}
+                onEndSession={handleEndSession}
+                onOpenAddClass={() => {
+                  // Navigate to classes first, then open the CreateClassDrawer after a short delay
+                  setActiveTab("classes");
+                  setTimeout(() => setAddClassOpen(true), 500);
+                }}
+                onOpenNewAnnouncement={() => {
+                  // Navigate to announcements first, then open the announcement drawer after a short delay
+                  setActiveTab("announcements");
+                  setTimeout(() => announcementsRef.current?.openNewAnnouncement?.(), 500);
+                }}
+                onOpenClasses={() => setActiveTab("classes")}
+              />
             )}
 
             {activeTab === "classes" && (
-              <ClassesManagement onClassChanged={refreshClassInState} />
+              <ClassesManagement onClassChanged={refreshClassInState} addClassOpen={addClassOpen} setAddClassOpen={setAddClassOpen} />
             )}
 
             {/* Attendance Management */}

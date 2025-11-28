@@ -15,7 +15,7 @@ import SearchBar from "./SearchBar";
 import ClassesFilters from "./ClassesFilters";
 import DeleteClassDialog from "./DeleteClassDialog";
 
-export default function ClassesManagement({ onClassChanged }: { onClassChanged?: (classId: number) => void } = {}) {
+export default function ClassesManagement({ onClassChanged, addClassOpen: addClassOpenProp, setAddClassOpen: setAddClassOpenProp }: { onClassChanged?: (classId: number) => void, addClassOpen?: boolean, setAddClassOpen?: (v: boolean) => void } = {}) {
   const { toast } = useToast();
   const { user } = useAuthContext();
 
@@ -35,7 +35,7 @@ export default function ClassesManagement({ onClassChanged }: { onClassChanged?:
   const [coursesLoading, setCoursesLoading] = useState(false);
 
   // Drawer / selection state
-  const [addClassOpen, setAddClassOpen] = useState(false);
+  const [addClassOpen, setAddClassOpen] = useState<boolean>(addClassOpenProp ?? false);
   const [viewClassOpen, setViewClassOpen] = useState(false);
   const [editClassOpen, setEditClassOpen] = useState(false);
   // enroll drawer removed
@@ -111,6 +111,18 @@ export default function ClassesManagement({ onClassChanged }: { onClassChanged?:
   }, [user]);
 
   // Also fetch when the Create drawer opens (retry if no options yet)
+  // sync controlled prop -> local state
+  useEffect(() => {
+    if (typeof addClassOpenProp === "boolean") setAddClassOpen(addClassOpenProp);
+  }, [addClassOpenProp]);
+
+  const setAddClassOpenLocal = (v: boolean) => {
+    try {
+      if (typeof setAddClassOpenProp === "function") setAddClassOpenProp(v);
+    } catch (e) {}
+    setAddClassOpen(v);
+  };
+
   useEffect(() => {
     if (!addClassOpen) return;
     if (courses && courses.length > 0) return; // already have options
@@ -506,7 +518,7 @@ export default function ClassesManagement({ onClassChanged }: { onClassChanged?:
       </div>
       <MyClasses
         classes={filteredClasses}
-        setAddClassOpen={setAddClassOpen}
+        setAddClassOpen={setAddClassOpenLocal}
         setSelectedClass={(c) => setSelectedClass(c)}
         setViewClassOpen={setViewClassOpen}
         setEditClassOpen={setEditClassOpen}
@@ -532,7 +544,7 @@ export default function ClassesManagement({ onClassChanged }: { onClassChanged?:
 
       <CreateClassDrawer
         open={addClassOpen}
-        onOpenChange={setAddClassOpen}
+        onOpenChange={setAddClassOpenLocal}
         newCourseId={newCourseId}
         setNewCourseId={setNewCourseId}
         newClassRoom={newClassRoom}
