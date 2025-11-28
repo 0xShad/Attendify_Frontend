@@ -33,6 +33,7 @@ export default function ClassCard({
   const [startDialogInitialSession, setStartDialogInitialSession] = React.useState<any | null>(null);
   const { toast } = useToast();
   const [sessionInfo, setSessionInfo] = React.useState<any | null>(null);
+  const sessionEndedToday = Boolean((classItem as any).session_ended_today);
   const router = useRouter();
   // Safe helpers
   const studentsText = typeof classItem.students_count === "number" ? `${classItem.students_count} students` : "-";
@@ -392,12 +393,15 @@ export default function ClassCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                  {classItem.is_secretary ? (
-                    <DropdownMenuItem onClick={() => setStartDialogOpen(true)}>
-                      <Clock className="w-4 h-4 mr-2" />
-                      Start Session
-                    </DropdownMenuItem>
-                  ) : null}
+                    {classItem.is_secretary ? (
+                      <DropdownMenuItem
+                        onClick={() => { if (!sessionEndedToday) setStartDialogOpen(true); }}
+                        disabled={sessionEndedToday}
+                      >
+                        <Clock className="w-4 h-4 mr-2" />
+                        {sessionEndedToday ? 'Session Ended' : 'Start Session'}
+                      </DropdownMenuItem>
+                    ) : null}
                 <DropdownMenuItem onClick={() => onViewDetails && onViewDetails(classItem)}>
                   <Eye className="w-4 h-4 mr-2" />
                   View Details

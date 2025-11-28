@@ -181,6 +181,8 @@ export default function ClassesManagement({ onClassChanged, addClassOpen: addCla
             // Active session metadata from backend
             session_active: Boolean(d.session_active),
             active_session_id: d.active_session_id ?? null,
+            // New flag from API indicating the session has already been ended today
+            session_ended_today: Boolean(d.session_ended_today),
             enrolledStudents: d.enrolled_students ?? d.students_count ?? 0,
             attendanceRate: typeof d.attendance_rate === 'number' ? d.attendance_rate : (d.attendance_rate ? Number(d.attendance_rate) : 0),
             status: d.status ?? 'Active',
@@ -254,6 +256,7 @@ export default function ClassesManagement({ onClassChanged, addClassOpen: addCla
         academic_year: created.academic_year ?? null,
         semester: created.semester ?? null,
         schedules: [],
+        	session_ended_today: created.session_ended_today ?? false,
         enrolledStudents: created.enrolled_students ?? created.students_count ?? 0,
         attendanceRate: typeof created.attendance_rate === 'number' ? created.attendance_rate : (created.attendance_rate ? Number(created.attendance_rate) : 0),
         status: created.status ?? 'Active',

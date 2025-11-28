@@ -61,6 +61,8 @@ export interface ClassItem {
   // Active session metadata added by backend
   session_active?: boolean;
   active_session_id?: number | null;
+  // Indicates the session for this class has already been ended today
+  session_ended_today?: boolean;
 }
 
 interface Props {
@@ -120,20 +122,17 @@ export default function ClassCard({
             {classItem.is_active && (
               <div className="mt-auto mb-3">
                 {classItem.session_active ? (
-                  <Button
-                    size="sm"
-                    className="w-full sm:w-auto flex items-center justify-center"
-                    disabled
-                  >
+                  <Button size="sm" className="w-full sm:w-auto flex items-center justify-center" disabled>
                     <Play className="w-4 h-4" />
                     <span className="hidden sm:inline ml-2">Session active</span>
                   </Button>
+                ) : classItem.session_ended_today ? (
+                  <Button size="sm" className="w-full sm:w-auto flex items-center justify-center" disabled>
+                    <Play className="w-4 h-4" />
+                    <span className="hidden sm:inline ml-2">Session Ended</span>
+                  </Button>
                 ) : (
-                  <Button
-                    size="sm"
-                    className="w-full sm:w-auto flex items-center justify-center"
-                    onClick={() => onStartSession(classItem.id)}
-                  >
+                  <Button size="sm" className="w-full sm:w-auto flex items-center justify-center" onClick={() => onStartSession(classItem.id)}>
                     <Play className="w-4 h-4" />
                     <span className="hidden sm:inline ml-2">Start Session</span>
                   </Button>
