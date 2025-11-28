@@ -6,14 +6,13 @@ import Image from "next/image";
 import {
   IconHome,
   IconUsers,
-  IconFileText,
   IconList,
   IconSettings,
   IconPlus,
   IconCheck,
   IconLoader2,
   IconX,
-  IconChartBar,
+  
   IconBell,
   IconSearch,
   IconCalendar,
@@ -22,7 +21,7 @@ import {
   IconEye,
   IconEdit,
   IconTrash,
-  IconDownload,
+  
   IconFilter,
   IconRefresh,
   IconMenu2,
@@ -59,7 +58,6 @@ import {
   MoreVertical,
   UserPlus,
   Settings,
-  Download,
   Send,
   X,
 } from "lucide-react";
@@ -260,12 +258,11 @@ export function FacultyPortal() {
   // render and initial client render match. We will read `window.location`
   // and `localStorage` later in a mount effect to handle hard reloads.
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "classes" | "attendance" | "reports" | "announcements"
+    "dashboard" | "classes" | "attendance" | "announcements"
   >(() => (searchParams?.get("tab") as
     | "dashboard"
     | "classes"
     | "attendance"
-    | "reports"
     | "announcements") || "dashboard");
 
   // Persist the active tab in the URL so a browser refresh returns to the same tab.
@@ -282,7 +279,7 @@ export function FacultyPortal() {
       const t = params.get("tab");
       if (
         t &&
-        ["dashboard", "classes", "attendance", "reports", "announcements"].includes(t) &&
+        ["dashboard", "classes", "attendance", "announcements"].includes(t) &&
         t !== activeTab
       ) {
         setActiveTab(t as any);
@@ -292,7 +289,7 @@ export function FacultyPortal() {
           const stored = window.localStorage.getItem("faculty_active_tab");
           if (
             stored &&
-            ["dashboard", "classes", "attendance", "reports", "announcements"].includes(stored) &&
+            ["dashboard", "classes", "attendance", "announcements"].includes(stored) &&
             stored !== activeTab
           ) {
             setActiveTab(stored as any);
@@ -325,7 +322,7 @@ export function FacultyPortal() {
       // If we haven't yet reconciled the real tab from URL/localStorage on mount,
       // prefer to honor the present URL param (if any) and avoid persisting.
       if (!initialUrlSyncRef.current) {
-        if (urlTab && ["dashboard", "classes", "attendance", "reports", "announcements"].includes(urlTab)) {
+        if (urlTab && ["dashboard", "classes", "attendance", "announcements"].includes(urlTab)) {
           if (urlTab !== activeTab) setActiveTab(urlTab as any);
         }
         return;
@@ -362,11 +359,10 @@ export function FacultyPortal() {
       | "dashboard"
       | "classes"
       | "attendance"
-      | "reports"
       | "announcements";
     if (
       tabParam &&
-      ["dashboard", "classes", "attendance", "reports", "announcements"].includes(tabParam)
+      ["dashboard", "classes", "attendance", "announcements"].includes(tabParam)
     ) {
       setActiveTab(tabParam);
     }
@@ -382,7 +378,7 @@ export function FacultyPortal() {
       const t = params.get("tab");
       if (
         t &&
-        ["dashboard", "classes", "attendance", "reports", "announcements"].includes(t) &&
+        ["dashboard", "classes", "attendance", "announcements"].includes(t) &&
         t !== activeTab
       ) {
         setActiveTab(t as any);
@@ -644,7 +640,6 @@ export function FacultyPortal() {
     { id: "dashboard", icon: IconHome, label: "Dashboard" },
     { id: "classes", icon: IconBook, label: "My Classes" },
     { id: "attendance", icon: IconUserCheck, label: "Attendance" },
-    { id: "reports", icon: IconFileText, label: "Reports" },
     { id: "announcements", icon: IconSpeakerphone, label: "Announcements" },
   ];
 
@@ -838,12 +833,7 @@ export function FacultyPortal() {
     });
   };
 
-  const handleExportReport = (type: string) => {
-    toast({
-      title: "Export Started",
-      description: `${type} report is being prepared for download`,
-    });
-  };
+  
 
   React.useEffect(() => {
     setIsLoading(true);
@@ -856,7 +846,7 @@ export function FacultyPortal() {
         {/* Shadcn Sidebar */}
         <Sidebar
           variant="sidebar"
-          className="border-r border-border bg-stone-50/60 supports-[backdrop-filter]:backdrop-blur-md shadow-lg flex flex-col min-h-screen relative z-50"
+          className="border-r border-border bg-stone-50/60 supports-backdrop-filter:backdrop-blur-md shadow-lg flex flex-col min-h-screen relative z-50"
         >
           {/* Sidebar Header with Logo */}
           <SidebarHeader className="px-4 py-6 border-b">
@@ -866,7 +856,7 @@ export function FacultyPortal() {
                 alt="Attendify Logo"
                 width={48}
                 height={48}
-                className="flex-shrink-0"
+                className="shrink-0"
               />
               <div className="group-data-[collapsible=icon]:hidden">
                 <span className="font-bold text-lg block">Attendify</span>
@@ -909,7 +899,7 @@ export function FacultyPortal() {
         {/* Main Content Area */}
         <SidebarInset className="flex-1 overflow-x-hidden">
           {/* Top Header */}
-          <header className="sticky top-0 z-40 border-b bg-stone-50/98 backdrop-blur-xl supports-[backdrop-filter]:bg-stone-50/95 shadow-lg transition-all duration-300">
+          <header className="sticky top-0 z-40 border-b bg-stone-50/98 backdrop-blur-xl supports-backdrop-filter:bg-stone-50/95 shadow-lg transition-all duration-300">
             <div className="flex h-16 items-center justify-between px-6">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="md:hidden" />
@@ -919,7 +909,7 @@ export function FacultyPortal() {
                     alt="Attendify Logo"
                     width={24}
                     height={24}
-                    className="flex-shrink-0"
+                    className="shrink-0"
                   />
                   <span className="font-semibold">Attendify</span>
                 </div>
@@ -931,7 +921,7 @@ export function FacultyPortal() {
                       alt="Attendify Logo"
                       width={40}
                       height={40}
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     />
                     <div>
                       <h2 className="text-2xl font-bold capitalize">
@@ -944,8 +934,6 @@ export function FacultyPortal() {
                           "Create and manage your classes"}
                         {activeTab === "attendance" &&
                           "Monitor and manage attendance sessions"}
-                        {activeTab === "reports" &&
-                          "View attendance reports and analytics"}
                         {activeTab === "announcements" &&
                           "Communicate with your students"}
                       </p>
@@ -954,9 +942,9 @@ export function FacultyPortal() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <NotificationMenu />
-              </div>
+                <div className="flex items-center gap-3">
+                  <NotificationMenu />
+                </div>
             </div>
           </header>
 
@@ -1016,7 +1004,7 @@ export function FacultyPortal() {
                     {/* Quick Actions and Active Sessions */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                       {/* Quick Actions */}
-                      <Card className="border shadow-sm bg-stone-50/40 supports-[backdrop-filter]:backdrop-blur-md border-stone-200/50">
+                      <Card className="border shadow-sm bg-stone-50/40 supports-backdrop-filter:backdrop-blur-md border-stone-200/50">
                         <CardHeader className="pb-4">
                           <CardTitle className="text-lg">
                             Quick Actions
@@ -1039,16 +1027,7 @@ export function FacultyPortal() {
                                 <IconSpeakerphone className="w-4 h-4 mr-2" />
                                 New Announcement
                               </Button>
-                          <Button
-                            onClick={() =>
-                              handleExportReport("Attendance Summary")
-                            }
-                            className="w-full justify-start"
-                            variant="outline"
-                          >
-                            <IconDownload className="w-4 h-4 mr-2" />
-                            Export Reports
-                          </Button>
+                          
                         </CardContent>
                       </Card>
 
@@ -1061,7 +1040,7 @@ export function FacultyPortal() {
                     </div>
 
                     {/* Recent Classes Overview */}
-                    <Card className="border shadow-sm bg-stone-50/40 supports-[backdrop-filter]:backdrop-blur-md border-stone-200/50">
+                    <Card className="border shadow-sm bg-stone-50/40 supports-backdrop-filter:backdrop-blur-md border-stone-200/50">
                       <CardHeader className="pb-4">
                         <CardTitle className="text-lg">Your Classes</CardTitle>
                       </CardHeader>
@@ -1125,81 +1104,7 @@ export function FacultyPortal() {
               <AttendanceTab />
             )}
 
-            {/* Reports */}
-            {activeTab === "reports" && (
-              <div className="space-y-4 md:space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <h3 className="text-lg font-medium">Reports & Analytics</h3>
-                    <p className="text-sm text-muted-foreground">
-                      View attendance statistics and export detailed reports
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => handleExportReport("Class Summary")}
-                      variant="outline"
-                    >
-                      <IconDownload className="w-4 h-4 mr-2" />
-                      Export CSV
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Report Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {classes.map((classItem) => (
-                    <Card key={classItem.id}>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base">
-                          {classItem.name}
-                        </CardTitle>
-                        <CardDescription>{classItem.code}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <div className="text-muted-foreground">
-                              Students
-                            </div>
-                            <div className="font-medium">
-                              {classItem.enrolledStudents}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground">
-                              Sessions
-                            </div>
-                            <div className="font-medium">
-                              {classItem.completedSessions}/
-                              {classItem.totalSessions}
-                            </div>
-                          </div>
-                          <div className="col-span-2">
-                            <div className="text-muted-foreground">
-                              Attendance Rate
-                            </div>
-                            <div className="font-medium text-lg">
-                              {classItem.attendanceRate}%
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={() =>
-                            handleExportReport(`${classItem.name} Report`)
-                          }
-                        >
-                          <IconDownload className="w-4 h-4 mr-2" />
-                          Export Report
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
+            
 
             {/* Announcements */}
             {activeTab === "announcements" && (

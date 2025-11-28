@@ -177,17 +177,27 @@ export default function RequestedExcuses() {
                   <td className="p-3 align-top whitespace-nowrap">
                     {
                       (() => {
-                        const raw = String(it.status ?? '');
+                        const raw = String(it.status ?? '').toLowerCase();
                         const label = raw.length ? (raw.charAt(0).toUpperCase() + raw.slice(1)) : raw;
-                        const variant = raw === 'approved' ? 'secondary' : (raw === 'pending' ? undefined : 'destructive');
-                        return <Badge variant={variant}>{label}</Badge>;
+                        const className =
+                          raw === 'approved'
+                            ? 'border-green-200 text-green-700 bg-green-50'
+                            : raw === 'pending'
+                            ? 'border-yellow-200 text-yellow-800 bg-yellow-50'
+                            : raw === 'denied' || raw === 'declined'
+                            ? 'border-red-200 text-red-700 bg-red-50'
+                            : raw === 'cancelled' || raw === 'canceled'
+                            ? 'border-gray-200 text-gray-700 bg-gray-50'
+                            : 'border-gray-200 text-gray-700 bg-gray-50';
+
+                        return <Badge className={className}>{label}</Badge>;
                       })()
                     }
                   </td>
                   <td className="p-3 align-top">
                     <div className="max-w-lg line-clamp-3 text-sm text-foreground/90">{it.reason ?? '-'}</div>
                   </td>
-                  <td className="p-3 align-top whitespace-nowrap text-sm">{it.reviewed_at ? fmtDate(it.reviewed_at) : '-'}</td>
+                  <td className="p-3 align-top whitespace-nowrap text-sm">{it.reviewed_at ? fmtDate(it.reviewed_at) : <span className="text-destructive">Not reviewed yet.</span>}</td>
                   <td className="p-3 align-top">
                     <div className="flex items-center gap-2">
                       <Button title="View details" variant="ghost" size="sm" onClick={() => { setViewItem(it); setViewOpen(true); }} aria-label={`View request ${it.id}`}><Eye size={16} /></Button>
