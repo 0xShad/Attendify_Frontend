@@ -401,23 +401,39 @@ export default function FacultyDashboard({
                 )}
               </div>
             </CardHeader>
-            <CardContent className="pl-2">
+            <CardContent className="p-4">
               {(() => {
                 const activeClasses = (data?.students_by_class || []).filter((c: any) => Boolean(c.is_active));
                 if (!activeClasses || activeClasses.length === 0) {
+                  // Determine if instructor has any classes with schedule metadata
+                  const hasSched = (data?.students_by_class || []).some((c: any) => {
+                    if (!c) return false;
+                    if (Array.isArray(c.upcoming_sessions) && c.upcoming_sessions.length > 0) return true;
+                    if (Array.isArray(c.schedules) && c.schedules.length > 0) return true;
+                    if (c.schedule_id || c.session_id) return true;
+                    return false;
+                  });
                   return (
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div>
+                      <div className="flex-1 flex flex-col justify-center min-w-0">
                         <p className="text-sm text-stone-600">No active session</p>
-                        <p className="text-xs text-stone-400 mt-2">Use the controls to start a session or record attendance. (Placeholder)</p>
+                        <p className="text-xs text-stone-400 mt-2">Use the controls to start a session or record attendance.</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button onClick={() => alert('Start Session (placeholder)')} variant="outline" className="gap-2">
-                          <Clock className="h-4 w-4" /> Start Session
-                        </Button>
-                        <Button onClick={() => alert('Take Attendance (placeholder)')} className="gap-2 bg-stone-900 text-white hover:bg-stone-800">
-                          <CheckCircle2 className="h-4 w-4" /> Take Attendance
-                        </Button>
+                        {hasSched ? (
+                          <Button
+                            onClick={() => {
+                              // Open the Start Session dialog without preselected class so user can pick one
+                              setStartDialogClassId(null);
+                              setStartDialogClassCode(null);
+                              setStartDialogOpen(true);
+                            }}
+                            variant="outline"
+                            className="gap-2"
+                          >
+                            <Clock className="h-4 w-4" /> Start Session
+                          </Button>
+                        ) : null}
                       </div>
                     </div>
                   );

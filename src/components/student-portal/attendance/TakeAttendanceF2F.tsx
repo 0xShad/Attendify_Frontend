@@ -19,6 +19,23 @@ type Props = {
 export default function TakeAttendanceF2F({ open, onOpenChange, classItem, sessionInfo, onRecorded }: Props) {
   const { toast } = useToast();
   const [submitting, setSubmitting] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const [cameraWidth, setCameraWidth] = React.useState<number>(560);
+
+  // adapt camera size to available width (responsive)
+  React.useEffect(() => {
+    function updateSize() {
+      try {
+        const avail = containerRef.current?.clientWidth || window.innerWidth || 560;
+        // keep some horizontal padding on small screens; allow larger cap on desktop
+        const padded = Math.max(300, Math.min(900, Math.floor(avail - 32)));
+        setCameraWidth(padded);
+      } catch (e) { /* ignore */ }
+    }
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
 
   const dataURLtoBlob = (dataurl: string) => {
     const arr = dataurl.split(',');
@@ -74,7 +91,11 @@ export default function TakeAttendanceF2F({ open, onOpenChange, classItem, sessi
             if (matchInfo.matched) {
               toast({ title: 'Attendance recorded', description: 'Face matched — attendance recorded.' });
             } else {
-              toast({ title: 'Face recognition failed', description: 'Face recognition did not match our records.', variant: 'destructive' });
+              toast({
+                title: 'Face recognition failed',
+                description: 'Couldn\'t verify your face. Tips: ensure even lighting, remove masks/glasses, hold your face centered and still, look directly at the camera, and try moving slightly closer or farther.',
+                variant: 'destructive',
+              });
             }
           }
         } else {
@@ -105,7 +126,7 @@ export default function TakeAttendanceF2F({ open, onOpenChange, classItem, sessi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="w-full sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Face-to-Face Attendance</DialogTitle>
         </DialogHeader>
@@ -117,15 +138,16 @@ export default function TakeAttendanceF2F({ open, onOpenChange, classItem, sessi
             <div className="text-xs text-muted-foreground">Session: {sessionInfo?.active_session_id ?? sessionInfo?.session_id ?? '—'}</div>
           </div>
 
-          <div className="mt-4 flex justify-center">
-            <F2FFaceCamera onRecognized={handleRecognized} bypassFilters={true} width={560} height={420} className="mx-auto" />
+          <div className="mt-4 flex justify-center w-full">
+            <F2FFaceCamera
+              onRecognized={handleRecognized}
+              bypassFilters={true}
+              width={cameraWidth}
+              height={Math.round(cameraWidth * (420 / 560))}
+              className="mx-auto w-full"
+            />
           </div>
         </div>
-
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>Close</Button>
-        </div>
-
         <DialogFooter />
       </DialogContent>
     </Dialog>

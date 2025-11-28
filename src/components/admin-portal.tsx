@@ -87,6 +87,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
+import NotificationBell from '@/components/NotificationBell';
 
 interface User {
   id: string;
@@ -108,35 +109,7 @@ interface MetricCard {
   trendData: number[];
 }
 
-// Notification dropdown with glassy styling
-function NotificationMenu() {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <IconBell className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64 bg-stone-50/70 supports-[backdrop-filter]:backdrop-blur-md border shadow-lg">
-        <div className="p-2">
-          <div className="text-sm font-medium">Notifications</div>
-          <div className="mt-2 space-y-2">
-            <div className="text-sm text-muted-foreground">
-              New login from IP 192.0.2.1
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Attendance report ready
-            </div>
-            <div className="text-sm text-muted-foreground">
-              User Bob Smith added
-            </div>
-          </div>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
+// Use the central NotificationBell component for notifications
 
 // Separate component for sidebar user menu that can use useSidebar hook
 function SidebarUserMenu({
@@ -630,7 +603,7 @@ export function AdminPortal() {
 
               <div className="flex items-center gap-3">
                 {/* Notifications - dropdown with glass effect */}
-                <NotificationMenu />
+                <NotificationBell />
               </div>
             </div>
           </header>

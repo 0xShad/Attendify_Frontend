@@ -454,7 +454,7 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
 
   return (
     <div className={`f2f-face-camera ${className}`}>
-      <div style={{ width, maxWidth: '100%' }} className="relative rounded-lg overflow-hidden border">
+      <div style={{ width: '100%', maxWidth: width }} className="relative rounded-lg overflow-hidden border">
         <video ref={videoRef} width={width} height={height} className="w-full h-auto" autoPlay muted playsInline />
         {detectedBox && (
           <div
@@ -473,9 +473,7 @@ export default function F2FFaceCamera({ onRecognized, debounceMinutes = 5, width
         
         {error && <div className="absolute inset-0 flex items-center justify-center text-sm text-red-600 bg-white/60">{error}</div>}
       </div>
-      <div className="mt-3 flex items-center gap-2">
-        <Button variant="ghost" onClick={handleRetry}>Retry</Button>
-      </div>
+      
     </div>
   );
 }

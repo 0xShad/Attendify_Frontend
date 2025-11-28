@@ -88,6 +88,7 @@ import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import NotificationBell from '@/components/NotificationBell';
 import {
   Sidebar,
   SidebarContent,
@@ -190,46 +191,7 @@ interface AttendanceSession {
   cutoffTime?: number; // minutes
 }
 
-// Notification Menu Component
-function NotificationMenu() {
-  const [unreadCount, setUnreadCount] = useState(3);
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-xs flex items-center justify-center">
-              {unreadCount}
-            </span>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64 bg-stone-50/70 supports-backdrop-filter:backdrop-blur-md border shadow-lg">
-        <div className="p-2">
-          <div className="text-sm font-medium mb-2">Notifications</div>
-          <div className="space-y-2">
-            <div className="text-sm p-2 rounded bg-blue-50 border-l-2 border-blue-400">
-              CS101 session starts in 10 minutes
-            </div>
-            <div className="text-sm p-2 rounded bg-green-50 border-l-2 border-green-400">
-              Attendance recorded successfully
-            </div>
-            <div className="text-sm p-2 rounded bg-yellow-50 border-l-2 border-yellow-400">
-              New announcement in Math 201
-            </div>
-          </div>
-          <div className="mt-2 pt-2 border-t">
-            <Button variant="ghost" size="sm" className="w-full text-xs">
-              View All
-            </Button>
-          </div>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
+// Notifications are rendered by `NotificationBell` component (see components/NotificationBell.tsx)
 
 // Sidebar User Menu Component
 function SidebarUserMenu({
@@ -697,7 +659,7 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
               </div>
 
               <div className="flex items-center gap-3">
-                <NotificationMenu />
+                <NotificationBell />
               </div>
             </div>
           </header>
