@@ -38,6 +38,19 @@ import {
   ChevronRight,
   BookOpen
 } from "lucide-react";
+import StartSessionDialog from "@/components/faculty/classes/StartSessionDialog";
+import AttendanceTake from "@/components/student-portal/attendance/TakeAttendance";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+import { useToast } from "@/hooks/use-toast";
+import { endMySession } from "@/lib/api/attendance";
 
 // Use your existing API function
 import { getFacultyDashboardEnhanced, type FacultyDashboardEnhanced } from "@/lib/api/analytics";
@@ -92,22 +105,69 @@ export default function FacultyDashboard({
   const [activeTab, setActiveTab] = useState<string>("comparison");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  // Start Session dialog control
+  const [startDialogOpen, setStartDialogOpen] = useState<boolean>(false);
+  const [startDialogClassId, setStartDialogClassId] = useState<string | number | null>(null);
+  const [startDialogClassCode, setStartDialogClassCode] = useState<string | null>(null);
+  // Take Attendance dialog control
+  const [attendanceDialogOpen, setAttendanceDialogOpen] = useState<boolean>(false);
+  const [attendanceClassItem, setAttendanceClassItem] = useState<any | null>(null);
+  const [attendanceSessionInfo, setAttendanceSessionInfo] = useState<any | null>(null);
+  // End confirmation dialog control
+  const [endConfirmOpen, setEndConfirmOpen] = useState<boolean>(false);
+  const [endConfirmClass, setEndConfirmClass] = useState<any | null>(null);
+  const { toast } = useToast();
+
+  const handleStartDialogCreated = (session: any) => {
+    // notify parent that a session has started for the selected class
+    try {
+      if (typeof onStartSession === "function" && startDialogClassId) {
+        onStartSession(String(startDialogClassId));
+      }
+    } catch (e) {
+      // ignore
+    }
+    // close and reset
+    setStartDialogOpen(false);
+    setStartDialogClassId(null);
+    setStartDialogClassCode(null);
+    // refresh dashboard data after a session has been created
+    void fetchDashboard();
+  };
+
+  // Fetch dashboard data (reusable)
+  const fetchDashboard = async () => {
+    setLoading(true);
+    try {
+      const res = await getFacultyDashboardEnhanced();
+      setData(res);
+      setError(null);
+    } catch (err: any) {
+      console.error("Failed to load dashboard", err);
+      setError(err?.message || String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
-    getFacultyDashboardEnhanced()
-      .then((res) => {
+    const run = async () => {
+      setLoading(true);
+      try {
+        const res = await getFacultyDashboardEnhanced();
         if (!mounted) return;
         setData(res);
         setError(null);
-      })
-      .catch((err) => {
+      } catch (err: any) {
         console.error("Failed to load dashboard", err);
         if (!mounted) return;
         setError(err?.message || String(err));
-      })
-      .finally(() => mounted && setLoading(false));
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    void run();
     return () => { mounted = false; };
   }, []);
 
@@ -392,32 +452,77 @@ export default function FacultyDashboard({
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                if (typeof (onStartSession as any) === 'function') {
-                                  try { onStartSession(String(cls.class_id ?? '')); } catch { /* ignore */ }
-                                } else {
-                                  alert('Take Attendance (placeholder)');
-                                }
-                              }}
-                              className="gap-2 bg-stone-900 text-white hover:bg-stone-800"
-                            >
-                              <CheckCircle2 className="h-4 w-4" /> Take Attendance
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                if (typeof (onEndSession as any) === 'function') {
-                                  try { onEndSession(String(cls.class_id ?? '')); } catch { /* ignore */ }
-                                } else {
-                                  alert('End Session (placeholder)');
-                                }
-                              }}
-                            >
-                              End
-                            </Button>
+                            {Boolean(cls.is_active) && !Boolean(cls.session_started) ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  // Open the Start Session dialog for this class
+                                  try {
+                                    setStartDialogClassId(cls.class_id ?? cls.id ?? cls.classId ?? null);
+                                    setStartDialogClassCode(cls.class_code ?? cls.classCode ?? null);
+                                    setStartDialogOpen(true);
+                                  } catch (e) {
+                                    // fallback to direct handler if present
+                                    if (typeof (onStartSession as any) === 'function') {
+                                      try { onStartSession(String(cls.class_id ?? '')); } catch { /* ignore */ }
+                                    } else {
+                                      alert('Start Session (placeholder)');
+                                    }
+                                  }
+                                }}
+                                className="gap-2"
+                              >
+                                <Clock className="h-4 w-4" /> Start Session
+                              </Button>
+                            ) : Boolean(cls.session_started) ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    // Open the Take Attendance dialog for this class/session
+                                    try {
+                                      // construct a lightweight class object expected by TakeAttendance
+                                      const classItemObj = {
+                                        id: cls.class_id ?? cls.id ?? null,
+                                        course_name: cls.course_name ?? cls.title ?? null,
+                                        class_code: cls.class_code ?? cls.code ?? null,
+                                        program_name: cls.program_name ?? null,
+                                        room: cls.room ?? null,
+                                        assigned_faculty_name: cls.assigned_faculty_name ?? null,
+                                      };
+                                      // attach class info into sessionInfo when available so the attendance dialog
+                                      // has the `sessionInfo.class.id` shape it expects without round-tripping.
+                                      const sessionInfoAug = sessionObj ? { ...sessionObj, class: classItemObj } : null;
+                                      setAttendanceClassItem(classItemObj);
+                                      setAttendanceSessionInfo(sessionInfoAug);
+                                      setAttendanceDialogOpen(true);
+                                    } catch (e) {
+                                      if (typeof (onStartSession as any) === 'function') {
+                                        try { onStartSession(String(cls.class_id ?? '')); } catch { /* ignore */ }
+                                      } else {
+                                        alert('Take Attendance (placeholder)');
+                                      }
+                                    }
+                                  }}
+                                  className="gap-2 bg-stone-900 text-white hover:bg-stone-800"
+                                >
+                                  <CheckCircle2 className="h-4 w-4" /> Take Attendance
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    // open styled confirmation dialog
+                                    setEndConfirmClass(cls);
+                                    setEndConfirmOpen(true);
+                                  }}
+                                >
+                                  End
+                                </Button>
+                              </>
+                            ) : null}
                           </div>
                         </div>
                       );
@@ -615,6 +720,81 @@ export default function FacultyDashboard({
           </Card>
         </div>
       </div>
+      {/* Start Session Dialog (controlled) */}
+      <StartSessionDialog
+        open={startDialogOpen}
+        onOpenChange={(v: boolean) => {
+          setStartDialogOpen(v);
+          if (!v) {
+            setStartDialogClassId(null);
+            setStartDialogClassCode(null);
+          }
+        }}
+        classId={startDialogClassId}
+        classCode={startDialogClassCode ?? undefined}
+        onCreated={handleStartDialogCreated}
+      />
+      {/* Take Attendance dialog (student component) */}
+      <AttendanceTake
+        open={attendanceDialogOpen}
+        onOpenChange={(v: boolean) => {
+          setAttendanceDialogOpen(v);
+          if (!v) {
+            setAttendanceClassItem(null);
+            setAttendanceSessionInfo(null);
+          }
+        }}
+        classItem={attendanceClassItem ?? undefined}
+        sessionInfo={attendanceSessionInfo ?? undefined}
+        onRecorded={(rec: any) => {
+          // close and refresh dashboard after a successful record
+          setAttendanceDialogOpen(false);
+          setAttendanceClassItem(null);
+          setAttendanceSessionInfo(null);
+          void fetchDashboard();
+        }}
+      />
+
+      {/* End Session Confirmation Dialog */}
+      <Dialog open={endConfirmOpen} onOpenChange={(v: boolean) => {
+        setEndConfirmOpen(v);
+        if (!v) setEndConfirmClass(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>End Session</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to end the session for {endConfirmClass?.course_name || endConfirmClass?.class_code || 'this class'}? This will close the active session.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEndConfirmOpen(false)}>Cancel</Button>
+            <Button onClick={async () => {
+              const cid = Number(endConfirmClass?.class_id ?? endConfirmClass?.id ?? 0);
+              if (!cid) {
+                toast({ title: 'Unable to determine class', description: 'Missing class id', variant: 'destructive' });
+                setEndConfirmOpen(false);
+                setEndConfirmClass(null);
+                return;
+              }
+
+              try {
+                const result = await endMySession(cid);
+                toast({ title: 'Session ended', description: `Session ended for ${endConfirmClass?.course_name || endConfirmClass?.class_code || 'class'}` });
+                if (typeof (onEndSession as any) === 'function') {
+                  try { onEndSession(String(cid)); } catch { /* ignore */ }
+                }
+              } catch (err: any) {
+                toast({ title: 'Failed to end session', description: err?.message || String(err), variant: 'destructive' });
+              } finally {
+                setEndConfirmOpen(false);
+                setEndConfirmClass(null);
+                void fetchDashboard();
+              }
+            }} className="gap-2 bg-stone-900 text-white hover:bg-stone-800">End Session</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

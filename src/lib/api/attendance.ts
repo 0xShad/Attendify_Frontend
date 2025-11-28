@@ -189,6 +189,38 @@ export async function markPresentF2F(payload: MarkPresentIn): Promise<any> {
   }
 }
 
+/**
+ * End the currently active session for the given class_id (proxied).
+ * Endpoint: POST /api/attendance/mine/end-session
+ */
+export async function endMySession(classId: number): Promise<{ session_id: number | null; class_id: number | null; end_time: string | null; attendance_taken: boolean }> {
+  const isBrowser = typeof window !== 'undefined';
+  const proxyUrl = `/api/attendance/mine/end-session`;
+  const url = isBrowser ? proxyUrl : `${API_BASE_URL}/attendance/mine/end-session`;
+
+  try {
+    if (isBrowser) {
+      const form = new URLSearchParams();
+      form.append('class_id', String(classId));
+      const res = await import('./fetchClient').then(m => m.fetchWithAuth(url, {
+        method: 'POST',
+        body: form,
+      }));
+      return res as any;
+    }
+
+    const body = { class_id: classId };
+    const res = await import('./fetchClient').then(m => m.fetchWithAuth(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }));
+    return res as any;
+  } catch (err) {
+    throw err;
+  }
+}
+
 export interface ExcusalRequestIn {
   class_id: number;
   excusal_type: 'early' | 'late' | 'absence';

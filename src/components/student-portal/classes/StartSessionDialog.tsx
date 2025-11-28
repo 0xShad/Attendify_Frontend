@@ -69,12 +69,15 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
         setMatchedInfo(res ?? null);
         setOverrideMode(res?.schedule_mode ?? null);
       } catch (err: any) {
-        // If backend returns 403 it indicates a session is already active for this class+schedule
+        // If backend returns 403 it indicates a session conflict for this class+schedule.
         if (err?.status === 403) {
-          const msg = String(err?.message ?? err?.body?.detail ?? 'A session is already active for this class');
-          toast({ title: 'Session active', description: msg, variant: 'destructive' });
+          const detail = String(err?.body?.detail ?? err?.message ?? 'A session is already active for this class');
+          // Detect phrases indicating the session has already been ended earlier today
+          const endedLike = /ended|already ended|session ended|closed earlier|already closed/i.test(detail || '');
+          const msg = detail;
+          toast({ title: endedLike ? 'Session already ended' : 'Session active', description: msg, variant: 'destructive' });
           setMatched(false);
-          setMatchedInfo({ session_conflict: true, detail: msg, raw: err?.body ?? null });
+          setMatchedInfo({ session_conflict: true, session_already_ended: Boolean(endedLike), detail: msg, raw: err?.body ?? null });
         } else {
           toast({ title: "Start check failed", description: String(err?.message ?? err), variant: "destructive" });
           setMatched(null);
@@ -614,18 +617,21 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
 
                   <div className="pt-2">
                     <div className="text-sm text-muted-foreground">Schedule mode: <span className="font-medium">{(overrideMode ?? (matchedInfo?.schedule_mode ?? 'unknown'))}</span></div>
-                    {((overrideMode ?? matchedInfo?.schedule_mode) === 'hybrid') && (
-                      <div className="mt-2 space-y-2 bg-gray-50 border border-gray-100 p-3 rounded-md">
-                        <div className="text-sm font-medium">Hybrid mode requires location</div>
-                        <div className="text-sm text-muted-foreground">
-                          {geoStatus === 'idle' && 'Location will be requested automatically for hybrid mode.'}
-                          {geoStatus === 'requesting' && 'Requesting location…'}
-                          {geoStatus === 'granted' && coords && `Lat ${coords.latitude.toFixed(6)}, Lon ${coords.longitude.toFixed(6)}`}
-                          {geoStatus === 'denied' && `Denied: ${geoError ?? 'permission denied'}`}
-                          {geoStatus === 'error' && `Error: ${geoError ?? 'unknown'}`}
-                        </div>
+                    <div className="mt-2 space-y-2 bg-gray-50 border border-gray-100 p-3 rounded-md">
+                      {matchedInfo?.session_already_ended ? (
+                        <div className="text-sm text-destructive">A session for this class and schedule was already started and ended earlier today. {matchedInfo?.detail ? <span className="block text-xs text-muted-foreground mt-1">{matchedInfo.detail}</span> : null}</div>
+                      ) : (
+                        <div className="text-sm text-destructive">{matchedInfo?.detail ?? 'A session is already active for this class and schedule.'}</div>
+                      )}
+
+                      <div className="text-sm text-muted-foreground">
+                        {geoStatus === 'idle' && 'Location will be requested automatically for hybrid mode.'}
+                        {geoStatus === 'requesting' && 'Requesting location…'}
+                        {geoStatus === 'granted' && coords && `Lat ${coords.latitude.toFixed(6)}, Lon ${coords.longitude.toFixed(6)}`}
+                        {geoStatus === 'denied' && `Denied: ${geoError ?? 'permission denied'}`}
+                        {geoStatus === 'error' && `Error: ${geoError ?? 'unknown'}`}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
 

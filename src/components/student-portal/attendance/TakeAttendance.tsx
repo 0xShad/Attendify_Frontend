@@ -10,6 +10,7 @@ import F2FFaceCamera from "@/components/f2f-face-camera";
 import { markPresent, markPresentF2F } from '@/lib/api/attendance';
 import { getMyClassSession } from '@/lib/api/classes';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 type Props = {
   open: boolean;
@@ -73,11 +74,20 @@ export default function AttendanceTake({ open, onOpenChange, classItem, sessionI
         const msg = resp?.session_message ?? resp?.message ?? null;
         if (msg) {
             // Only show short inline message; if msg is a plain string show it, otherwise try to extract a readable string
-            setSubmitError(typeof msg === 'string' ? String(msg) : null);
+            const msgStr = typeof msg === 'string' ? String(msg) : null;
+            setSubmitError(msgStr);
             try {
-              const readable = typeof msg === 'string' ? String(msg) : (msg?.message ?? msg?.error ?? JSON.stringify(msg));
+              const readable = msgStr ?? (msg?.message ?? msg?.error ?? JSON.stringify(msg));
               toast({ title: 'Session', description: readable });
             } catch (e) {}
+
+            // If user already submitted for this session, close the dialog automatically
+            if (msgStr) {
+              const lc = msgStr.toLowerCase();
+              if (lc.includes('you have already submitted your attendance for this session') || lc.includes('already submitted')) {
+                try { onOpenChange(false); } catch (e) { /* ignore */ }
+              }
+            }
           } else {
           setSubmitError(null);
         }
@@ -405,7 +415,15 @@ export default function AttendanceTake({ open, onOpenChange, classItem, sessionI
         </DialogHeader>
 
         <div className="space-y-6 py-2">
-          <Card className="p-6">
+          <Card className="p-6 relative">
+            {loadingSessionDetails && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur rounded">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="animate-spin w-8 h-8 text-stone-700" />
+                  <div className="text-sm text-stone-700">Loading session details…</div>
+                </div>
+              </div>
+            )}
             <div className="flex flex-col items-center">
               <Label className="font-semibold text-lg mb-2">Face Verification</Label>
               <p className="text-sm text-muted-foreground mb-4 text-center max-w-lg">Use the camera to capture a clear photo of the attendee. Blink when asked to prove liveness. The system will validate the capture before recording attendance.</p>
@@ -531,7 +549,6 @@ export default function AttendanceTake({ open, onOpenChange, classItem, sessionI
               {submitting ? 'Recording...' : 'Record Attendance'}
             </Button>
           </div>
-          {submitError && <div className="text-sm text-red-600 mt-2">{submitError}</div>}
         </div>
 
         <DialogFooter />
