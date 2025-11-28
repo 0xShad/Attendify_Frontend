@@ -7,6 +7,7 @@ export type TokenCacheEntry = {
   email?: string | null;
   username?: string | null;
   full_name?: string | null;
+  avatar_url?: string | null;
   role?: string;
 };
 

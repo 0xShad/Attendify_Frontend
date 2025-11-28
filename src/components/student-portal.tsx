@@ -84,6 +84,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -244,7 +245,17 @@ function SidebarUserMenu({
     username?: string | null;
     full_name?: string | null;
     role?: string | null;
+    avatar_url?: string | null;
   } | null>(null);
+
+  const avatarSrc = useMemo(() => {
+    const raw = enrichment?.avatar_url ?? (user as any)?.avatarUrl ?? (user as any)?.avatar_url ?? null;
+    try {
+      return resolveAvatarUrl(raw ?? undefined);
+    } catch (e) {
+      return null;
+    }
+  }, [enrichment, user]);
 
   const displayName =
     (user && ((user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : (user.username || user.email))) ||
@@ -256,7 +267,7 @@ function SidebarUserMenu({
     let mounted = true;
     async function fetchEnrichment() {
       try {
-        const res = await fetch('/api/session/enrichment');
+        const res = await fetch('/api/session/enrichment', { credentials: 'same-origin' });
         if (!res.ok) return;
         const data = await res.json();
         if (!mounted) return;
@@ -284,10 +295,16 @@ function SidebarUserMenu({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src="/avatars/student.jpg" />
-                <AvatarFallback className="rounded-lg bg-purple-500 text-white">
-                  <User className="w-4 h-4" />
-                </AvatarFallback>
+                {avatarSrc ? (
+                  <AvatarImage src={avatarSrc} />
+                ) : (
+                  <>
+                    <AvatarImage src="/avatars/student.jpg" />
+                    <AvatarFallback className="rounded-lg bg-purple-500 text-white">
+                      <User className="w-4 h-4" />
+                    </AvatarFallback>
+                  </>
+                )}
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{displayName}</span>
@@ -307,10 +324,16 @@ function SidebarUserMenu({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src="/avatars/student.jpg" />
-                  <AvatarFallback className="rounded-lg bg-purple-500 text-white">
-                    <User className="w-4 h-4" />
-                  </AvatarFallback>
+                  {avatarSrc ? (
+                    <AvatarImage src={avatarSrc} />
+                  ) : (
+                    <>
+                      <AvatarImage src="/avatars/student.jpg" />
+                      <AvatarFallback className="rounded-lg bg-purple-500 text-white">
+                        <User className="w-4 h-4" />
+                      </AvatarFallback>
+                    </>
+                  )}
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{displayName}</span>

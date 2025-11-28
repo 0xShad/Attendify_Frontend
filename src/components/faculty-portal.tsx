@@ -34,6 +34,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
 import { useToast } from "@/hooks/use-toast";
 import {
   Sidebar,
@@ -130,7 +131,17 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
     full_name?: string | null;
     email?: string | null;
     username?: string | null;
+    avatar_url?: string | null;
   } | null>(null);
+
+  const avatarSrc = useMemo(() => {
+    const raw = enrichment?.avatar_url || (user as any)?.avatarUrl || (user as any)?.avatar_url || null;
+    try {
+      return resolveAvatarUrl(raw);
+    } catch (e) {
+      return null;
+    }
+  }, [enrichment, user]);
   const [enrichmentTried, setEnrichmentTried] = useState(false);
 
   useEffect(() => {
@@ -174,7 +185,11 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarFallback className="rounded-lg bg-green-500 text-white">{initial}</AvatarFallback>
+                {avatarSrc ? (
+                  <AvatarImage src={avatarSrc} />
+                ) : (
+                  <AvatarFallback className="rounded-lg bg-green-500 text-white">{initial}</AvatarFallback>
+                )}
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight ml-2">
                 <span className="truncate font-medium">{displayName}</span>
@@ -188,7 +203,11 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg bg-green-500 text-white">{initial}</AvatarFallback>
+                  {avatarSrc ? (
+                    <AvatarImage src={avatarSrc} />
+                  ) : (
+                    <AvatarFallback className="rounded-lg bg-green-500 text-white">{initial}</AvatarFallback>
+                  )}
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{displayName}</span>

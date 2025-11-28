@@ -16,6 +16,7 @@ export async function GET() {
         email: entry.email ?? null,
         username: entry.username ?? null,
         full_name: entry.full_name ?? null,
+        avatar_url: entry.avatar_url ?? null,
         role: entry.role ?? null,
       };
       return NextResponse.json(payload);
@@ -57,6 +58,7 @@ export async function GET() {
             typeof profile.full_name !== 'undefined'
               ? profile.full_name
               : (profile.firstname || profile.lastname) ? `${profile.firstname || ''} ${profile.lastname || ''}`.trim() : null,
+          avatar_url: typeof profile.avatar_url !== 'undefined' ? profile.avatar_url : (profile.avatarUrl ?? null),
           expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
         });
       } catch (e) {
@@ -68,6 +70,7 @@ export async function GET() {
         email: profile.email ?? null,
         username: profile.username ?? null,
         full_name: profile.full_name ?? (profile.firstname || profile.lastname ? `${profile.firstname || ''} ${profile.lastname || ''}`.trim() : null),
+        avatar_url: profile.avatar_url ?? (profile.avatarUrl ?? null),
         role: profile.role ?? null,
       });
     }
@@ -88,6 +91,7 @@ export async function GET() {
           email: typeof onboardData.email !== 'undefined' ? onboardData.email : null,
           username: typeof onboardData.username !== 'undefined' ? onboardData.username : null,
           full_name: typeof onboardData.full_name !== 'undefined' ? onboardData.full_name : null,
+          avatar_url: typeof onboardData.avatar_url !== 'undefined' ? onboardData.avatar_url : (onboardData.avatarUrl ?? null),
           expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
         });
       } catch (e) {
@@ -99,6 +103,7 @@ export async function GET() {
         email: onboardData.email ?? null,
         username: onboardData.username ?? null,
         full_name: onboardData.full_name ?? null,
+        avatar_url: onboardData.avatar_url ?? (onboardData.avatarUrl ?? null),
         role: null,
       });
     }
