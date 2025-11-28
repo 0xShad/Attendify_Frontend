@@ -176,7 +176,7 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
 
   const displayName = (enrichment?.full_name || user?.firstName || user?.username || enrichment?.username || user?.email) || 'User';
   const initial = String(displayName).charAt(0).toUpperCase() || 'U';
-  const displayEmail = enrichment?.email ?? user?.email ?? '';
+  const displayUsername = enrichment?.username ?? user?.username ?? enrichment?.email ?? user?.email ?? '';
 
   return (
     <SidebarMenu>
@@ -193,7 +193,7 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight ml-2">
                 <span className="truncate font-medium">{displayName}</span>
-                <span className="text-muted-foreground truncate text-xs">{displayEmail}</span>
+                <span className="text-muted-foreground truncate text-xs">{displayUsername}</span>
               </div>
               <IconDots className="ml-auto" />
             </SidebarMenuButton>
@@ -211,7 +211,7 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{displayName}</span>
-                  <span className="text-muted-foreground truncate text-xs">{displayEmail}</span>
+                  <span className="text-muted-foreground truncate text-xs">{displayUsername}</span>
                 </div>
               </div>
             </DropdownMenuLabel>

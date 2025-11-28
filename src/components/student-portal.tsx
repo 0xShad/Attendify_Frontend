@@ -261,7 +261,7 @@ function SidebarUserMenu({
     (user && ((user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : (user.username || user.email))) ||
     enrichment?.full_name ||
     "Guest";
-  const displayEmail = (user && (user.email || user.username)) || enrichment?.email || "";
+  const displayUsername = (user && (enrichment?.username || user.username)) || enrichment?.email || "";
 
   useEffect(() => {
     let mounted = true;
@@ -309,7 +309,7 @@ function SidebarUserMenu({
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{displayName}</span>
                 <span className="text-muted-foreground truncate text-xs">
-                  {displayEmail}
+                  {displayUsername}
                 </span>
               </div>
               <MoreHorizontal className="ml-auto size-4" />
@@ -338,7 +338,7 @@ function SidebarUserMenu({
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{displayName}</span>
                   <span className="text-muted-foreground truncate text-xs">
-                    {displayEmail}
+                    {displayUsername}
                   </span>
                 </div>
               </div>
