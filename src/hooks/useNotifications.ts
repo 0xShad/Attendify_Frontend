@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { checkAuth } from '@/lib/clientAuth';
 import { NotificationEntry, MarkReadRequest, MarkReadResponse } from '../types/notifications';
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || '';
@@ -65,6 +66,20 @@ export function useNotifications() {
       }
 
       try {
+        // Make sure the session is still valid before requesting a ticket.
+        // This prevents a logout flow from triggering a ticket request which
+        // results in a backend 401 and noisy logs.
+        try {
+          const ok = await checkAuth();
+          if (!ok) {
+            console.debug('Notifications WS: not authenticated, aborting connect attempt');
+            return;
+          }
+        } catch (e) {
+          // If the auth check itself errors, abort this attempt and schedule retry.
+          console.warn('Notifications WS: auth check failed, will retry', e);
+          // fallthrough to retry logic below
+        }
         // Request ticket from same-origin proxy which will forward cookie auth
         const ticketResp = await fetch('/api/notifications/ws-ticket', { method: 'POST', credentials: 'include' });
         if (!ticketResp.ok) {
