@@ -146,18 +146,44 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
       return;
     }
 
+    // Try fetching enrichment with a small retry loop. This addresses a race where
+    // the HTTP-only access_token cookie may not be available immediately after
+    // the login redirect — causing a 401 on the first attempt. We perform a few
+    // short retries before giving up so the UI updates without needing a hard refresh.
     (async () => {
-      try {
-        const res = await fetch('/api/session/enrichment', { credentials: 'same-origin' });
-        if (!mounted) return;
-        if (!res.ok) return;
-        const data = await res.json();
-        setEnrichment(data || null);
-      } catch (_) {
-        // ignore enrichment failures; UI will fall back to available fields
-      } finally {
-        setEnrichmentTried(true);
+      const maxAttempts = 3;
+      const baseDelayMs = 250;
+      let attempt = 0;
+
+      while (mounted && attempt < maxAttempts) {
+        attempt += 1;
+        try {
+          const res = await fetch('/api/session/enrichment', { credentials: 'same-origin' });
+          if (!mounted) return;
+          if (!res.ok) {
+            // If unauthorized, wait and retry; for other errors, bail out.
+            if (res.status === 401 && attempt < maxAttempts) {
+              await new Promise((r) => setTimeout(r, baseDelayMs * attempt));
+              continue;
+            }
+            break;
+          }
+
+          const data = await res.json();
+          setEnrichment(data || null);
+          break;
+        } catch (e) {
+          // Network error — retry a couple times
+          if (attempt < maxAttempts) {
+            await new Promise((r) => setTimeout(r, baseDelayMs * attempt));
+            continue;
+          }
+          break;
+        }
       }
+
+      // Mark that we've tried so we don't loop indefinitely
+      if (mounted) setEnrichmentTried(true);
     })();
 
     return () => {
