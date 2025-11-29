@@ -71,7 +71,23 @@ function SidebarProvider({
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen)
+  const [_open, _setOpen] = React.useState<boolean>(() => {
+    try {
+      if (typeof document !== 'undefined') {
+        const raw = document.cookie
+          .split(';')
+          .map((p) => p.trim())
+          .find((p) => p.startsWith(`${SIDEBAR_COOKIE_NAME}=`));
+        if (raw) {
+          const v = raw.split('=')[1];
+          return v === 'true' || v === '1';
+        }
+      }
+    } catch (e) {
+      // ignore and fall back to default
+    }
+    return defaultOpen;
+  });
   const open = openProp ?? _open
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {

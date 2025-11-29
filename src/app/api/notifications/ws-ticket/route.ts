@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { PUBLIC_ROUTES } from '../../../../config/routes';
 
 function parseCookie(header: string | null, name: string) {
   if (!header) return null;
@@ -28,7 +29,15 @@ export async function POST(request: Request) {
     if (referer) {
       try {
         const r = new URL(referer);
-        const p = (r.pathname || '').toLowerCase();
+        let p = (r.pathname || '').toLowerCase();
+        // Normalize trailing slash (keep root '/')
+        if (p !== '/' && p.endsWith('/')) p = p.slice(0, -1);
+
+        // If the referer path is a public/auth route, short-circuit to avoid backend 401s
+        if (PUBLIC_ROUTES.some((r) => r === p)) {
+          return NextResponse.json({}, { status: 204 });
+        }
+        // Fallback: keep previous heuristic for legacy paths that include /auth/
         if (/^\/(auth|login|signup|oauth|callback)\b/.test(p) || p.includes('/auth/')) {
           return NextResponse.json({}, { status: 204 });
         }
