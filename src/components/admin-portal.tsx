@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -55,7 +55,9 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuthContext } from "@/contexts/AuthContext";
+import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
 import { useToast } from "@/hooks/use-toast";
 import { checkAuth } from "@/lib/clientAuth";
 import { UsersManagement } from "@/components/users";
@@ -119,6 +121,77 @@ function SidebarUserMenu({
 }) {
   const { isMobile } = useSidebar();
   const router = useRouter();
+  const { user, logout } = useAuthContext();
+
+  const [enrichment, setEnrichment] = useState<{
+    full_name?: string | null;
+    email?: string | null;
+    username?: string | null;
+    avatar_url?: string | null;
+  } | null>(null);
+  const [enrichmentTried, setEnrichmentTried] = useState(false);
+
+  const avatarSrc = useMemo(() => {
+    const raw = enrichment?.avatar_url || (user as any)?.avatarUrl || (user as any)?.avatar_url || null;
+    try {
+      return resolveAvatarUrl(raw);
+    } catch (e) {
+      return null;
+    }
+  }, [enrichment, user]);
+
+  const displayName = (enrichment?.full_name || user?.firstName || user?.username || enrichment?.username || user?.email) || 'Admin User';
+  const displayUsername = enrichment?.username ?? user?.username ?? enrichment?.email ?? user?.email ?? 'admin@attendify.com';
+  const initial = String(displayName).charAt(0).toUpperCase() || 'A';
+
+  useEffect(() => {
+    let mounted = true;
+    if (enrichmentTried) return;
+
+    // If we already have both a sensible display name AND email in the auth context, skip enrichment.
+    if (user && user.firstName && user.email) {
+      setEnrichmentTried(true);
+      return;
+    }
+
+    // Retry loop to handle race where HTTP-only cookie may not be set immediately after login redirect
+    (async () => {
+      const maxAttempts = 3;
+      const baseDelayMs = 250;
+      let attempt = 0;
+
+      while (mounted && attempt < maxAttempts) {
+        attempt += 1;
+        try {
+          const res = await fetch('/api/session/enrichment', { credentials: 'same-origin' });
+          if (!mounted) return;
+          if (!res.ok) {
+            if (res.status === 401 && attempt < maxAttempts) {
+              await new Promise((r) => setTimeout(r, baseDelayMs * attempt));
+              continue;
+            }
+            break;
+          }
+
+          const data = await res.json();
+          setEnrichment(data || null);
+          break;
+        } catch (e) {
+          if (attempt < maxAttempts) {
+            await new Promise((r) => setTimeout(r, baseDelayMs * attempt));
+            continue;
+          }
+          break;
+        }
+      }
+
+      if (mounted) setEnrichmentTried(true);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user, enrichmentTried]);
 
   return (
     <SidebarMenu>
@@ -130,14 +203,18 @@ function SidebarUserMenu({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarFallback className="rounded-lg bg-blue-500 text-white">
-                  <IconUser className="w-4 h-4" />
-                </AvatarFallback>
+                {avatarSrc ? (
+                  <AvatarImage src={avatarSrc} />
+                ) : (
+                  <AvatarFallback className="rounded-lg bg-blue-500 text-white">
+                    {initial}
+                  </AvatarFallback>
+                )}
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Admin User</span>
+                <span className="truncate font-medium">{displayName}</span>
                 <span className="text-muted-foreground truncate text-xs">
-                  admin@attendify.com
+                  {displayUsername}
                 </span>
               </div>
               <IconDots className="ml-auto size-4" />
@@ -152,14 +229,18 @@ function SidebarUserMenu({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg bg-blue-500 text-white">
-                    <IconUser className="w-4 h-4" />
-                  </AvatarFallback>
+                  {avatarSrc ? (
+                    <AvatarImage src={avatarSrc} />
+                  ) : (
+                    <AvatarFallback className="rounded-lg bg-blue-500 text-white">
+                      {initial}
+                    </AvatarFallback>
+                  )}
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Admin User</span>
+                  <span className="truncate font-medium">{displayName}</span>
                   <span className="text-muted-foreground truncate text-xs">
-                    admin@attendify.com
+                    {displayUsername}
                   </span>
                 </div>
               </div>
@@ -169,7 +250,15 @@ function SidebarUserMenu({
               <IconSettings className="w-4 h-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push('/auth/logout')}>
+            <DropdownMenuItem
+              onClick={() => {
+                try {
+                  logout?.();
+                } catch (err) {
+                  router.push('/auth/logout');
+                }
+              }}
+            >
               <IconLogout className="w-4 h-4" />
               Log out
             </DropdownMenuItem>
