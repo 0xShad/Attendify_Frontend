@@ -21,11 +21,7 @@ export async function GET(request: Request) {
     const cookie = request.headers.get('cookie') || null;
     const clientAuth = request.headers.get('authorization');
 
-    console.debug('[faculty_dashboard_enhanced proxy] incoming request', {
-      url: target,
-      hasAuthorization: !!clientAuth,
-      hasCookie: !!cookie,
-    });
+    
 
     const forwardedHeaders: Record<string, string> = {};
     if (clientAuth) forwardedHeaders['authorization'] = clientAuth;
@@ -42,27 +38,14 @@ export async function GET(request: Request) {
     if (!res.ok) {
       if (contentType.includes('application/json')) {
         const errData = await res.json();
-        console.debug('[faculty_dashboard_enhanced proxy] backend error response', { status: res.status, body: errData });
         return NextResponse.json(errData, { status: res.status });
       }
       const txt = await res.text();
-      console.debug('[faculty_dashboard_enhanced proxy] backend error non-json response', { status: res.status, text: txt.substring(0, 200) });
       return new NextResponse(txt, { status: res.status });
     }
 
     if (contentType.includes('application/json')) {
       const data = await res.json();
-      try {
-        const pretty = JSON.stringify(data, null, 2);
-        const MAX = 4000;
-        if (pretty.length > MAX) {
-          console.debug('[faculty_dashboard_enhanced proxy] backend json response (trimmed):\n' + pretty.slice(0, MAX) + '\n...output trimmed');
-        } else {
-          console.debug('[faculty_dashboard_enhanced proxy] backend json response:\n' + pretty);
-        }
-      } catch (e) {
-        console.debug('[faculty_dashboard_enhanced proxy] backend json response (could not stringify)');
-      }
       return NextResponse.json(data, { status: res.status });
     }
 
