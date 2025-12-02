@@ -105,20 +105,23 @@ export default function Home() {
           <div className="absolute top-1/4 -left-24 md:-left-12 lg:left-0 w-72 md:w-80 lg:w-96 h-72 md:h-80 lg:h-96 bg-blue-500/30 rounded-full blur-3xl animate-blob"></div>
           <div className="absolute bottom-1/4 -right-24 md:-right-12 lg:right-0 w-64 md:w-72 lg:w-80 h-64 md:h-72 lg:h-80 bg-primary/40 rounded-full blur-2xl animate-blob animation-delay-2000"></div>
           <div className="absolute top-2/3 -left-20 md:left-1/4 w-56 md:w-64 lg:w-72 h-56 md:h-64 lg:h-72 bg-blue-400/25 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
-          
+
           {/* Floating Geometric Shapes - Mobile responsive */}
           <div className="absolute top-1/4 right-4 md:right-1/4 w-24 md:w-32 h-24 md:h-32 bg-primary/10 rounded-full blur-xl animate-pulse"></div>
           <div className="absolute bottom-1/4 left-4 md:left-1/4 w-16 md:w-24 h-16 md:h-24 bg-primary/15 rounded-full blur-lg animate-pulse delay-700"></div>
           <div className="absolute top-3/4 right-6 md:right-1/3 w-28 md:w-40 h-28 md:h-40 bg-accent/20 rounded-full blur-2xl animate-pulse delay-300"></div>
-          
+
           {/* Grid Pattern */}
           <div className="absolute inset-0 opacity-[0.03]">
-            <div className="h-full w-full" style={{
-              backgroundImage: `radial-gradient(circle at 1px 1px, rgb(var(--primary)) 1px, transparent 0)`,
-              backgroundSize: '40px 40px'
-            }}></div>
+            <div
+              className="h-full w-full"
+              style={{
+                backgroundImage: `radial-gradient(circle at 1px 1px, rgb(var(--primary)) 1px, transparent 0)`,
+                backgroundSize: "40px 40px",
+              }}
+            ></div>
           </div>
-          
+
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent"></div>
         </div>
@@ -138,13 +141,13 @@ export default function Home() {
                 Manual Roll Calls
               </span>
             </h1>
-            
+
             {/* Description */}
             <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mb-8 leading-relaxed">
-              Transform your institution with cutting-edge facial recognition technology. 
-              Instant, accurate, and secure attendance tracking.
+              Transform your institution with cutting-edge facial recognition
+              technology. Instant, accurate, and secure attendance tracking.
             </p>
-            
+
             {/* CTA Button with enhanced styling */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/auth/signup">
@@ -153,13 +156,15 @@ export default function Home() {
                   className="bg-primary text-primary-foreground hover:bg-primary/90 text-lg px-8 py-4 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
                 >
                   <span className="mr-2">Try it out</span>
-                  <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
+                  <span className="group-hover:translate-x-1 transition-transform duration-200">
+                    →
+                  </span>
                 </Button>
               </Link>
             </div>
           </div>
         </div>
-        
+
         {/* Scroll Indicator */}
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
           <div className="animate-bounce">
