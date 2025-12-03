@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { classesAPI } from "@/lib/api/classes";
 import { coursesAPI } from "@/lib/api/courses";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { checkAuth } from "@/lib/clientAuth";
 import MyClasses from "./MyClasses";
 import type { ClassItem } from "./ClassCard";
 import CreateClassDrawer from "./CreateClassDrawer";
@@ -19,6 +21,7 @@ import { endMySession } from "@/lib/api/attendance";
 
 export default function ClassesManagement({ onClassChanged, addClassOpen: addClassOpenProp, setAddClassOpen: setAddClassOpenProp }: { onClassChanged?: (classId: number) => void, addClassOpen?: boolean, setAddClassOpen?: (v: boolean) => void } = {}) {
   const { toast } = useToast();
+  const router = useRouter();
   const { user } = useAuthContext();
 
   const [classes, setClasses] = useState<ClassItem[]>([]);
@@ -218,6 +221,19 @@ export default function ClassesManagement({ onClassChanged, addClassOpen: addCla
         toast({ title: "Validation", description: "Program selection is required when creating a new course", variant: "destructive" });
         return;
       }
+    }
+    // Verify session before performing create operation
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
     }
     setAddingClass(true);
     try {
@@ -656,6 +672,19 @@ export default function ClassesManagement({ onClassChanged, addClassOpen: addCla
         loading={deleting}
         onConfirm={async () => {
           if (!classToDelete) return;
+          // Verify session before performing delete operation
+          try {
+            const ok = await checkAuth();
+            if (!ok) {
+              const redirectTo = encodeURIComponent(window.location.pathname || '/');
+              router.push(`/auth/login?redirect=${redirectTo}`);
+              return;
+            }
+          } catch (err) {
+            const redirectTo = encodeURIComponent(window.location.pathname || '/');
+            router.push(`/auth/login?redirect=${redirectTo}`);
+            return;
+          }
           setDeleting(true);
           setDeleteError(null);
           try {

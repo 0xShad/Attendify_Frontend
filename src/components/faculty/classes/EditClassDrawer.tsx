@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { IconLoader2, IconDeviceFloppy } from "@tabler/icons-react";
 import { useToast } from "@/hooks/use-toast";
 import { classesAPI } from "@/lib/api/classes";
 import { coursesAPI } from "@/lib/api/courses";
+import { checkAuth } from "@/lib/clientAuth";
 import type { ClassItem as CardClassItem } from "./ClassCard";
 
 interface EditClassDrawerProps {
@@ -44,6 +46,7 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
   onSave,
 }) => {
   const { toast } = useToast();
+  const router = useRouter();
 
   // Mirror CreateClassDrawer fields so UI is identical
   const [programFilter, setProgramFilter] = useState<string>("__all__");
@@ -209,6 +212,21 @@ const EditClassDrawer: React.FC<EditClassDrawerProps> = ({
 
   const handleSave = async () => {
     if (!selectedClass) return;
+
+    // Verify session before saving class
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     setSaving(true);
     try {
       // Build payload similar to CreateClassDrawer but for update

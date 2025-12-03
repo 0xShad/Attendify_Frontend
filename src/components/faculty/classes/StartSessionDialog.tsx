@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { startSession, StartSessionIn } from "@/lib/api/attendance";
+import { checkAuth } from "@/lib/clientAuth";
 
 interface Props {
   open: boolean;
@@ -17,6 +19,7 @@ interface Props {
 
 export default function StartSessionDialog({ open, onOpenChange, classId, classCode, onCreated }: Props) {
   const { toast } = useToast();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [initialChecked, setInitialChecked] = useState(false);
   const [matched, setMatched] = useState<boolean | null>(null);
@@ -74,7 +77,22 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
   }
 
   const handleSetup = async (): Promise<boolean> => {
-    if (!classId) return;
+    if (!classId) return false;
+
+    // Verify session before starting setup
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return false;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return false;
+    }
+
     setLoading(true);
     try {
       const payload: StartSessionIn = { class_id: Number(classId), phase: "setup" };
@@ -111,6 +129,21 @@ export default function StartSessionDialog({ open, onOpenChange, classId, classC
 
   const handleStart = async () => {
     if (!classId) return;
+
+    // Verify session before starting session
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     setLoading(true);
     try {
       const payload: StartSessionIn = { class_id: Number(classId), phase: "face_recognition" };

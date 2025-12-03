@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, forwardRef, useImperativeHandle } from "react";
+import { useRouter } from "next/navigation";
 import AnnouncementsList from "./AnnouncementsList";
 import AnnouncementFormDrawer from "./AnnouncementFormDrawer";
 import AnnouncementEditDrawer from "./AnnouncementEditDrawer";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 // priority/status removed — no select or badges needed
 import { useToast } from "@/hooks/use-toast";
 import { classesAPI } from "@/lib/api";
+import { checkAuth } from "@/lib/clientAuth";
 
 type ClassItem = any;
 type Announcement = {
@@ -31,6 +33,7 @@ const sampleAnnouncements: Announcement[] = [];
 
 const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
   const { toast } = useToast();
+  const router = useRouter();
 
   const [announcements, setAnnouncements] = useState<Announcement[]>(sampleAnnouncements);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState<boolean>(false);
@@ -77,6 +80,21 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
+
+    // Verify session before deleting announcement
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     setDeleteLoading(true);
     setDeleteError(null);
     try {
@@ -99,6 +117,20 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
   const handleCreate = async (title: string, content: string, selectedClasses: string[]) => {
     if (!title || !content) {
       toast({ title: "Error", description: "Title and content are required", variant: "destructive" });
+      return;
+    }
+
+    // Verify session before creating announcement
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
       return;
     }
 
@@ -156,6 +188,20 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
       return;
     }
 
+    // Verify session before creating announcement
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     setIsSaving(true);
     try {
       const created = await classesAPI.createAnnouncementForClass(classId, { title, content });
@@ -187,6 +233,20 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
     const classId = updated.classId ?? ((selectedAnnouncement.classIds && selectedAnnouncement.classIds[0]) ? selectedAnnouncement.classIds[0] : null);
     if (!classId) {
       toast({ title: 'Error', description: 'Unable to determine class for announcement', variant: 'destructive' });
+      return;
+    }
+
+    // Verify session before updating announcement
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
       return;
     }
 

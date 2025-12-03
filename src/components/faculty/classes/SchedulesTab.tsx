@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,7 @@ import { IconPencil, IconTrash } from "@tabler/icons-react";
 import { schedulesAPI } from "@/lib/api/schedules";
 import { classesAPI } from "@/lib/api/classes";
 import { useToast } from "@/hooks/use-toast";
+import { checkAuth } from "@/lib/clientAuth";
 import DeleteScheduleDialog from "@/components/classes/DeleteScheduleDialog";
 
 type Props = { classId?: number | null };
@@ -30,6 +32,7 @@ type Schedule = {
 
 export default function SchedulesTab({ classId, onClassChanged }: SchedulesTabProps) {
   const { toast } = useToast();
+  const router = useRouter();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
@@ -169,6 +172,20 @@ export default function SchedulesTab({ classId, onClassChanged }: SchedulesTabPr
 
     if (formType === "special" && !date) {
       toast({ title: "Validation", description: "Date is required for special schedules", variant: "destructive" });
+      return;
+    }
+
+    // Verify session before updating schedule
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
       return;
     }
 
@@ -339,6 +356,20 @@ export default function SchedulesTab({ classId, onClassChanged }: SchedulesTabPr
 
     if (formType === "special" && !date) {
       toast({ title: "Validation", description: "Date is required for special schedules", variant: "destructive" });
+      return;
+    }
+
+    // Verify session before creating schedule
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
       return;
     }
 

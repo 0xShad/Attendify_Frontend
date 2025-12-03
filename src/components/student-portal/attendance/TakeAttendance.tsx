@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import F2FFaceCamera from "@/components/f2f-face-camera";
 import { markPresent, markPresentF2F } from '@/lib/api/attendance';
 import { getMyClassSession } from '@/lib/api/classes';
 import { useToast } from '@/hooks/use-toast';
+import { checkAuth } from '@/lib/clientAuth';
 import { Loader2 } from 'lucide-react';
 
 type Props = {
@@ -25,6 +27,7 @@ type Props = {
 export default function AttendanceTake({ open, onOpenChange, classItem, sessionInfo = null, onCapture, onRetake, onRecorded }: Props) {
   // This component is largely identical to the class-level TakeAttendance component
   // but lives under the attendance tab for easier composition and potential attendance-specific tweaks.
+  const router = useRouter();
   const [faceValidated, setFaceValidated] = React.useState(false);
   const [lastCaptured, setLastCaptured] = React.useState<string | null>(null);
   const [lat, setLat] = React.useState<string | null>(null);
@@ -159,6 +162,21 @@ export default function AttendanceTake({ open, onOpenChange, classItem, sessionI
   const handleRecord = async () => {
     if (!lastCaptured) return;
     setSubmitError(null);
+
+    // Verify session before submitting attendance
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     setSubmitting(true);
 
     try {

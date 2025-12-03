@@ -1,10 +1,12 @@
 "use client";
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import F2FFaceCamera from '@/components/f2f-face-camera';
 import { markPresentF2F } from '@/lib/api/attendance';
 import { useToast } from '@/hooks/use-toast';
+import { checkAuth } from '@/lib/clientAuth';
 
 type FaceBox = { x: number; y: number; width: number; height: number };
 
@@ -18,6 +20,7 @@ type Props = {
 
 export default function TakeAttendanceF2F({ open, onOpenChange, classItem, sessionInfo, onRecorded }: Props) {
   const { toast } = useToast();
+  const router = useRouter();
   const [submitting, setSubmitting] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [cameraWidth, setCameraWidth] = React.useState<number>(560);
@@ -55,6 +58,20 @@ export default function TakeAttendanceF2F({ open, onOpenChange, classItem, sessi
     const sessionId = sessionInfo?.active_session_id ?? sessionInfo?.session_id ?? null;
     if (!classId || !sessionId) {
       try { toast({ title: 'Error', description: 'Missing class or session id', variant: 'destructive' }); } catch (e) {}
+      return false;
+    }
+
+    // Verify session before marking attendance
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return false;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
       return false;
     }
 

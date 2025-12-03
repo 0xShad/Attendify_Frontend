@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
 import { classesAPI } from "@/lib/api/classes";
+import { checkAuth } from "@/lib/clientAuth";
 
 export default function JoinClassDrawer({
   open,
@@ -30,6 +31,20 @@ export default function JoinClassDrawer({
   const handleJoinByCode = async () => {
     if (!classCode.trim()) {
       toast({ title: "Error", description: "Please enter a valid class code", variant: "destructive" });
+      return;
+    }
+
+    // Verify session before joining class
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
       return;
     }
 

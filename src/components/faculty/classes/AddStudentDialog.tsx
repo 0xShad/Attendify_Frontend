@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
 import { useToast } from "@/hooks/use-toast";
 import { classesAPI } from "@/lib/api/classes";
+import { checkAuth } from "@/lib/clientAuth";
 
 type Props = {
   open: boolean;
@@ -27,6 +29,7 @@ type Candidate = {
 
 export default function AddStudentDialog({ open, onOpenChange, classId, onAdded }: Props) {
   const { toast } = useToast();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -147,6 +150,21 @@ export default function AddStudentDialog({ open, onOpenChange, classId, onAdded 
     if (!classId) return;
     const keys = Object.keys(selectedKeys).filter((k) => selectedKeys[k]);
     if (keys.length === 0) return;
+
+    // Verify session before bulk-adding students
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     setBulkAdding(true);
     try {
       const payloads = keys.map((key) => {
@@ -241,6 +259,19 @@ export default function AddStudentDialog({ open, onOpenChange, classId, onAdded 
                       <TableCell className="text-right">
                         <Button size="sm" disabled={addingIds.includes(idx)} onClick={async () => {
                           if (!classId) return;
+                          // Verify session before adding student
+                          try {
+                            const ok = await checkAuth();
+                            if (!ok) {
+                              const redirectTo = encodeURIComponent(window.location.pathname || '/');
+                              router.push(`/auth/login?redirect=${redirectTo}`);
+                              return;
+                            }
+                          } catch (err) {
+                            const redirectTo = encodeURIComponent(window.location.pathname || '/');
+                            router.push(`/auth/login?redirect=${redirectTo}`);
+                            return;
+                          }
                           setAddingIds((p) => [...p, idx]);
                           try {
                             await classesAPI.addEnrolleeToClass(Number(classId), { profile_id: c.profile_id ?? null, user_id: c.user_id ?? null });

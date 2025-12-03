@@ -1,9 +1,11 @@
 "use client";
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { createExcusalRequest } from "@/lib/api/attendance";
+import { checkAuth } from "@/lib/clientAuth";
 import type { } from "@/lib/api/classes";
 
 type Props = {
@@ -14,6 +16,7 @@ type Props = {
 
 export default function SubmitExcuseModal({ open, onOpenChange, onSubmit }: Props) {
   const { toast } = useToast();
+  const router = useRouter();
   const [form, setForm] = React.useState({
     class_id: '',
     requested_date: '',
@@ -67,6 +70,20 @@ export default function SubmitExcuseModal({ open, onOpenChange, onSubmit }: Prop
     if (!form.requested_date || String(form.requested_date).trim() === '') {
       setFieldErrors({ requested_date: 'Requested date is required.' });
       toast({ title: 'Validation', description: 'Requested date is required.', variant: 'destructive' });
+      return;
+    }
+
+    // Verify session before submitting excuse request
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
       return;
     }
 

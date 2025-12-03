@@ -1,9 +1,11 @@
 "use client";
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cancelMyExcusalRequest } from '@/lib/api/attendance';
+import { checkAuth } from '@/lib/clientAuth';
 
 type Props = {
   open: boolean;
@@ -14,6 +16,7 @@ type Props = {
 
 export default function CancelExcusalDialog({ open, onOpenChange, request, onConfirm }: Props) {
   const { toast } = useToast();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
@@ -21,6 +24,21 @@ export default function CancelExcusalDialog({ open, onOpenChange, request, onCon
       onOpenChange(false);
       return;
     }
+
+    // Verify session before cancelling excusal request
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await cancelMyExcusalRequest(Number(request.id));

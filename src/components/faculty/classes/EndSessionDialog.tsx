@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { checkAuth } from "@/lib/clientAuth";
 
 interface Props {
   open: boolean;
@@ -21,10 +23,26 @@ interface Props {
 
 export default function EndSessionDialog({ open, onOpenChange, classId, onConfirm }: Props) {
   const { toast } = useToast();
+  const router = useRouter();
   const [loading, setLoading] = React.useState(false);
 
   const handleConfirm = async () => {
     if (!classId) return;
+
+    // Verify session before ending session
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     setLoading(true);
     try {
       if (typeof onConfirm === "function") {

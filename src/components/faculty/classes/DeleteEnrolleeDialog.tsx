@@ -1,10 +1,12 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { classesAPI } from "@/lib/api/classes";
+import { checkAuth } from "@/lib/clientAuth";
 
 type Props = {
   open: boolean;
@@ -16,10 +18,26 @@ type Props = {
 
 export default function DeleteEnrolleeDialog({ open, onOpenChange, classId, enrollee, onDeleted }: Props) {
   const { toast } = useToast();
+  const router = useRouter();
   const [deleting, setDeleting] = React.useState(false);
 
   const handleDelete = React.useCallback(async () => {
     if (!classId || !enrollee) return;
+
+    // Verify session before deleting enrollee
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     setDeleting(true);
     try {
       await classesAPI.deleteEnrolleeFromClass(Number(classId), enrollee.id);
@@ -32,7 +50,7 @@ export default function DeleteEnrolleeDialog({ open, onOpenChange, classId, enro
     } finally {
       setDeleting(false);
     }
-  }, [classId, enrollee, onDeleted, onOpenChange, toast]);
+  }, [classId, enrollee, onDeleted, onOpenChange, toast, router]);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onOpenChange(v); }}>
