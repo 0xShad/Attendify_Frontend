@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { Eye, EyeOff, Loader2, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -500,36 +501,68 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/30 relative overflow-hidden px-4 py-12 sm:px-6 lg:px-8">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Main Animated Blue Blobs */}
+        <div className="absolute top-1/4 -left-24 md:-left-12 lg:left-0 w-72 md:w-80 lg:w-96 h-72 md:h-80 lg:h-96 bg-blue-500/20 rounded-full blur-3xl animate-blob"></div>
+        <div className="absolute bottom-1/4 -right-24 md:-right-12 lg:right-0 w-64 md:w-72 lg:w-80 h-64 md:h-72 lg:h-80 bg-primary/30 rounded-full blur-2xl animate-blob animation-delay-2000"></div>
+        <div className="absolute top-2/3 -left-20 md:left-1/4 w-56 md:w-64 lg:w-72 h-56 md:h-64 lg:h-72 bg-blue-400/15 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+
+        {/* Floating Geometric Shapes */}
+        <div className="absolute top-1/4 right-4 md:right-1/4 w-24 md:w-32 h-24 md:h-32 bg-primary/10 rounded-full blur-xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 left-4 md:left-1/4 w-16 md:w-24 h-16 md:h-24 bg-primary/15 rounded-full blur-lg animate-pulse delay-700"></div>
+
+        {/* Grid Pattern */}
+        <div className="absolute inset-0 opacity-[0.02]">
+          <div
+            className="h-full w-full"
+            style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, rgb(var(--primary)) 1px, transparent 0)`,
+              backgroundSize: "40px 40px",
+            }}
+          ></div>
+        </div>
+      </div>
+
+      <div className="w-full max-w-md space-y-8 relative z-10">
         {/* Branding */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Attendify</h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <Link href="/" className="inline-flex items-center justify-center space-x-3 group">
+            <Image
+              src="/logo_blue.png"
+              alt="Attendify Logo"
+              width={48}
+              height={48}
+              className="w-12 h-12 object-contain transition-transform group-hover:scale-110"
+            />
+            <span className="text-3xl font-bold text-foreground">Attendify</span>
+          </Link>
+          <p className="mt-3 text-sm text-muted-foreground">
             Facial Recognition Attendance System
           </p>
         </div>
 
         {/* Multi-Step Sign Up Card */}
-        <Card className="w-full">
+        <Card className="w-full shadow-xl border-border/50 bg-card/80 backdrop-blur-sm">
           <CardHeader className="space-y-4 pb-4">
             {currentStep === 1 ? (
               <>
-                <h2 className="text-2xl font-semibold text-center">
+                <h2 className="text-2xl font-bold text-center text-foreground">
                   {currentSubStep === 1 && "Personal Information"}
                   {currentSubStep === 2 && "Contact Details"}
                   {currentSubStep === 3 && "Security Setup"}
                 </h2>
-                <p className="text-sm text-gray-600 text-center">
+                <p className="text-sm text-muted-foreground text-center">
                   Step {currentSubStep} of 3: Create Your Account
                 </p>
               </>
             ) : (
               <>
-                <h2 className="text-2xl font-semibold text-center">
+                <h2 className="text-2xl font-bold text-center text-foreground">
                   Verify Your Email
                 </h2>
-                <p className="text-sm text-gray-600 text-center">
+                <p className="text-sm text-muted-foreground text-center">
                   Final Step: Email Verification
                 </p>
               </>
@@ -539,9 +572,9 @@ export default function SignUpPage() {
               <div className="w-full max-w-xs mx-auto">
                 {/* Progress Bar Background */}
                 <div className="relative">
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500 ease-out"
+                      className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${(currentSubStep / 3) * 100}%` }}
                     />
                   </div>
@@ -551,24 +584,14 @@ export default function SignUpPage() {
                     {[1, 2, 3].map((step) => (
                       <div key={step} className="relative">
                         <div
-                          className={`w-4 h-4 rounded-full border-2 bg-white transition-all duration-300 flex items-center justify-center ${
+                          className={`w-4 h-4 rounded-full border-2 bg-background transition-all duration-300 flex items-center justify-center ${
                             currentSubStep >= step
-                              ? "border-blue-500 text-blue-600"
-                              : "border-gray-300 text-gray-400"
+                              ? "border-primary text-primary"
+                              : "border-muted-foreground/30 text-muted-foreground/50"
                           }`}
                         >
                           {currentSubStep > step ? (
-                            <svg
-                              className="w-2.5 h-2.5 text-blue-600"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
+                            <Check className="w-2.5 h-2.5 text-primary" />
                           ) : (
                             <span className="text-xs font-semibold">
                               {step}
@@ -584,21 +607,21 @@ export default function SignUpPage() {
                 <div className="flex justify-between mt-6 text-xs">
                   <span
                     className={`font-medium ${
-                      currentSubStep >= 1 ? "text-blue-600" : "text-gray-400"
+                      currentSubStep >= 1 ? "text-primary" : "text-muted-foreground/50"
                     }`}
                   >
                     Personal
                   </span>
                   <span
                     className={`font-medium ${
-                      currentSubStep >= 2 ? "text-blue-600" : "text-gray-400"
+                      currentSubStep >= 2 ? "text-primary" : "text-muted-foreground/50"
                     }`}
                   >
                     Contact
                   </span>
                   <span
                     className={`font-medium ${
-                      currentSubStep >= 3 ? "text-blue-600" : "text-gray-400"
+                      currentSubStep >= 3 ? "text-primary" : "text-muted-foreground/50"
                     }`}
                   >
                     Security
@@ -606,13 +629,11 @@ export default function SignUpPage() {
                 </div>
               </div>
             ) : (
-              // Email Verification Step
-              <div className="flex items-center justify-center space-x-3">
-                <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-full">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                  <span className="text-sm font-medium text-blue-600">
-                    Email Verification
-                  </span>
+              <div className="flex justify-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
                 </div>
               </div>
             )}
@@ -626,14 +647,14 @@ export default function SignUpPage() {
                 {currentSubStep === 1 && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
+                      <Label htmlFor="firstName" className="text-foreground">First Name</Label>
                       <Input
                         id="firstName"
                         type="text"
                         placeholder="Enter your first name"
-                        className={`w-full border-[#e1eaef] placeholder:text-gray-400 placeholder:text-sm ${
+                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.firstName
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
                         }`}
                         value={formData.firstName}
@@ -643,21 +664,21 @@ export default function SignUpPage() {
                         required
                       />
                       {errors.firstName && (
-                        <p className="text-sm text-red-500">
+                        <p className="text-sm text-destructive">
                           {errors.firstName}
                         </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="middleName">Middle Name (Optional)</Label>
+                      <Label htmlFor="middleName" className="text-foreground">Middle Name (Optional)</Label>
                       <Input
                         id="middleName"
                         type="text"
                         placeholder="Enter your middle name"
-                        className={`w-full border-[#e1eaef] placeholder:text-gray-400 placeholder:text-sm ${
+                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.middleName
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
                         }`}
                         value={formData.middleName}
@@ -666,21 +687,21 @@ export default function SignUpPage() {
                         }
                       />
                       {errors.middleName && (
-                        <p className="text-sm text-red-500">
+                        <p className="text-sm text-destructive">
                           {errors.middleName}
                         </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
+                      <Label htmlFor="lastName" className="text-foreground">Last Name</Label>
                       <Input
                         id="lastName"
                         type="text"
                         placeholder="Enter your last name"
-                        className={`w-full placeholder:text-gray-400 placeholder:text-sm ${
+                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.lastName
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
                         }`}
                         value={formData.lastName}
@@ -690,7 +711,7 @@ export default function SignUpPage() {
                         required
                       />
                       {errors.lastName && (
-                        <p className="text-sm text-red-500">
+                        <p className="text-sm text-destructive">
                           {errors.lastName}
                         </p>
                       )}
@@ -716,18 +737,19 @@ export default function SignUpPage() {
                         error={!!errors.dateOfBirth}
                       />
                       {errors.dateOfBirth && (
-                        <p className="text-sm text-red-500">
+                        <p className="text-sm text-destructive">
                           {errors.dateOfBirth}
                         </p>
                       )}
                     </div>
 
                     <Button
-                      className="w-full"
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-300"
                       size="lg"
                       onClick={handleNextSubStep}
                     >
                       Continue
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
                 )}
@@ -736,21 +758,21 @@ export default function SignUpPage() {
                 {currentSubStep === 2 && (
                   <div className="space-y-4">
                     {availabilityError && (
-                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                      <div className="bg-destructive/10 border border-destructive/30 text-destructive px-4 py-3 rounded-lg text-sm">
                         {availabilityError}
                       </div>
                     )}
 
                     <div className="space-y-2">
-                      <Label htmlFor="contactNumber">Contact Number</Label>
+                      <Label htmlFor="contactNumber" className="text-foreground">Contact Number</Label>
                       <Input
                         id="contactNumber"
                         type="tel"
                         placeholder="09123456789"
                         maxLength={11}
-                        className={`w-full placeholder:text-gray-400 placeholder:text-sm ${
+                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.contactNumber
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
                         }`}
                         value={formData.contactNumber}
@@ -761,21 +783,21 @@ export default function SignUpPage() {
                         required
                       />
                       {errors.contactNumber && (
-                        <p className="text-sm text-red-500">
+                        <p className="text-sm text-destructive">
                           {errors.contactNumber}
                         </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="studentNumber">Student Number</Label>
+                      <Label htmlFor="studentNumber" className="text-foreground">Student Number</Label>
                       <Input
                         id="studentNumber"
                         type="text"
                         placeholder="Enter your student number"
-                        className={`w-full placeholder:text-gray-400 placeholder:text-sm ${
+                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.studentNumber
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
                         }`}
                         value={formData.studentNumber}
@@ -785,21 +807,21 @@ export default function SignUpPage() {
                         required
                       />
                       {errors.studentNumber && (
-                        <p className="text-sm text-red-500">
+                        <p className="text-sm text-destructive">
                           {errors.studentNumber}
                         </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
+                      <Label htmlFor="email" className="text-foreground">Email Address</Label>
                       <Input
                         id="email"
                         type="email"
                         placeholder="yourname@iskolarngbayan.pup.edu.ph"
-                        className={`w-full placeholder:text-gray-400 placeholder:text-sm ${
+                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.email
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
                         }`}
                         value={formData.email}
@@ -809,19 +831,19 @@ export default function SignUpPage() {
                         required
                       />
                       {errors.email && (
-                        <p className="text-sm text-red-500">{errors.email}</p>
+                        <p className="text-sm text-destructive">{errors.email}</p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="username">Username</Label>
+                      <Label htmlFor="username" className="text-foreground">Username</Label>
                       <Input
                         id="username"
                         type="text"
                         placeholder="Choose a username"
-                        className={`w-full placeholder:text-gray-400 placeholder:text-sm ${
+                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.username
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
                         }`}
                         value={formData.username}
@@ -831,7 +853,7 @@ export default function SignUpPage() {
                         required
                       />
                       {errors.username && (
-                        <p className="text-sm text-red-500">
+                        <p className="text-sm text-destructive">
                           {errors.username}
                         </p>
                       )}
@@ -840,7 +862,7 @@ export default function SignUpPage() {
                     <div className="flex gap-3">
                       <Button
                         variant="outline"
-                        className="flex-1"
+                        className="flex-1 border-border hover:bg-muted"
                         onClick={handlePreviousSubStep}
                         disabled={
                           availabilityChecking.email ||
@@ -848,10 +870,11 @@ export default function SignUpPage() {
                           availabilityChecking.studentNumber
                         }
                       >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
                         Back
                       </Button>
                       <Button
-                        className="flex-1"
+                        className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
                         onClick={handleNextSubStep}
                         disabled={
                           availabilityChecking.email ||
@@ -864,10 +887,13 @@ export default function SignUpPage() {
                         availabilityChecking.studentNumber ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Checking availability...
+                            Checking...
                           </>
                         ) : (
-                          "Continue"
+                          <>
+                            Continue
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </>
                         )}
                       </Button>
                     </div>
@@ -878,15 +904,15 @@ export default function SignUpPage() {
                 {currentSubStep === 3 && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password" className="text-foreground">Password</Label>
                       <div className="relative">
                         <Input
                           id="password"
                           type={showPassword ? "text" : "password"}
                           placeholder="Create a secure password"
-                          className={`w-full pr-10 placeholder:text-gray-400 placeholder:text-sm ${
+                          className={`w-full pr-10 bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
                             errors.password
-                              ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                              ? "border-destructive focus:border-destructive focus:ring-destructive"
                               : ""
                           }`}
                           value={formData.password}
@@ -898,7 +924,7 @@ export default function SignUpPage() {
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none"
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
                           aria-label={
                             showPassword ? "Hide password" : "Show password"
                           }
@@ -911,22 +937,22 @@ export default function SignUpPage() {
                         </button>
                       </div>
                       {errors.password && (
-                        <p className="text-sm text-red-500">
+                        <p className="text-sm text-destructive">
                           {errors.password}
                         </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <Label htmlFor="confirmPassword" className="text-foreground">Confirm Password</Label>
                       <div className="relative">
                         <Input
                           id="confirmPassword"
                           type={showConfirmPassword ? "text" : "password"}
                           placeholder="Confirm your password"
-                          className={`w-full pr-10 placeholder:text-gray-400 placeholder:text-sm ${
+                          className={`w-full pr-10 bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
                             errors.confirmPassword
-                              ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                              ? "border-destructive focus:border-destructive focus:ring-destructive"
                               : ""
                           }`}
                           value={formData.confirmPassword}
@@ -940,7 +966,7 @@ export default function SignUpPage() {
                           onClick={() =>
                             setShowConfirmPassword(!showConfirmPassword)
                           }
-                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none"
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
                           aria-label={
                             showConfirmPassword
                               ? "Hide password"
@@ -955,7 +981,7 @@ export default function SignUpPage() {
                         </button>
                       </div>
                       {errors.confirmPassword && (
-                        <p className="text-sm text-red-500">
+                        <p className="text-sm text-destructive">
                           {errors.confirmPassword}
                         </p>
                       )}
@@ -964,13 +990,15 @@ export default function SignUpPage() {
                     <div className="flex gap-3">
                       <Button
                         variant="outline"
-                        className="flex-1"
+                        className="flex-1 border-border hover:bg-muted"
                         onClick={handlePreviousSubStep}
                       >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
                         Back
                       </Button>
-                      <Button className="flex-1" onClick={handleNextSubStep}>
-                        Continue to Verification
+                      <Button className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg" onClick={handleNextSubStep}>
+                        Continue
+                        <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -982,16 +1010,16 @@ export default function SignUpPage() {
                 {!otpSent ? (
                   <>
                     <div className="text-center space-y-4">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         Sending verification code to
                       </p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-foreground">
                         {formData.email}
                       </p>
                     </div>
 
                     {authError && (
-                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                      <div className="bg-destructive/10 border border-destructive/30 text-destructive px-4 py-3 rounded-lg text-sm">
                         {authError}
                       </div>
                     )}
@@ -999,21 +1027,22 @@ export default function SignUpPage() {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button
                         variant="outline"
-                        className="flex-1 order-2 sm:order-1"
+                        className="flex-1 order-2 sm:order-1 border-border hover:bg-muted"
                         onClick={handleBackStep}
                         disabled={isLoading}
                       >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
                         Back
                       </Button>
                       <Button
-                        className="flex-1 order-1 sm:order-2"
+                        className="flex-1 order-1 sm:order-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
                         onClick={handleEmailSubmit}
                         disabled={isLoading}
                       >
                         {isLoading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Sending OTP...
+                            Sending...
                           </>
                         ) : (
                           "Resend OTP"
@@ -1024,16 +1053,16 @@ export default function SignUpPage() {
                 ) : (
                   <>
                     <div className="text-center space-y-4">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         We&apos;ve sent a 6-digit verification code to
                       </p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-foreground">
                         {formData.email}
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="otp" className="text-center block">
+                      <Label htmlFor="otp" className="text-center block text-foreground">
                         Enter Verification Code
                       </Label>
                       <div className="flex justify-center">
@@ -1045,54 +1074,54 @@ export default function SignUpPage() {
                           <InputOTPGroup>
                             <InputOTPSlot
                               index={0}
-                              className={errors.otp ? "border-red-500" : ""}
+                              className={`border-border ${errors.otp ? "border-destructive" : ""}`}
                             />
                             <InputOTPSlot
                               index={1}
-                              className={errors.otp ? "border-red-500" : ""}
+                              className={`border-border ${errors.otp ? "border-destructive" : ""}`}
                             />
                             <InputOTPSlot
                               index={2}
-                              className={errors.otp ? "border-red-500" : ""}
+                              className={`border-border ${errors.otp ? "border-destructive" : ""}`}
                             />
                             <InputOTPSlot
                               index={3}
-                              className={errors.otp ? "border-red-500" : ""}
+                              className={`border-border ${errors.otp ? "border-destructive" : ""}`}
                             />
                             <InputOTPSlot
                               index={4}
-                              className={errors.otp ? "border-red-500" : ""}
+                              className={`border-border ${errors.otp ? "border-destructive" : ""}`}
                             />
                             <InputOTPSlot
                               index={5}
-                              className={errors.otp ? "border-red-500" : ""}
+                              className={`border-border ${errors.otp ? "border-destructive" : ""}`}
                             />
                           </InputOTPGroup>
                         </InputOTP>
                       </div>
                       {errors.otp && (
-                        <p className="text-sm text-red-500 text-center">
+                        <p className="text-sm text-destructive text-center">
                           {errors.otp}
                         </p>
                       )}
                     </div>
 
                     {authError && (
-                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                      <div className="bg-destructive/10 border border-destructive/30 text-destructive px-4 py-3 rounded-lg text-sm">
                         {authError}
                       </div>
                     )}
 
                     <div className="text-center">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         Didn&apos;t receive the code?{" "}
                         <button
                           onClick={handleResendOTP}
                           disabled={!canResend || isLoading}
                           className={`font-medium transition-colors ${
                             canResend && !isLoading
-                              ? "text-blue-600 hover:text-blue-500 cursor-pointer"
-                              : "text-gray-400 cursor-not-allowed"
+                              ? "text-primary hover:text-primary/80 cursor-pointer"
+                              : "text-muted-foreground cursor-not-allowed"
                           }`}
                         >
                           {isLoading
@@ -1107,14 +1136,15 @@ export default function SignUpPage() {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button
                         variant="outline"
-                        className="flex-1 order-2 sm:order-1"
+                        className="flex-1 order-2 sm:order-1 border-border hover:bg-muted"
                         onClick={handleBackStep}
                         disabled={isLoading}
                       >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
                         Back
                       </Button>
                       <Button
-                        className="flex-1 order-1 sm:order-2"
+                        className="flex-1 order-1 sm:order-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-300"
                         onClick={handleCreateAccount}
                         disabled={isLoading || formData.otp.length !== 6}
                       >
@@ -1124,7 +1154,7 @@ export default function SignUpPage() {
                             Verifying...
                           </>
                         ) : (
-                          "Verify & Create Account"
+                          "Create Account"
                         )}
                       </Button>
                     </div>
@@ -1135,18 +1165,29 @@ export default function SignUpPage() {
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-4">
-            <Separator />
-            <p className="text-sm text-center text-gray-600">
+            <Separator className="bg-border/50" />
+            <p className="text-sm text-center text-muted-foreground">
               Already have an account?{" "}
               <Link
                 href="/auth/login"
-                className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
+                className="font-semibold text-primary hover:text-primary/80 transition-colors"
               >
-                Login
+                Sign In
               </Link>
             </p>
           </CardFooter>
         </Card>
+
+        {/* Back to Home Link */}
+        <div className="text-center">
+          <Link 
+            href="/" 
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Home
+          </Link>
+        </div>
       </div>
     </div>
   );
