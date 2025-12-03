@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -88,6 +88,7 @@ import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { checkAuth } from "@/lib/clientAuth";
 import NotificationBell from '@/components/NotificationBell';
 import {
   Sidebar,
@@ -324,6 +325,7 @@ function SidebarUserMenu({
 export default function StudentPortal({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const pathname = usePathname();
+  const router = useRouter();
 
   // Get current tab from pathname
   const getCurrentTab = () => {
@@ -517,12 +519,48 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
     setActiveTab(getCurrentTab());
   }, [pathname]);
 
+  // Check auth on mount and redirect if session expired
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const ok = await checkAuth();
+        if (!mounted) return;
+        if (!ok) {
+          const redirectTo = encodeURIComponent(window.location.pathname || '/');
+          router.push(`/auth/login?redirect=${redirectTo}`);
+        }
+      } catch (err) {
+        // On network/auth check error, redirect to login as a safe fallback.
+        if (mounted) {
+          const redirectTo = encodeURIComponent(window.location.pathname || '/');
+          router.push(`/auth/login?redirect=${redirectTo}`);
+        }
+      }
+    })();
+    return () => { mounted = false; };
+  }, [router]);
+
   // Handlers
 
   const handleStartAttendance = async (
     session: AttendanceSession,
     mode: "face" | "online"
   ) => {
+    // Verify session before performing attendance action
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     setSelectedSession(session);
 
     if (mode === "face") {
@@ -542,6 +580,20 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
 
   const handleFaceRecognition = async () => {
     if (!selectedSession) return;
+
+    // Verify session before performing face recognition
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
 
     setIsLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 3000));
