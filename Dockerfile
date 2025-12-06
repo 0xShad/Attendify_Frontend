@@ -41,8 +41,11 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 8080), (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-# Use dumb-init to run Node.js with shell to expand PORT variable
+# Set NODE_ENV to production
+ENV NODE_ENV=production
+
+# Use dumb-init to run Node.js
 ENTRYPOINT ["/sbin/dumb-init", "--"]
 
-# Start the application - use sh -c to allow PORT expansion
-CMD ["sh", "-c", "next start -p ${PORT:-8080}"]
+# Start the application - Next.js respects PORT env variable
+CMD ["npm", "start"]
