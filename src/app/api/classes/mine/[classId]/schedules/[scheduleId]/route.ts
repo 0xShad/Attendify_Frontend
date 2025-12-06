@@ -79,7 +79,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ cl
 }
 
 // Also allow PUT as alias to PATCH
-export async function PUT(request: Request, ctx: { params: { classId: string, scheduleId: string } }) {
+export async function PUT(request: Request, ctx: { params: Promise<{ classId: string, scheduleId: string }> } | { params: { classId: string, scheduleId: string } }) {
   return PATCH(request, ctx as any);
 }
 
