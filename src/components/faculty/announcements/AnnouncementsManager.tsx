@@ -354,4 +354,6 @@ const AnnouncementsManager = forwardRef(({ classes }: Props, ref) => {
   );
 });
 
+AnnouncementsManager.displayName = 'AnnouncementsManager';
+
 export default AnnouncementsManager;
