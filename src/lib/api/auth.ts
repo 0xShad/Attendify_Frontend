@@ -377,7 +377,7 @@ class AuthAPI {
 
     console.log('📤 [AUTH API] Sending to backend:', {
       endpoint: AUTH_ENDPOINTS.REGISTER_INITIATE,
-      url: `${AUTH_API_BASE_URL}${AUTH_ENDPOINTS.REGISTER_INITIATE}`,
+      url: `${getAuthApiBaseUrl()}${AUTH_ENDPOINTS.REGISTER_INITIATE}`,
       data: {
         ...apiData,
         password: '***REDACTED***',
