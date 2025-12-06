@@ -267,7 +267,7 @@ export default function AttendanceTake({ open, onOpenChange, classItem, sessionI
       // Some backends return a stringified JSON in `body`, sometimes double-encoded.
       // Normalize by repeatedly attempting to JSON.parse while the value is a string
       // and looks like JSON. This ensures we end up with an object when possible.
-      let bodyRaw = err?.body ?? {};
+      const bodyRaw = err?.body ?? {};
       let body: any = bodyRaw;
       const tryParseMaybeString = (val: any) => {
         let out = val;

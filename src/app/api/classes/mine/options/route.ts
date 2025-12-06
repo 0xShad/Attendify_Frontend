@@ -31,9 +31,9 @@ export async function GET(request: Request) {
   if (cookie) forwardedHeaders['cookie'] = cookie;
 
   try {
-    let res = await fetch(target, { method: 'GET', headers: forwardedHeaders });
-    let text = await res.text();
-    let contentType = res.headers.get('content-type') || 'application/json';
+    const res = await fetch(target, { method: 'GET', headers: forwardedHeaders });
+    const text = await res.text();
+    const contentType = res.headers.get('content-type') || 'application/json';
 
     const looksLikeOptionsAsId = (rText: string | null) => {
       if (!rText) return false;
