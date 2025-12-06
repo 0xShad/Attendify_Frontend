@@ -10,8 +10,8 @@ function parseCookie(header: string | null, name: string) {
   return null;
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  // Resolve params in case it's a thenable in this runtime
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> } | { params: { id: string } }) {
+  // Resolve params in case it's a thenable/Promise in Next.js 15
   let resolvedParams: any = params;
   try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
   const id = resolvedParams?.id;
