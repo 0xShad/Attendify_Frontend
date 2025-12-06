@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { checkAuth } from "@/lib/api/auth";
 import { IconAlertTriangle, IconRefresh } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function ServiceUnavailablePage() {
+function ServiceUnavailableContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [countdown, setCountdown] = useState(10);
@@ -141,5 +141,13 @@ export default function ServiceUnavailablePage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function ServiceUnavailablePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <ServiceUnavailableContent />
+    </Suspense>
   );
 }
