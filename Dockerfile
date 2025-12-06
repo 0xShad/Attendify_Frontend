@@ -12,7 +12,7 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application with standalone output
 RUN npm run build
 
 # Runtime stage
@@ -20,32 +20,17 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dumb-init to handle signals properly
-RUN apk add --no-cache dumb-init
-
-# Copy package files
-COPY package.json package-lock.json ./
-
-# Install production dependencies
-RUN npm ci --omit=dev
-
 # Copy built application from builder
-COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Copy startup script
-COPY start-server.js ./
-RUN chmod +x ./start-server.js
-
-# Expose port (Cloud Run uses PORT environment variable)
+# Expose port
 EXPOSE 8080
 
-# Set NODE_ENV to production
+# Set environment
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Use dumb-init to run Node.js
-ENTRYPOINT ["/sbin/dumb-init", "--"]
-
-# Start the application using Node.js script
-CMD ["node", "start-server.js"]
+# Start Next.js standalone server
+CMD ["node", "server.js"]
