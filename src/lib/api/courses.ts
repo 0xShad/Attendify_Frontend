@@ -3,16 +3,21 @@
  * Basic wrapper for course CRUD operations used by the frontend.
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+const getApiBaseUrl = () => {
+  if (typeof window !== "undefined" && (window as any).__ENV__?.NEXT_PUBLIC_BACKEND_API_URL) {
+    return (window as any).__ENV__.NEXT_PUBLIC_BACKEND_API_URL;
+  }
+  return process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+};
 
 const COURSES_ENDPOINTS = {
-  LIST: `${API_BASE_URL}/courses/`,
-  SEARCH: `${API_BASE_URL}/courses/search`,
-  DETAIL: (id: string) => `${API_BASE_URL}/courses/${id}`,
-  CREATE: `${API_BASE_URL}/courses/`,
-  UPDATE: (id: string) => `${API_BASE_URL}/courses/${id}`,
-  DELETE: (id: string) => `${API_BASE_URL}/courses/${id}`,
-  OPTIONS: `${API_BASE_URL}/courses/options`,
+  LIST: () => `${getApiBaseUrl()}/courses/`,
+  SEARCH: () => `${getApiBaseUrl()}/courses/search`,
+  DETAIL: (id: string) => `${getApiBaseUrl()}/courses/${id}`,
+  CREATE: () => `${getApiBaseUrl()}/courses/`,
+  UPDATE: (id: string) => `${getApiBaseUrl()}/courses/${id}`,
+  DELETE: (id: string) => `${getApiBaseUrl()}/courses/${id}`,
+  OPTIONS: () => `${getApiBaseUrl()}/courses/options`,
 } as const;
 
 export interface CreateCoursePayload {
@@ -42,7 +47,7 @@ export interface ListCoursesParams {
 
 export async function listCourses(params: ListCoursesParams = {}): Promise<any[]> {
   const { skip = 0, limit = 100, code, name, program_id } = params;
-  const url = new URL(COURSES_ENDPOINTS.LIST);
+  const url = new URL(COURSES_ENDPOINTS.LIST());
   url.searchParams.append('skip', String(skip));
   url.searchParams.append('limit', String(limit));
   if (code) url.searchParams.append('code', code);
@@ -69,7 +74,7 @@ export interface SearchCoursesParams {
 
 export async function searchCourses(params: SearchCoursesParams = {}): Promise<any[]> {
   const { query = null, skip = 0, limit = 100 } = params;
-  const url = new URL(COURSES_ENDPOINTS.SEARCH);
+  const url = new URL(COURSES_ENDPOINTS.SEARCH());
   url.searchParams.append('skip', String(skip));
   url.searchParams.append('limit', String(limit));
   if (query && String(query).trim()) url.searchParams.append('query', String(query).trim());
@@ -96,7 +101,7 @@ export async function getCourse(id: number): Promise<any> {
  * Supports optional filters: program_id and organization_id
  */
 export async function getCourseOptions(params: { program_id?: number; organization_id?: number } = {}): Promise<any[]> {
-  const url = new URL(COURSES_ENDPOINTS.OPTIONS);
+  const url = new URL(COURSES_ENDPOINTS.OPTIONS());
   if (params.program_id !== undefined && params.program_id !== null) url.searchParams.append('program_id', String(params.program_id));
   if (params.organization_id !== undefined && params.organization_id !== null) url.searchParams.append('organization_id', String(params.organization_id));
 
@@ -126,7 +131,7 @@ export async function getCourseOptionsForMe(): Promise<any[]> {
     return response.json();
   }
 
-  const url = `${API_BASE_URL}/courses/options/me`;
+  const url = `${getApiBaseUrl()}/courses/options/me`;
   const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'GET' }));
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -136,7 +141,7 @@ export async function getCourseOptionsForMe(): Promise<any[]> {
 }
 
 export async function createCourse(payload: CreateCoursePayload): Promise<any> {
-  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(COURSES_ENDPOINTS.CREATE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }));
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(COURSES_ENDPOINTS.CREATE(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }));
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.detail || err.message || response.statusText);

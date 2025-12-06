@@ -1,6 +1,12 @@
 export default function resolveAvatarUrl(u?: string | null): string | null {
   if (!u) return null;
-  const raw = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+  const getBackendUrl = () => {
+    if (typeof window !== "undefined" && (window as any).__ENV__?.NEXT_PUBLIC_BACKEND_API_URL) {
+      return (window as any).__ENV__.NEXT_PUBLIC_BACKEND_API_URL;
+    }
+    return process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+  };
+  const raw = getBackendUrl();
   const BACKEND_ORIGIN = String(raw).replace(/\/api\/(v\d+|v1)\/?$/i, "");
 
   const v = String(u).trim();

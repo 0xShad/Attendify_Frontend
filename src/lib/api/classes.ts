@@ -3,11 +3,16 @@
  */
 import { fetchRawWithAuth } from './fetchClient';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+const getApiBaseUrl = () => {
+  if (typeof window !== "undefined" && (window as any).__ENV__?.NEXT_PUBLIC_BACKEND_API_URL) {
+    return (window as any).__ENV__.NEXT_PUBLIC_BACKEND_API_URL;
+  }
+  return process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+};
 
 const CLASSES_ENDPOINTS = {
-  LIST: `${API_BASE_URL}/classes/`,
-  DETAIL: (id: string) => `${API_BASE_URL}/classes/${id}`,
+  LIST: () => `${getApiBaseUrl()}/classes/`,
+  DETAIL: (id: string) => `${getApiBaseUrl()}/classes/${id}`,
 } as const;
 
 export interface ListClassesParams {
@@ -25,7 +30,7 @@ export interface ListClassesParams {
 
 export async function listClasses(params: ListClassesParams = {}): Promise<any[]> {
   const { skip = 0, limit = 100 } = params;
-  const url = new URL(CLASSES_ENDPOINTS.LIST);
+  const url = new URL(CLASSES_ENDPOINTS.LIST());
   url.searchParams.append('skip', String(skip));
   url.searchParams.append('limit', String(limit));
   if (params.course_id !== undefined && params.course_id !== null) url.searchParams.append('course_id', String(params.course_id));
@@ -60,7 +65,7 @@ export async function listClassesForFaculty(
   facultyId: number,
   params: Partial<ListClassesParams> = {}
 ): Promise<any[]> {
-  const url = new URL(`${API_BASE_URL}/classes/faculty/${facultyId}`);
+  const url = new URL(`${getApiBaseUrl()}/classes/faculty/${facultyId}`);
   const { skip = 0, limit = 100 } = params as any;
   url.searchParams.append('skip', String(skip));
   url.searchParams.append('limit', String(limit));
@@ -360,7 +365,7 @@ export async function deleteMyClass(id: number | string): Promise<null> {
 }
 
 export async function createClass(payload: Record<string, any>): Promise<any> {
-  const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(CLASSES_ENDPOINTS.LIST, {
+  const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(CLASSES_ENDPOINTS.LIST(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -522,7 +527,7 @@ export async function deleteClass(id: number): Promise<any> {
 }
 
 export async function listEnrolleesForClass(classId: number): Promise<any[]> {
-  const url = `${API_BASE_URL}/classes/${classId}/enrollees`;
+  const url = `${getApiBaseUrl()}/classes/${classId}/enrollees`;
   try {
     const res = await import("./fetchClient").then(m => m.fetchRawWithAuth(url, { method: 'GET' }));
     if (res.status === 404) {
@@ -664,7 +669,7 @@ export async function listAvailableStudentsForClass(
     const orgId = cls?.organization_id ?? cls?.organization?.id ?? null;
     if (!orgId) return [];
 
-    const url = new URL(`${API_BASE_URL}/organizations/${orgId}/students`);
+    const url = new URL(`${getApiBaseUrl()}/organizations/${orgId}/students`);
     url.searchParams.append('skip', String(skip));
     url.searchParams.append('limit', String(limit));
     if (q) url.searchParams.append('q', String(q));
@@ -723,7 +728,7 @@ export async function listAvailableStudentsForMyClass(
   const orgId = cls?.organization_id ?? cls?.organization?.id ?? null;
   if (!orgId) return [];
 
-  const url = new URL(`${API_BASE_URL}/organizations/${orgId}/students`);
+  const url = new URL(`${getApiBaseUrl()}/organizations/${orgId}/students`);
   url.searchParams.append('skip', String(skip));
   url.searchParams.append('limit', String(limit));
   if (q) url.searchParams.append('q', String(q));

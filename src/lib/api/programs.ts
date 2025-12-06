@@ -4,22 +4,27 @@
  */
 
 // ==================== API Configuration ====================
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+const getApiBaseUrl = () => {
+  if (typeof window !== "undefined" && (window as any).__ENV__?.NEXT_PUBLIC_BACKEND_API_URL) {
+    return (window as any).__ENV__.NEXT_PUBLIC_BACKEND_API_URL;
+  }
+  return process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+};
 
 const PROGRAMS_ENDPOINTS = {
-  LIST: `${API_BASE_URL}/programs/`,
-  SEARCH: `${API_BASE_URL}/programs/search`,
-  DETAIL: (id: number) => `${API_BASE_URL}/programs/${id}`,
-  CREATE: `${API_BASE_URL}/programs/`,
-  UPDATE: (id: number) => `${API_BASE_URL}/programs/${id}`,
-  DELETE: (id: number) => `${API_BASE_URL}/programs/${id}`,
-  OPTIONS_ORGANIZATIONS: `${API_BASE_URL}/programs/options/organizations`,
+  LIST: () => `${getApiBaseUrl()}/programs/`,
+  SEARCH: () => `${getApiBaseUrl()}/programs/search`,
+  DETAIL: (id: number) => `${getApiBaseUrl()}/programs/${id}`,
+  CREATE: () => `${getApiBaseUrl()}/programs/`,
+  UPDATE: (id: number) => `${getApiBaseUrl()}/programs/${id}`,
+  DELETE: (id: number) => `${getApiBaseUrl()}/programs/${id}`,
+  OPTIONS_ORGANIZATIONS: () => `${getApiBaseUrl()}/programs/options/organizations`,
   // Organization options are served from the organizations router on the backend
   // (not under /programs). Use the organizations endpoint so we don't get 404s.
-  OPTIONS_ORGANIZATIONS_CORRECTED: `${API_BASE_URL}/organizations/options/organizations`,
-  OPTIONS_CODES: `${API_BASE_URL}/programs/options/codes`,
-  OPTIONS_CODES_MINE: `${API_BASE_URL}/programs/options/mine`,
-  OPTIONS_CODES_BY_ORGANIZATION: (organizationId: number) => `${API_BASE_URL}/programs/options/codes/organization/${organizationId}`,
+  OPTIONS_ORGANIZATIONS_CORRECTED: () => `${getApiBaseUrl()}/organizations/options/organizations`,
+  OPTIONS_CODES: () => `${getApiBaseUrl()}/programs/options/codes`,
+  OPTIONS_CODES_MINE: () => `${getApiBaseUrl()}/programs/options/mine`,
+  OPTIONS_CODES_BY_ORGANIZATION: (organizationId: number) => `${getApiBaseUrl()}/programs/options/codes/organization/${organizationId}`,
 } as const;
 
 // ==================== Types ====================
@@ -87,7 +92,7 @@ export async function searchPrograms(
 ): Promise<Program[]> {
   const { skip = 0, limit = 100, query } = params;
   
-  const url = new URL(PROGRAMS_ENDPOINTS.SEARCH);
+  const url = new URL(PROGRAMS_ENDPOINTS.SEARCH());
   url.searchParams.append('skip', skip.toString());
   url.searchParams.append('limit', limit.toString());
   
@@ -123,7 +128,7 @@ export async function listPrograms(
     max_students
   } = params;
   
-  const url = new URL(PROGRAMS_ENDPOINTS.LIST);
+  const url = new URL(PROGRAMS_ENDPOINTS.LIST());
   url.searchParams.append('skip', skip.toString());
   url.searchParams.append('limit', limit.toString());
   
@@ -169,7 +174,7 @@ export async function getProgram(id: number): Promise<Program> {
  * Create a new program
  */
 export async function createProgram(data: ProgramCreate): Promise<Program> {
-  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(PROGRAMS_ENDPOINTS.CREATE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }));
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(PROGRAMS_ENDPOINTS.CREATE(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }));
 
   if (!response.ok) {
     try {
@@ -234,7 +239,7 @@ export async function deleteProgram(id: number): Promise<void> {
  * Get all organizations for filtering (Academic type only)
  */
 export async function getOrganizationOptions(): Promise<OrganizationOption[]> {
-  const url = new URL(PROGRAMS_ENDPOINTS.OPTIONS_ORGANIZATIONS_CORRECTED);
+  const url = new URL(PROGRAMS_ENDPOINTS.OPTIONS_ORGANIZATIONS_CORRECTED());
   // Filter to Academic organizations only
   url.searchParams.append('type', 'Academic');
   
@@ -253,7 +258,7 @@ export async function getOrganizationOptions(): Promise<OrganizationOption[]> {
  * Get all unique program codes for filtering
  */
 export async function getProgramCodes(): Promise<string[]> {
-  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(PROGRAMS_ENDPOINTS.OPTIONS_CODES, { method: 'GET' }));
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(PROGRAMS_ENDPOINTS.OPTIONS_CODES(), { method: 'GET' }));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

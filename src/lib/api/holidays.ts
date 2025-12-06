@@ -1,4 +1,9 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+const getApiBaseUrl = () => {
+  if (typeof window !== "undefined" && (window as any).__ENV__?.NEXT_PUBLIC_BACKEND_API_URL) {
+    return (window as any).__ENV__.NEXT_PUBLIC_BACKEND_API_URL;
+  }
+  return process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+};
 
 export interface Holiday {
   id: number;
@@ -11,7 +16,7 @@ export interface Holiday {
 }
 
 export async function listHolidays(start?: string | null, end?: string | null, organization_id?: number | number[] | null): Promise<Holiday[]> {
-  const url = new URL(`${API_BASE_URL}/holidays`);
+  const url = new URL(`${getApiBaseUrl()}/holidays`);
   if (start) url.searchParams.append('start', String(start));
   if (end) url.searchParams.append('end', String(end));
   if (Array.isArray(organization_id)) {
@@ -45,7 +50,7 @@ export async function createHoliday(payload: {
   is_recurring?: boolean;
   notes?: string | null;
 }): Promise<Holiday> {
-  const url = `${API_BASE_URL}/holidays`;
+  const url = `${getApiBaseUrl()}/holidays`;
   try {
     const res = await import('./fetchClient').then(({ fetchRawWithAuth }) =>
       fetchRawWithAuth(url, {
@@ -72,7 +77,7 @@ export async function updateHoliday(holidayId: number, payload: Partial<{
   is_recurring?: boolean;
   notes?: string | null;
 }>): Promise<Holiday> {
-  const url = `${API_BASE_URL}/holidays/${holidayId}`;
+  const url = `${getApiBaseUrl()}/holidays/${holidayId}`;
   try {
     const res = await import('./fetchClient').then(({ fetchRawWithAuth }) =>
       fetchRawWithAuth(url, {
@@ -95,7 +100,7 @@ export async function updateHoliday(holidayId: number, payload: Partial<{
 
 export async function deleteHoliday(holidayId: number): Promise<boolean> {
   // Try the expected endpoint first, then fallback to legacy/typo route if necessary.
-  const tryUrls = [`${API_BASE_URL}/holidays/${holidayId}`, `${API_BASE_URL}/nolidays/${holidayId}`];
+  const tryUrls = [`${getApiBaseUrl()}/holidays/${holidayId}`, `${getApiBaseUrl()}/nolidays/${holidayId}`];
   try {
     for (const url of tryUrls) {
       try {

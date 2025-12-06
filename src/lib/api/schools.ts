@@ -4,15 +4,20 @@
  */
 
 // ==================== API Configuration ====================
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+const getApiBaseUrl = () => {
+  if (typeof window !== "undefined" && (window as any).__ENV__?.NEXT_PUBLIC_BACKEND_API_URL) {
+    return (window as any).__ENV__.NEXT_PUBLIC_BACKEND_API_URL;
+  }
+  return process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+};
 
 const SCHOOLS_ENDPOINTS = {
-  LIST: `${API_BASE_URL}/organizations/`,
-  DETAIL: (id: number) => `${API_BASE_URL}/organizations/${id}`,
-  CREATE: `${API_BASE_URL}/organizations/`,
-  UPDATE: (id: number) => `${API_BASE_URL}/organizations/${id}`,
-  DELETE: (id: number) => `${API_BASE_URL}/organizations/${id}`,
-} as const;
+  LIST: () => `${getApiBaseUrl()}/organizations/`,
+  DETAIL: (id: number) => `${getApiBaseUrl()}/organizations/${id}`,
+  CREATE: () => `${getApiBaseUrl()}/organizations/`,
+  UPDATE: (id: number) => `${getApiBaseUrl()}/organizations/${id}`,
+  DELETE: (id: number) => `${getApiBaseUrl()}/organizations/${id}`,
+};
 
 // ==================== Types ====================
 

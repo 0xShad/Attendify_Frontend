@@ -3,7 +3,12 @@
  * Provides a helper to list schedules for a class (GET /classes/{class_id}/schedules)
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+const getApiBaseUrl = () => {
+  if (typeof window !== "undefined" && (window as any).__ENV__?.NEXT_PUBLIC_BACKEND_API_URL) {
+    return (window as any).__ENV__.NEXT_PUBLIC_BACKEND_API_URL;
+  }
+  return process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+};
 
 export type ScheduleCommon = {
   id: number;
@@ -50,7 +55,7 @@ export async function listSchedulesForClass(classId: number): Promise<Schedule[]
     }
   }
 
-  const url = `${API_BASE_URL}/classes/${classId}/schedules`;
+  const url = `${getApiBaseUrl()}/classes/${classId}/schedules`;
   try {
     const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } }));
     if (res.status === 404) {
@@ -72,7 +77,7 @@ export const schedulesAPI = {
   listSchedulesForClass,
   // Get single schedule
   async getScheduleForClass(classId: number, scheduleId: number): Promise<Schedule> {
-    const url = `${API_BASE_URL}/classes/${classId}/schedules/${scheduleId}`;
+    const url = `${getApiBaseUrl()}/classes/${classId}/schedules/${scheduleId}`;
 
     const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } }));
 
@@ -91,7 +96,7 @@ export const schedulesAPI = {
   },
   // Create a schedule for a class. Payload should match either NormalSchedule or SpecialSchedule shape
   async createScheduleForClass(classId: number, payload: Partial<ScheduleCommon> & Record<string, any>): Promise<Schedule> {
-    const url = `${API_BASE_URL}/classes/${classId}/schedules`;
+    const url = `${getApiBaseUrl()}/classes/${classId}/schedules`;
 
     const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }));
 
@@ -105,7 +110,7 @@ export const schedulesAPI = {
   },
   // Update an existing schedule for a class
   async updateScheduleForClass(classId: number, scheduleId: number, payload: Partial<ScheduleCommon> & Record<string, any>): Promise<Schedule> {
-    const url = `${API_BASE_URL}/classes/${classId}/schedules/${scheduleId}`;
+    const url = `${getApiBaseUrl()}/classes/${classId}/schedules/${scheduleId}`;
 
     const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }));
 
@@ -119,7 +124,7 @@ export const schedulesAPI = {
   },
   // Delete a schedule for a class
   async deleteScheduleForClass(classId: number, scheduleId: number): Promise<void> {
-    const url = `${API_BASE_URL}/classes/${classId}/schedules/${scheduleId}`;
+    const url = `${getApiBaseUrl()}/classes/${classId}/schedules/${scheduleId}`;
 
     const res = await import('./fetchClient').then(m => m.fetchRawWithAuth(url, { method: 'DELETE' }));
 
