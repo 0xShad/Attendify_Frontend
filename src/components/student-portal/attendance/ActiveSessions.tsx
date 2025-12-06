@@ -190,7 +190,7 @@ export default function ActiveSessions({
                     // do not show the Attendance button — instruct them to use the professor/secretary device.
                     isF2FModeLocal && !isSecretary ? (
                       <div className="text-sm text-center w-full p-4 rounded-md bg-yellow-50 text-amber-800">
-                        Face to Face attendance should be taken on your professor's or class secretary's device.
+                        Face to Face attendance should be taken on your professor&apos;s or class secretary&apos;s device.
                       </div>
                     ) : (
                       <div className="flex gap-2">

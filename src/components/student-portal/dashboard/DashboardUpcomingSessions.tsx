@@ -23,7 +23,7 @@ export default function DashboardUpcomingSessions({ sessions, noMoreToday }: Pro
   return (
     <Card className="border shadow-sm bg-stone-50/40 supports-backdrop-filter:backdrop-blur-md border-stone-200/50">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg">Today's Schedule</CardTitle>
+        <CardTitle className="text-lg">Today&apos;s Schedule</CardTitle>
       </CardHeader>
       <CardContent>
         {sessions.length === 0 ? (

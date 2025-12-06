@@ -263,7 +263,7 @@ async function fetchWithDedupe(url: string, init?: RequestInit) {
     if (safeInit && (safeInit.method || 'GET').toUpperCase() === 'GET') {
       // Remove Content-Type for GET
       if (safeInit.headers && 'Content-Type' in safeInit.headers) {
-        // @ts-ignore - headers is a plain object here
+        // @ts-expect-error - headers is a plain object here
         delete (safeInit.headers as Record<string, string>)['Content-Type'];
       }
     }

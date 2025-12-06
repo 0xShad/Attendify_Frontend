@@ -95,7 +95,7 @@ export default function RequestedExcuses() {
       <div className="flex items-center justify-between gap-4 mb-4">
         <div>
           <h2 className="text-lg font-medium">Requested Excuses</h2>
-          <p className="text-muted-foreground text-sm">View excusal requests you've submitted.</p>
+          <p className="text-muted-foreground text-sm">View excusal requests you&apos;ve submitted.</p>
         </div>
 
         <div className="flex items-center gap-2">
