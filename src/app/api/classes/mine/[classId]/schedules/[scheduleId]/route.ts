@@ -13,7 +13,7 @@ function parseCookie(header: string | null, name: string) {
 export const runtime = 'nodejs';
 
 // GET single schedule
-export async function GET(request: Request, { params }: { params: { classId: string, scheduleId: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ classId: string, scheduleId: string }> } | { params: { classId: string, scheduleId: string } }) {
   let resolvedParams: any = params;
   try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
   const { classId, scheduleId } = resolvedParams || {};
@@ -44,7 +44,7 @@ export async function GET(request: Request, { params }: { params: { classId: str
 }
 
 // PATCH update schedule (partial)
-export async function PATCH(request: Request, { params }: { params: { classId: string, scheduleId: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ classId: string, scheduleId: string }> } | { params: { classId: string, scheduleId: string } }) {
   let resolvedParams: any = params;
   try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
   const { classId, scheduleId } = resolvedParams || {};
@@ -84,7 +84,7 @@ export async function PUT(request: Request, ctx: { params: { classId: string, sc
 }
 
 // DELETE schedule
-export async function DELETE(request: Request, { params }: { params: { classId: string, scheduleId: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ classId: string, scheduleId: string }> } | { params: { classId: string, scheduleId: string } }) {
   let resolvedParams: any = params;
   try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
   const { classId, scheduleId } = resolvedParams || {};

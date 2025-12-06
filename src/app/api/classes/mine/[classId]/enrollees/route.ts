@@ -12,7 +12,7 @@ function parseCookie(header: string | null, name: string) {
 
 export const runtime = 'nodejs';
 
-export async function GET(request: Request, { params }: { params: { classId: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ classId: string }> } | { params: { classId: string } }) {
   // Some Next.js runtimes provide `params` as a thenable; await if necessary.
   let resolvedParams: any = params;
   try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
@@ -43,7 +43,7 @@ export async function GET(request: Request, { params }: { params: { classId: str
   }
 }
 
-export async function POST(request: Request, { params }: { params: { classId: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ classId: string }> } | { params: { classId: string } }) {
   let resolvedParams: any = params;
   try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
   const { classId } = resolvedParams || {};

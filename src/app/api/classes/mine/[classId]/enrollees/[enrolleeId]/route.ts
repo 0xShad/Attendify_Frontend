@@ -12,7 +12,7 @@ function parseCookie(header: string | null, name: string) {
 
 export const runtime = 'nodejs';
 
-export async function DELETE(request: Request, { params }: { params: { classId: string; enrolleeId: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ classId: string; enrolleeId: string }> } | { params: { classId: string; enrolleeId: string } }) {
   let resolvedParams: any = params;
   try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
   const { classId, enrolleeId } = resolvedParams || {};

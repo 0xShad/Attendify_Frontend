@@ -10,7 +10,7 @@ function parseCookie(header: string | null, name: string) {
   return null;
 }
 
-export async function GET(request: Request, { params }: { params: any }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> } | { params: { id: string } }) {
   const cookieHeader = request.headers.get('cookie') || '';
   const ACCESS_COOKIE_NAME = 'access_token';
   const accessToken = parseCookie(cookieHeader, ACCESS_COOKIE_NAME);
