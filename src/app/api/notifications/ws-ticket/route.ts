@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     const respContentType = res.headers.get('content-type') || 'application/json';
 
     // Try to parse JSON to enrich the response with a full ws_url and TTL.
-    let bodyText = await res.text();
+    const bodyText = await res.text();
     if ((respContentType || '').includes('application/json')) {
       try {
         const json = JSON.parse(bodyText || '{}');
