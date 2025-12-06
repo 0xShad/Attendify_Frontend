@@ -533,6 +533,47 @@ class AuthAPI {
   }
 
   /**
+   * Change password for currently authenticated user
+   * Calls PUT /users/me/password on the configured AUTH API base URL
+   */
+  async changePassword(payload: {
+    current_password: string;
+    new_password: string;
+    confirm_password?: string | null;
+  }): Promise<any> {
+    if (!payload?.current_password || !payload?.new_password) {
+      throw new ApiError(400, "current_password and new_password are required");
+    }
+
+    // Use same-origin proxy to reach the users service password endpoint.
+    // This ensures the request goes through Next.js API route which handles cookies/authorization.
+    try {
+      const res = await fetch(`/api/users/me/password`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      const text = await res.text();
+      let data: any = text;
+      try {
+        data = text ? JSON.parse(text) : undefined;
+      } catch (_) {}
+
+      if (!res.ok) {
+        const msg = data?.message || data?.detail || `HTTP ${res.status}`;
+        throw new ApiError(res.status, msg, data?.error?.code, data?.error?.details ?? data);
+      }
+
+      return data;
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      throw new ApiError(500, (err as Error)?.message || 'Failed to change password');
+    }
+  }
+
+  /**
    * Get current authenticated user
    */
   async getCurrentUser(): Promise<User> {
@@ -629,3 +670,55 @@ export const authAPI = new AuthAPI();
 
 // Export class for testing or custom instances
 export { AuthAPI };
+
+/**
+ * Lightweight check to verify current session/auth status.
+ * Returns `true` when the /users/me endpoint returns OK, `false` otherwise.
+ * Uses credentials (cookies) and will include a localStorage Bearer token if present.
+ */
+export async function checkAuth(force = false): Promise<boolean> {
+  // If called on server (no window), we cannot perform client-side check
+  if (typeof window === "undefined") return false;
+
+  const url = USER_ENDPOINTS.ME;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+  // Try to include any locally-stored token if available (best-effort)
+  try {
+    const token =
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("authToken");
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  } catch (e) {
+    // ignore localStorage errors
+  }
+
+  try {
+    const res = await fetch(url, { method: "GET", credentials: "include", headers });
+    if (res.ok) return true;
+    if (res.status === 401 || res.status === 403) return false;
+    // treat other non-OK as not authenticated
+    return false;
+  } catch (err) {
+    // network error -> conservatively treat as not authenticated
+    return false;
+  }
+}
+
+// ------------------------------------------------------------------
+// Helper: changeMyPassword
+// ------------------------------------------------------------------
+/**
+ * changeMyPassword
+ * Calls same-origin proxy at `/api/users/me/password` which forwards to the auth service.
+ */
+export async function changeMyPassword(payload: {
+  current_password: string;
+  new_password: string;
+  confirm_password?: string | null;
+}) {
+  // Delegate to centralized authAPI instance which uses HttpClient (logging, headers)
+  return authAPI.changePassword(payload);
+}
+

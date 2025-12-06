@@ -1,0 +1,425 @@
+import React, { useRef, useState } from "react";
+import { useBlinkLiveness } from "./use-blink-liveness";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+
+
+interface FaceCameraProps {
+  onCapture: (dataUrl: string) => void;
+  onRetake?: () => void;
+  onValidate?: (dataUrl: string, width: number, height: number) => Promise<{ 
+    passed: boolean; 
+    message?: string;
+    processedImage?: string; // Optional: return a processed/boxed image
+    metadata?: any; // Optional: return additional data (face coordinates, confidence, etc.)
+  }>;
+  /** When true, skip the additional /api/vision-face-detect call after validation */
+  skipFaceDetect?: boolean;
+  skipLivenessCheck?: boolean;
+  width?: number;
+  height?: number;
+  className?: string;
+}
+
+export default function FaceCamera({ 
+  onCapture, 
+  onRetake, 
+  onValidate,
+  skipFaceDetect = false,
+  skipLivenessCheck = false,
+  width = 320, 
+  height = 240, 
+  className = "" 
+}: FaceCameraProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [streaming, setStreaming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [captured, setCaptured] = useState<string | null>(null); // last submitted
+  const [open, setOpen] = useState(false);
+  const [detecting, setDetecting] = useState(false);
+  const [faceDetection, setFaceDetection] = useState<null | { success: boolean; message: string; faces?: any[] }>(null);
+  const [boxedImage, setBoxedImage] = useState<string | null>(null); // last submitted
+  // For retake, hold temporary state until new detection is done
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [pendingBoxed, setPendingBoxed] = useState<string | null>(null);
+  const [pendingDetection, setPendingDetection] = useState<null | { success: boolean; message: string; faces?: any[] }>(null);
+  const [livenessPassed, setLivenessPassed] = useState(false);
+  const [livenessResult, setLivenessResult] = useState<null | { success: boolean; message: string }>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [livenessLocked, setLivenessLocked] = useState(false);
+  const [checkingLiveness, setCheckingLiveness] = useState(false);
+  const { blinkDetected, livenessLoading, reset: resetBlink } = useBlinkLiveness(videoRef, streaming && !livenessLocked);
+
+  const startCamera = async () => {
+    setError(null);
+    setCaptured(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        setStreaming(true);
+      }
+    } catch (err) {
+      setError("Unable to access camera. Please allow camera access.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setStreaming(false);
+  };
+
+
+
+  // Top-level countdown/capture effect: handles blink, countdown, and photo capture
+  React.useEffect(() => {
+    // State transitions observed (no debug logs emitted)
+    // Start countdown when blink is detected and not already counting down or detecting
+    if (blinkDetected && !detecting && countdown === null && !livenessLocked) {
+      setCountdown(3);
+      return;
+    }
+    // Handle countdown
+    if (countdown !== null) {
+      if (countdown > 0) {
+        console.log(`[FaceCamera] Countdown: ${countdown}`);
+        const timer = setTimeout(() => setCountdown((c) => (c !== null ? c - 1 : null)), 1000);
+        return () => clearTimeout(timer);
+    } else if (countdown === 0 && !detecting && !livenessLocked) {
+      // Prevent double execution
+  setDetecting(true);
+  setLivenessLocked(true); // lock further detection until retry
+        // Capture and send to anti-spoofing API
+        if (videoRef.current && canvasRef.current) {
+          const ctx = canvasRef.current.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(videoRef.current, 0, 0, width, height);
+            const dataUrl = canvasRef.current.toDataURL("image/png");
+            setPendingImage(dataUrl);
+            setPendingBoxed(null);
+            setPendingDetection(null);
+            // Do NOT close modal yet
+            stopCamera();
+            setTimeout(async () => {
+              try {
+                setCheckingLiveness(true);
+                
+                let validationResult;
+                
+                if (skipLivenessCheck) {
+                  // Skip liveness check entirely
+                  validationResult = { passed: true, message: "Validation skipped" };
+                } else if (onValidate) {
+                  // Use custom validation function
+                  validationResult = await onValidate(dataUrl, width, height);
+                } else {
+                  // Default: use liveness API
+                  const response = await fetch("/api/vision-face-liveness-test", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ image: dataUrl, width, height }),
+                  });
+                  
+                  if (!response.ok) {
+                    throw new Error(`API error: ${response.status} ${response.statusText}`);
+                  }
+                  
+                  validationResult = await response.json();
+                }
+                
+                
+                setCheckingLiveness(false);
+                setLivenessResult({ success: validationResult.passed, message: validationResult.passed ? "Validation passed." : (validationResult.message || "Validation failed.") });
+                setLivenessPassed(!!validationResult.passed);
+                if (validationResult.passed) {
+                  // If caller requested skipping the face-detect step, treat it as a successful detection
+                  if (skipFaceDetect) {
+                    setPendingDetection({ success: true, message: 'Face detection skipped', faces: [{ detectionConfidence: 1 }] });
+                    setPendingBoxed(validationResult.processedImage || dataUrl);
+                  }
+                  
+                  setOpen(false);
+                  // Pass the processed image if returned, otherwise pass original
+                  const imageToReturn = validationResult.processedImage || dataUrl;
+                  onCapture(imageToReturn);
+                  // Camera already stopped, livenessLocked remains true
+                  } else {
+                  // Validation failed - keep the pending image so user can see what failed
+                  // Don't clear pendingImage - we want to show it
+                  // setPendingImage(null);
+                  // setPendingBoxed(null);
+                  // setPendingDetection(null);
+                }
+                // Optionally, you can also send to face detection API if validation passed
+                if (validationResult.passed && !skipFaceDetect) {
+                  const base64 = dataUrl.replace(/^data:image\/(png|jpeg);base64,/, "");
+                  
+                  const response2 = await fetch("/api/vision-face-detect", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ imageBase64: base64 }),
+                  });
+                  const result2 = await response2.json();
+                  
+                  const faces = result2.faces;
+                  if (faces && faces.length === 1) {
+                    setPendingDetection({ success: true, message: `Face detected!`, faces });
+                    const img = new window.Image();
+                    img.onload = () => {
+                      const tempCanvas = document.createElement("canvas");
+                      tempCanvas.width = width;
+                      tempCanvas.height = height;
+                      const tempCtx = tempCanvas.getContext("2d");
+                      if (tempCtx) {
+                        tempCtx.drawImage(img, 0, 0, width, height);
+                        faces.forEach((face: any) => {
+                          if (face.boundingPoly && face.boundingPoly.vertices) {
+                            const v = face.boundingPoly.vertices;
+                            const x = v[0]?.x || 0;
+                            const y = v[0]?.y || 0;
+                            const w = (v[1]?.x || 0) - x;
+                            const h = (v[2]?.y || 0) - y;
+                            tempCtx.save();
+                            tempCtx.strokeStyle = "#22c55e";
+                            tempCtx.lineWidth = 3;
+                            tempCtx.strokeRect(x, y, w, h);
+                            tempCtx.restore();
+                          }
+                        });
+                        setPendingBoxed(tempCanvas.toDataURL("image/png"));
+                      }
+                    };
+                    img.src = dataUrl;
+                  } else if (faces && faces.length > 1) {
+                    setPendingDetection({ success: false, message: "Multiple faces detected. Please ensure only your face is visible and try again." });
+                    setPendingBoxed(null);
+                  } else {
+                    setPendingDetection({ success: false, message: "No face detected. Please try again." });
+                    setPendingBoxed(null);
+                  }
+                }
+              } catch (err) {
+                console.error('[FaceCamera] Validation error:', err);
+                setCheckingLiveness(false);
+                
+                // More specific error messages
+                let errorMessage = "Validation error. Please try again.";
+                if (err instanceof TypeError && err.message === 'Failed to fetch') {
+                  errorMessage = "Network error. Please check your connection and try again.";
+                } else if (err instanceof Error) {
+                  errorMessage = err.message || errorMessage;
+                }
+                
+                setLivenessResult({ success: false, message: errorMessage });
+                setLivenessPassed(false);
+                // Don't clear pending image - keep it so user can see what was captured
+                // setPendingImage(null);
+                // setPendingBoxed(null);
+              }
+              setDetecting(false);
+            }, 300);
+          }
+        }
+  setCountdown(null);
+      }
+    }
+    // eslint-disable-next-line
+  }, [blinkDetected, countdown, detecting, width, height, onCapture]);
+
+  // Reset livenessPassed when dialog is closed for repeated use
+  React.useEffect(() => {
+    if (!open) {
+      setLivenessPassed(false);
+    }
+  }, [open]);
+
+
+  const handleOpen = () => {
+    setLivenessPassed(false);
+    setLivenessResult(null);
+    setCountdown(null);
+    setCaptured(null);
+    setPendingImage(null);
+    setPendingBoxed(null);
+    setPendingDetection(null);
+    setFaceDetection(null);
+    setBoxedImage(null);
+    setOpen(true);
+    setTimeout(() => {
+      startCamera();
+    }, 200);
+  } 
+
+  const handleClose = () => {
+    setOpen(false);
+    stopCamera();
+    setError(null);
+    setLivenessPassed(false);
+    setLivenessResult(null);
+    setCountdown(null);
+    setLivenessLocked(false); // Reset liveness lock
+    setDetecting(false); // Reset detecting state
+    setCheckingLiveness(false); // Reset checking liveness state
+    resetBlink(); // Reset blink detection
+  };
+
+  return (
+    <div className={`flex flex-col items-center gap-3 ${className}`}>
+      {(pendingImage || captured) && (
+        <div className="flex flex-col items-center gap-2 relative">
+          <img src={pendingBoxed || boxedImage || pendingImage || captured!} alt="Captured face" className="rounded-lg border shadow w-full max-w-xs" />
+          {detecting && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/70 z-10">
+              <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+              </svg>
+            </div>
+          )}
+          {(pendingDetection || faceDetection) && (
+            <div className={(pendingDetection || faceDetection)!.success ? "text-green-700 text-sm flex flex-col items-center" : "text-red-600 text-sm flex flex-col items-center"}>
+              {(pendingDetection || faceDetection)!.success ? (
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="h-5 w-5 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    <span className="font-semibold">Face detected!</span>
+                  </div>
+                  <ul className="mt-1 text-xs text-left">
+                    {(pendingDetection || faceDetection)!.faces.map((face: any, idx: number) => (
+                      <li key={idx} className="mb-1">
+                        <span className="font-semibold">Detection confidence:</span> <span className="font-mono">{face.detectionConfidence ? (face.detectionConfidence * 100).toFixed(1) : "-"}%</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <>
+                  {(pendingDetection || faceDetection)!.message === "Multiple faces detected. Please ensure only your face is visible and try again." && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg className="h-5 w-5 text-yellow-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                      <span className="font-semibold">Multiple faces detected!</span>
+                    </div>
+                  )}
+                  <span>{(pendingDetection || faceDetection)!.message}</span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      <Button
+        type="button"
+        onClick={() => {
+          if (!detecting) {
+            // Reset all state for a new capture attempt
+            setLivenessResult(null);
+            setLivenessPassed(false);
+            setCountdown(null);
+            setCaptured(null);
+            setPendingImage(null);
+            setPendingBoxed(null);
+            setPendingDetection(null);
+            setFaceDetection(null);
+            setBoxedImage(null);
+            setLivenessLocked(false);
+            resetBlink();
+            
+            // Notify parent that retake is happening
+            if ((captured || pendingImage) && onRetake) {
+              onRetake();
+            }
+            
+            setOpen(true);
+            setTimeout(() => {
+              startCamera();
+            }, 200);
+          }
+        }}
+        className="mb-2"
+        disabled={detecting}
+      >
+        {captured || pendingImage ? "Retake Face" : "Capture Face"}
+      </Button>
+      <Dialog open={open} onOpenChange={val => { if (!val) handleClose(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Face Liveness & Capture</DialogTitle>
+          </DialogHeader>
+          {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+          {livenessResult && !livenessResult.success && (
+            <div className="text-red-600 text-sm mb-2">{livenessResult.message}
+              <Button type="button" size="sm" className="ml-2" onClick={() => {
+                // Reset for retry
+                setLivenessResult(null);
+                setLivenessPassed(false);
+                setCountdown(null);
+                setPendingImage(null);
+                setPendingBoxed(null);
+                setPendingDetection(null);
+                setFaceDetection(null);
+                setBoxedImage(null);
+                setLivenessLocked(false); // allow detection again
+                resetBlink(); // reset blink detection for new session
+                setTimeout(() => {
+                  startCamera();
+                }, 200);
+              }}>Retry</Button>
+            </div>
+          )}
+          <div className="flex flex-col items-center gap-2">
+            {livenessPassed && countdown !== null && countdown > 0 && (
+              <div className="text-6xl font-bold text-blue-700 animate-pulse select-none mb-2">
+                {countdown}
+              </div>
+            )}
+            <div className="relative">
+              {(checkingLiveness || (livenessResult && !livenessResult.success)) && pendingImage ? (
+                <img src={pendingImage} width={width} height={height} className="rounded-lg border shadow" alt="Captured face" />
+              ) : (
+                <video ref={videoRef} width={width} height={height} className="rounded-lg border shadow" autoPlay muted playsInline />
+              )}
+              {checkingLiveness && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-lg">
+                  <svg className="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                  </svg>
+                  <div className="text-white font-semibold text-center mt-3">
+                    Verifying liveness...<br/>
+                    <span className="text-sm font-normal text-gray-200">Running anti-spoofing checks</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <canvas ref={canvasRef} width={width} height={height} style={{ display: "none" }} />
+            {!blinkDetected && !livenessPassed && !checkingLiveness && (
+              <div className="text-blue-700 font-semibold text-center mt-2">Please blink your eyes naturally.<br/>We are verifying liveness...</div>
+            )}
+            {livenessLoading && !checkingLiveness && (
+              <div className="text-xs text-gray-500 mt-1">Detecting blink...</div>
+            )}
+            {livenessResult && (
+              <div className={livenessResult.success ? "text-green-700 text-sm mt-2" : "text-red-600 text-sm mt-2"}>
+                {livenessResult.message}
+              </div>
+            )}
+            {livenessPassed && countdown !== null && !checkingLiveness && (
+              <div className="text-blue-700 font-bold text-lg mt-2">Capturing photo in {countdown}...</div>
+            )}
+            <DialogClose asChild>
+              <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
+            </DialogClose>
+
+            {/* Debug panel removed in cleanup */}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

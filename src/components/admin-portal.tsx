@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   IconHome,
@@ -17,6 +18,8 @@ import {
   IconClockHour4,
   IconSchool,
   IconUser,
+  IconBooks,
+  IconChalkboard,
 } from "@tabler/icons-react";
 import {
   Card,
@@ -52,11 +55,19 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuthContext } from "@/contexts/AuthContext";
+import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
 import { useToast } from "@/hooks/use-toast";
-import { DataTable } from "@/components/data-table";
+import { checkAuth } from "@/lib/clientAuth";
+import { UsersManagement } from "@/components/users";
 import { ReportsDataTable } from "@/components/reports-data-table";
 import { LogsDataTable } from "@/components/logs-data-table";
+import { SchoolsManagement } from "@/components/schools-management";
+import { ProgramsManagement } from "@/components/programs-management";
+import { CoursesManagement } from "@/components/courses-management";
+import ClassesManagement from "@/components/classes/ClassesManagement";
+import HolidaysManagement from "@/components/holidays/HolidaysManagement";
 import {
   Sidebar,
   SidebarContent,
@@ -78,6 +89,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
+import NotificationBell from '@/components/NotificationBell';
 
 interface User {
   id: string;
@@ -99,35 +111,7 @@ interface MetricCard {
   trendData: number[];
 }
 
-// Notification dropdown with glassy styling
-function NotificationMenu() {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <IconBell className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64 bg-stone-50/70 supports-[backdrop-filter]:backdrop-blur-md border shadow-lg">
-        <div className="p-2">
-          <div className="text-sm font-medium">Notifications</div>
-          <div className="mt-2 space-y-2">
-            <div className="text-sm text-muted-foreground">
-              New login from IP 192.0.2.1
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Attendance report ready
-            </div>
-            <div className="text-sm text-muted-foreground">
-              User Bob Smith added
-            </div>
-          </div>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
+// Use the central NotificationBell component for notifications
 
 // Separate component for sidebar user menu that can use useSidebar hook
 function SidebarUserMenu({
@@ -136,6 +120,78 @@ function SidebarUserMenu({
   setSettingsOpen: (open: boolean) => void;
 }) {
   const { isMobile } = useSidebar();
+  const router = useRouter();
+  const { user, logout } = useAuthContext();
+
+  const [enrichment, setEnrichment] = useState<{
+    full_name?: string | null;
+    email?: string | null;
+    username?: string | null;
+    avatar_url?: string | null;
+  } | null>(null);
+  const [enrichmentTried, setEnrichmentTried] = useState(false);
+
+  const avatarSrc = useMemo(() => {
+    const raw = enrichment?.avatar_url || (user as any)?.avatarUrl || (user as any)?.avatar_url || null;
+    try {
+      return resolveAvatarUrl(raw);
+    } catch (e) {
+      return null;
+    }
+  }, [enrichment, user]);
+
+  const displayName = (enrichment?.full_name || user?.firstName || user?.username || enrichment?.username || user?.email) || 'Admin User';
+  const displayUsername = enrichment?.username ?? user?.username ?? enrichment?.email ?? user?.email ?? 'admin@attendify.com';
+  const initial = String(displayName).charAt(0).toUpperCase() || 'A';
+
+  useEffect(() => {
+    let mounted = true;
+    if (enrichmentTried) return;
+
+    // If we already have both a sensible display name AND email in the auth context, skip enrichment.
+    if (user && user.firstName && user.email) {
+      setEnrichmentTried(true);
+      return;
+    }
+
+    // Retry loop to handle race where HTTP-only cookie may not be set immediately after login redirect
+    (async () => {
+      const maxAttempts = 3;
+      const baseDelayMs = 250;
+      let attempt = 0;
+
+      while (mounted && attempt < maxAttempts) {
+        attempt += 1;
+        try {
+          const res = await fetch('/api/session/enrichment', { credentials: 'same-origin' });
+          if (!mounted) return;
+          if (!res.ok) {
+            if (res.status === 401 && attempt < maxAttempts) {
+              await new Promise((r) => setTimeout(r, baseDelayMs * attempt));
+              continue;
+            }
+            break;
+          }
+
+          const data = await res.json();
+          setEnrichment(data || null);
+          break;
+        } catch (e) {
+          if (attempt < maxAttempts) {
+            await new Promise((r) => setTimeout(r, baseDelayMs * attempt));
+            continue;
+          }
+          break;
+        }
+      }
+
+      if (mounted) setEnrichmentTried(true);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user, enrichmentTried]);
 
   return (
     <SidebarMenu>
@@ -147,14 +203,18 @@ function SidebarUserMenu({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarFallback className="rounded-lg bg-blue-500 text-white">
-                  <IconUser className="w-4 h-4" />
-                </AvatarFallback>
+                {avatarSrc ? (
+                  <AvatarImage src={avatarSrc} />
+                ) : (
+                  <AvatarFallback className="rounded-lg bg-blue-500 text-white">
+                    {initial}
+                  </AvatarFallback>
+                )}
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Admin User</span>
+                <span className="truncate font-medium">{displayName}</span>
                 <span className="text-muted-foreground truncate text-xs">
-                  admin@attendify.com
+                  {displayUsername}
                 </span>
               </div>
               <IconDots className="ml-auto size-4" />
@@ -169,14 +229,18 @@ function SidebarUserMenu({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg bg-blue-500 text-white">
-                    <IconUser className="w-4 h-4" />
-                  </AvatarFallback>
+                  {avatarSrc ? (
+                    <AvatarImage src={avatarSrc} />
+                  ) : (
+                    <AvatarFallback className="rounded-lg bg-blue-500 text-white">
+                      {initial}
+                    </AvatarFallback>
+                  )}
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Admin User</span>
+                  <span className="truncate font-medium">{displayName}</span>
                   <span className="text-muted-foreground truncate text-xs">
-                    admin@attendify.com
+                    {displayUsername}
                   </span>
                 </div>
               </div>
@@ -186,7 +250,15 @@ function SidebarUserMenu({
               <IconSettings className="w-4 h-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                try {
+                  logout?.();
+                } catch (err) {
+                  router.push('/auth/logout');
+                }
+              }}
+            >
               <IconLogout className="w-4 h-4" />
               Log out
             </DropdownMenuItem>
@@ -197,13 +269,29 @@ function SidebarUserMenu({
   );
 }
 
+// ClassesManagement is provided by src/components/classes/ClassesManagement
+
 export function AdminPortal() {
   const { toast } = useToast();
+  const router = useRouter();
 
-  // Navigation
+  // Navigation - Always start with dashboard to avoid hydration mismatch
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "users" | "reports" | "logs"
+    "dashboard" | "schools" | "programs" | "classes" | "courses" | "users" | "reports" | "logs" | "holidays"
   >("dashboard");
+
+  // Restore from localStorage after mount (client-side only)
+  React.useEffect(() => {
+    const saved = localStorage.getItem("admin-active-tab");
+    if (saved && ["dashboard", "schools", "programs", "courses", "classes", "users", "reports", "logs", "holidays"].includes(saved)) {
+      setActiveTab(saved as "dashboard" | "schools" | "programs" | "courses" | "classes" | "users" | "reports" | "logs" | "holidays");
+    }
+  }, []);
+
+  // Persist active tab to localStorage whenever it changes
+  React.useEffect(() => {
+    localStorage.setItem("admin-active-tab", activeTab);
+  }, [activeTab]);
 
   // Sheet and Dialog states
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -335,6 +423,11 @@ export function AdminPortal() {
   // Navigation items
   const navigationItems = [
     { id: "dashboard", icon: IconHome, label: "Dashboard" },
+    { id: "schools", icon: IconSchool, label: "Schools" },
+    { id: "programs", icon: IconSchool, label: "Programs" },
+    { id: "courses", icon: IconBooks, label: "Courses" },
+    { id: "classes", icon: IconChalkboard, label: "Classes" },
+    { id: "holidays", icon: IconClockHour4, label: "Holidays" },
     { id: "users", icon: IconUsers, label: "Users" },
     { id: "reports", icon: IconFileText, label: "Reports" },
     { id: "logs", icon: IconList, label: "System Logs" },
@@ -453,7 +546,14 @@ export function AdminPortal() {
     setTimeout(() => setIsLoading(false), 1000);
   };
 
-  const confirmDeleteUser = () => {
+  const confirmDeleteUser = async () => {
+    const ok = await checkAuth();
+    if (!ok) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     if (userToDelete) {
       setUsers((prev) => prev.filter((user) => user.id !== userToDelete));
       setDeleteUserOpen(false);
@@ -464,6 +564,23 @@ export function AdminPortal() {
       });
     }
   };
+
+  function handleNav(tabId: typeof navigationItems[number]['id']) {
+      // Optimistically switch tabs so UI remains responsive.
+      // Run auth check in the background and redirect to login if session expired.
+      setActiveTab(tabId as any);
+
+      checkAuth()
+        .then((ok) => {
+          if (!ok) {
+            const redirectTo = encodeURIComponent(window.location.pathname || '/');
+            router.push(`/auth/login?redirect=${redirectTo}`);
+          }
+        })
+        .catch(() => {
+          // Swallow errors from the auth check - don't block UI.
+        });
+    }
 
   React.useEffect(() => {
     loadDashboard();
@@ -502,15 +619,7 @@ export function AdminPortal() {
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         isActive={activeTab === item.id}
-                        onClick={() =>
-                          setActiveTab(
-                            item.id as
-                              | "dashboard"
-                              | "users"
-                              | "reports"
-                              | "logs"
-                          )
-                        }
+                        onClick={() => handleNav(item.id)}
                         className="w-full justify-start"
                         size="lg"
                       >
@@ -564,6 +673,12 @@ export function AdminPortal() {
                       <p className="text-sm text-muted-foreground">
                         {activeTab === "dashboard" &&
                           "Overview of system performance"}
+                        {activeTab === "schools" &&
+                          "Manage universities and institutions"}
+                        {activeTab === "programs" &&
+                          "Manage academic programs and degrees"}
+                        {activeTab === "courses" &&
+                          "Manage course curriculum and subjects"}
                         {activeTab === "users" &&
                           "Manage system users and permissions"}
                         {activeTab === "reports" &&
@@ -577,7 +692,7 @@ export function AdminPortal() {
 
               <div className="flex items-center gap-3">
                 {/* Notifications - dropdown with glass effect */}
-                <NotificationMenu />
+                <NotificationBell />
               </div>
             </div>
           </header>
@@ -805,18 +920,40 @@ export function AdminPortal() {
               </div>
             )}
 
+            {/* Schools Management */}
+            {activeTab === "schools" && <SchoolsManagement />}
+
+            {/* Programs Management */}
+            {activeTab === "programs" && <ProgramsManagement />}
+
+            {/* Courses Management */}
+            {activeTab === "courses" && <CoursesManagement />}
+
+            {/* Classes Management */}
+            {activeTab === "classes" && <ClassesManagement />}
+
+            {/* Holidays Management (placeholder) */}
+            {activeTab === "holidays" && (
+              // import lazily to avoid adding to top-level bundle unnecessarily in future
+              <React.Suspense fallback={<div className="p-4">Loading…</div>}>
+                {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+                {/* @ts-ignore */}
+                <HolidaysManagement />
+              </React.Suspense>
+            )}
+
             {/* Users Management */}
             {activeTab === "users" && (
               <div className="space-y-4 md:space-y-6">
-                <DataTable
-                  data={users.map((user, index) => ({
-                    id: user.id,
+                <UsersManagement
+                  data={users.map((user) => ({
+                    id: String(user.id),
                     name: user.name,
                     email: user.email || "",
                     role: user.role,
                     status: user.status,
                     lastActive: user.lastActive || "Never",
-                    department: undefined, // This can be added to the User interface later
+                    avatar: undefined,
                   }))}
                 />
               </div>

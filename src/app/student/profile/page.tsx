@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Camera,
   Trash2,
@@ -26,6 +26,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import BasicInfo from "@/components/student-portal/profile/BasicInfo";
+import AcademicInfo from "@/components/student-portal/profile/AcademicInfo";
+import SecuritySettings from "@/components/student-portal/profile/SecuritySettings";
+import { changeMyPassword } from "@/lib/api/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -57,31 +61,11 @@ export default function StudentProfile() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Profile data
-  const [profileData, setProfileData] = useState({
-    // Basic Info
-    firstName: "Alex",
-    lastName: "Johnson",
-    email: "alex.johnson@student.edu",
-    phone: "+1 (555) 123-4567",
-    studentId: "ST202400123",
-    dateOfBirth: "1999-05-15",
+  // Profile data - start empty so UI shows loading skeletons instead of sample data
+  const [profileData, setProfileData] = useState<any>({});
 
-    // Academic Info
-    major: "Computer Science",
-    minor: "Mathematics",
-    year: "Junior",
-    expectedGraduation: "Spring 2026",
-    gpa: "3.85",
-
-    // Contact Info
-    address: "123 Campus Drive, Apt 4B",
-    city: "University City",
-    state: "NY",
-    zipCode: "12345",
-    emergencyContact: "Jane Johnson",
-    emergencyPhone: "+1 (555) 987-6543",
-  });
+  // Start as loading so the first render shows skeletons immediately
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -104,49 +88,125 @@ export default function StudentProfile() {
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSaving(false);
-    setIsEditing(false);
+    try {
+      // Build editable fields
+      const payload: any = {
+        firstname: profileData.firstname ?? profileData.firstName,
+        lastname: profileData.lastname ?? profileData.lastName,
+        middlename: profileData.middlename ?? profileData.middleName,
+        email: profileData.email,
+        username: profileData.username,
+        bio: profileData.bio,
+      };
 
-    toast({
-      title: "Profile Updated ✓",
-      description: "Your profile information has been saved successfully.",
-    });
+      const avatarFile = profileData?.avatar_file as File | undefined;
+      let resp: Response;
+
+      if (avatarFile) {
+        // Multipart form when a file is present
+        const fd = new FormData();
+        // append only defined values
+        Object.entries(payload).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) fd.append(k, String(v));
+        });
+        fd.append('avatar_file', avatarFile, avatarFile.name);
+
+        resp = await fetch('/api/profiles/mine', {
+          method: 'PATCH',
+          body: fd,
+        });
+      } else {
+        resp = await fetch('/api/profiles/mine', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        toast({ title: 'Failed to save profile', description: txt || `Status ${resp.status}`, variant: 'destructive' });
+        return;
+      }
+
+      // After successful save, re-fetch authoritative profile from backend
+      setIsLoadingProfile(true);
+      const refresh = await fetch('/api/profiles/mine', { headers: { Accept: 'application/json' } });
+      if (refresh.ok) {
+        const data = await refresh.json();
+        setProfileData((prev) => ({
+          ...prev,
+          ...data,
+          firstName: data.firstname ?? data.firstName ?? prev.firstName,
+          lastName: data.lastname ?? data.lastName ?? prev.lastName,
+          firstname: data.firstname ?? data.firstName ?? prev.firstname,
+          lastname: data.lastname ?? data.lastName ?? prev.lastname,
+          avatar_url: data.avatar_url ?? data.avatarUrl ?? prev.avatar_url,
+          face_image: data.face_image ?? data.faceImage ?? prev.face_image,
+          email: data.email ?? prev.email,
+          username: data.username ?? prev.username,
+          bio: data.bio ?? prev.bio,
+          organization_id: data.organization_id ?? data.organizationId ?? prev.organization_id,
+          program_id: data.program_id ?? data.programId ?? prev.program_id,
+        }));
+      }
+
+      setIsEditing(false);
+      toast({ title: 'Profile saved', description: 'Your changes have been saved.' });
+    } catch (err: any) {
+      console.error('Save failed', err);
+      toast({ title: 'Error saving', description: err?.message ?? String(err), variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+      setIsLoadingProfile(false);
+    }
   };
 
   const handleUpdatePassword = async () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast({
-        title: "Password Mismatch",
-        description: "New password and confirmation don&apos;t match.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (passwordData.newPassword.length < 8) {
-      toast({
-        title: "Password Too Short",
-        description: "Password must be at least 8 characters long.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSaving(false);
+    try {
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        toast({ title: "Password Mismatch", description: "New password and confirmation don't match.", variant: "destructive" });
+        return;
+      }
 
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+      if (passwordData.newPassword.length < 6) {
+        toast({ title: "Password Too Short", description: "Password must be at least 6 characters long.", variant: "destructive" });
+        return;
+      }
 
-    toast({
-      title: "Password Updated ✓",
-      description: "Your password has been changed successfully.",
-    });
+      // Call centralized helper which delegates to authAPI
+      const result = await changeMyPassword({
+        current_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword,
+        confirm_password: passwordData.confirmPassword,
+      });
+
+      // Success — backend returns updated user; optionally merge into profileData
+      if (result) {
+        // Attempt to merge returned user fields into profileData if shape matches
+        try {
+          const u = (result.data && result.data.user) ? result.data.user : result;
+          if (u && typeof u === 'object') {
+            setProfileData((prev) => ({ ...prev, ...u }));
+          }
+        } catch (e) {
+          // ignore merge errors
+        }
+
+        setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+        toast({ title: "Password Updated", description: "Your password has been changed." });
+      }
+    } catch (err: any) {
+      console.error('Password update failed', err);
+      const msg = err?.message || err?.body?.message || String(err);
+      toast({ title: 'Failed to update password', description: msg, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const startFaceDataUpdate = () => {
@@ -154,591 +214,129 @@ export default function StudentProfile() {
     setCameraActive(true);
   };
 
-  const handleFaceDataUpdate = async () => {
-    setIsProcessingFace(true);
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    setIsProcessingFace(false);
-    setCameraActive(false);
-    setFaceDataDrawerOpen(false);
-
-    setFaceDataStatus({
-      ...faceDataStatus,
-      lastUpdated: new Date().toISOString().split("T")[0],
-      accuracy: 99.2,
-      backupImages: 6,
-    });
-
-    toast({
-      title: "Face Data Updated ✓",
-      description: "Your face recognition data has been updated successfully.",
-    });
-  };
-
   const deleteFaceData = async () => {
     setIsProcessingFace(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Simulate deletion
+    await new Promise((r) => setTimeout(r, 800));
     setIsProcessingFace(false);
-
-    setFaceDataStatus({
-      isRegistered: false,
-      lastUpdated: "",
-      accuracy: 0,
-      backupImages: 0,
-    });
-
-    toast({
-      title: "Face Data Deleted",
-      description:
-        "Your face recognition data has been removed from the system.",
-    });
+    setFaceDataStatus({ isRegistered: false, lastUpdated: "", accuracy: 0, backupImages: 0 });
+    toast({ title: "Face Data Deleted", description: "Your face data has been removed.", variant: "destructive" });
   };
 
+  const handleFaceDataUpdate = async () => {
+    setIsProcessingFace(true);
+    // Simulate capture and upload
+    await new Promise((r) => setTimeout(r, 1200));
+    setIsProcessingFace(false);
+    setFaceDataStatus({ isRegistered: true, lastUpdated: new Date().toISOString().slice(0, 10), accuracy: 98.0, backupImages: 3 });
+    setFaceDataDrawerOpen(false);
+    setCameraActive(false);
+    toast({ title: "Face Data Updated", description: "Face data registered/updated successfully." });
+  };
+
+  // Load profile on mount (merge returned fields into profileData)
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setIsLoadingProfile(true);
+      try {
+        const resp = await fetch('/api/profiles/mine', { headers: { Accept: 'application/json' } });
+        if (!mounted) return;
+        if (!resp.ok) {
+          const txt = await resp.text().catch(() => '');
+          if (resp.status === 401) {
+            toast({ title: 'Not authenticated', description: 'Please sign in to load your profile.', variant: 'destructive' });
+          } else if (resp.status === 404) {
+            toast({ title: 'Profile not found', description: 'No local profile exists for this account.', variant: 'destructive' });
+          } else {
+            toast({ title: 'Failed to load profile', description: txt || `Status ${resp.status}`, variant: 'destructive' });
+          }
+          setIsLoadingProfile(false);
+          return;
+        }
+
+        const data = await resp.json();
+        // Merge data into local profileData shape, be tolerant of different key names
+        setProfileData((prev) => ({
+          ...prev,
+          ...data,
+          firstName: data.firstname ?? data.firstName ?? prev.firstName,
+          lastName: data.lastname ?? data.lastName ?? prev.lastName,
+          firstname: data.firstname ?? data.firstName ?? prev.firstname,
+          lastname: data.lastname ?? data.lastName ?? prev.lastname,
+          avatar_url: data.avatar_url ?? data.avatarUrl ?? prev.avatar_url,
+          face_image: data.face_image ?? data.faceImage ?? prev.face_image,
+          email: data.email ?? prev.email,
+          username: data.username ?? prev.username,
+          bio: data.bio ?? prev.bio,
+          organization_id: data.organization_id ?? data.organizationId ?? prev.organization_id,
+          program_id: data.program_id ?? data.programId ?? prev.program_id,
+        }));
+
+        // If face image present, update faceDataStatus
+        if (data.face_image || data.faceImage) {
+          setFaceDataStatus((s) => ({ ...s, isRegistered: true }));
+        }
+      } catch (err: any) {
+        console.error('Failed to fetch profile:', err);
+        toast({ title: 'Error', description: err?.message ?? String(err), variant: 'destructive' });
+      } finally {
+        if (mounted) setIsLoadingProfile(false);
+      }
+    };
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Profile Settings</h1>
-          <p className="text-muted-foreground">
-            Manage your personal information and preferences
-          </p>
-        </div>
+    <div className="space-y-4 mt-4 md:space-y-6">
+          <Tabs defaultValue="personal" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="personal">Personal</TabsTrigger>
+              <TabsTrigger value="academic">Academic</TabsTrigger>
+              <TabsTrigger value="security">Security</TabsTrigger>
+            </TabsList>
 
-        {!isEditing ? (
-          <Button onClick={() => setIsEditing(true)}>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit Profile
-          </Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button onClick={handleSaveProfile} disabled={isSaving}>
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              Save Changes
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditing(false)}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <Tabs defaultValue="personal" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="personal">Personal</TabsTrigger>
-          <TabsTrigger value="academic">Academic</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-        </TabsList>
-
-        {/* Personal Information */}
-        <TabsContent value="personal" className="space-y-6">
-          {/* Profile Picture & Basic Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <CardDescription>
-                Your personal details and contact information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Profile Picture */}
-              <div className="flex items-center gap-4">
-                <Avatar className="w-24 h-24">
-                  <AvatarImage src="/avatars/student-alex.jpg" />
-                  <AvatarFallback className="text-lg font-semibold bg-purple-100 text-purple-700">
-                    {profileData.firstName[0]}
-                    {profileData.lastName[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <Label>Profile Picture</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Your avatar is generated from your initials
-                  </p>
-                </div>
-              </div>
-
-              {/* Personal Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    value={profileData.firstName}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        firstName: e.target.value,
-                      })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    value={profileData.lastName}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        lastName: e.target.value,
-                      })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profileData.email}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, email: e.target.value })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={profileData.phone}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, phone: e.target.value })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="studentId">Student ID</Label>
-                  <Input
-                    id="studentId"
-                    value={profileData.studentId}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                  <Input
-                    id="dateOfBirth"
-                    type="date"
-                    value={profileData.dateOfBirth}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        dateOfBirth: e.target.value,
-                      })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Contact Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
-              <CardDescription>
-                Your address and emergency contact details
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={profileData.address}
-                  onChange={(e) =>
-                    setProfileData({ ...profileData, address: e.target.value })
-                  }
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={profileData.city}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, city: e.target.value })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    value={profileData.state}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, state: e.target.value })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="zipCode">ZIP Code</Label>
-                  <Input
-                    id="zipCode"
-                    value={profileData.zipCode}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        zipCode: e.target.value,
-                      })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="emergencyContact">Emergency Contact</Label>
-                  <Input
-                    id="emergencyContact"
-                    value={profileData.emergencyContact}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        emergencyContact: e.target.value,
-                      })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="emergencyPhone">Emergency Phone</Label>
-                  <Input
-                    id="emergencyPhone"
-                    type="tel"
-                    value={profileData.emergencyPhone}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        emergencyPhone: e.target.value,
-                      })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            {/* Personal Information - single merged component */}
+            <TabsContent value="personal" className="space-y-6">
+              <BasicInfo
+                profileData={profileData}
+                setProfileData={setProfileData}
+                isEditing={isEditing}
+                setIsEditing={setIsEditing}
+                onSave={handleSaveProfile}
+                onCancel={() => setIsEditing(false)}
+                isSaving={isSaving}
+                isLoading={isLoadingProfile}
+              />
+            </TabsContent>
 
         {/* Academic Information */}
         <TabsContent value="academic" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Academic Information</CardTitle>
-              <CardDescription>
-                Your academic program and course details
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="major">Major</Label>
-                  <Input
-                    id="major"
-                    value={profileData.major}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, major: e.target.value })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="minor">Minor</Label>
-                  <Input
-                    id="minor"
-                    value={profileData.minor}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, minor: e.target.value })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="year">Academic Year</Label>
-                  <Select
-                    value={profileData.year}
-                    onValueChange={(value) =>
-                      setProfileData({ ...profileData, year: value })
-                    }
-                    disabled={!isEditing}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Freshman">Freshman</SelectItem>
-                      <SelectItem value="Sophomore">Sophomore</SelectItem>
-                      <SelectItem value="Junior">Junior</SelectItem>
-                      <SelectItem value="Senior">Senior</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="expectedGraduation">
-                    Expected Graduation
-                  </Label>
-                  <Input
-                    id="expectedGraduation"
-                    value={profileData.expectedGraduation}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        expectedGraduation: e.target.value,
-                      })
-                    }
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="gpa">Current GPA</Label>
-                  <Input
-                    id="gpa"
-                    value={profileData.gpa}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Enrolled Classes */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Enrolled Classes</CardTitle>
-              <CardDescription>
-                Classes you&apos;re currently enrolled in
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {enrolledClasses.map((cls) => (
-                  <div
-                    key={cls.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">{cls.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {cls.code}
-                      </p>
-                    </div>
-                    <Badge variant="outline">Enrolled</Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <AcademicInfo />
         </TabsContent>
 
-        {/* Security Settings */}
+        {/* Security Settings (modularized) */}
         <TabsContent value="security" className="space-y-6">
-          {/* Password Change */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Password</CardTitle>
-              <CardDescription>Change your account password</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="currentPassword">Current Password</Label>
-                <div className="relative">
-                  <Input
-                    id="currentPassword"
-                    type={showCurrentPassword ? "text" : "password"}
-                    value={passwordData.currentPassword}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        currentPassword: e.target.value,
-                      })
-                    }
-                    placeholder="Enter current password"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  >
-                    {showCurrentPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="newPassword">New Password</Label>
-                <div className="relative">
-                  <Input
-                    id="newPassword"
-                    type={showNewPassword ? "text" : "password"}
-                    value={passwordData.newPassword}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        newPassword: e.target.value,
-                      })
-                    }
-                    placeholder="Enter new password"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                  >
-                    {showNewPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={passwordData.confirmPassword}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                    placeholder="Confirm new password"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-              <Button onClick={handleUpdatePassword} disabled={isSaving}>
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4 mr-2" />
-                )}
-                Update Password
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Face Recognition Data */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Face Recognition</CardTitle>
-              <CardDescription>
-                Manage your biometric authentication data
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {faceDataStatus.isRegistered ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="font-medium">Face data registered</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <Label>Last Updated</Label>
-                      <p className="font-medium">
-                        {faceDataStatus.lastUpdated}
-                      </p>
-                    </div>
-                    <div>
-                      <Label>Recognition Accuracy</Label>
-                      <p className="font-medium">{faceDataStatus.accuracy}%</p>
-                    </div>
-                    <div>
-                      <Label>Backup Images</Label>
-                      <p className="font-medium">
-                        {faceDataStatus.backupImages} images
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={startFaceDataUpdate}
-                      disabled={isProcessingFace}
-                    >
-                      <Camera className="w-4 h-4 mr-2" />
-                      Update Face Data
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={deleteFaceData}
-                      disabled={isProcessingFace}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Face Data
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <XCircle className="w-5 h-5 text-red-500" />
-                    <span className="font-medium">No face data registered</span>
-                  </div>
-
-                  <Card className="border-yellow-200 bg-yellow-50">
-                    <CardContent className="flex items-start gap-3 p-4">
-                      <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5" />
-                      <p className="text-yellow-700 text-sm">
-                        Face recognition is required for in-person attendance.
-                        Please register your face data to mark attendance.
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Button
-                    onClick={startFaceDataUpdate}
-                    disabled={isProcessingFace}
-                  >
-                    <Camera className="w-4 h-4 mr-2" />
-                    Register Face Data
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <SecuritySettings
+            passwordData={passwordData}
+            setPasswordData={setPasswordData}
+            isSaving={isSaving}
+            handleUpdatePassword={handleUpdatePassword}
+            showCurrentPassword={showCurrentPassword}
+            setShowCurrentPassword={setShowCurrentPassword}
+            showNewPassword={showNewPassword}
+            setShowNewPassword={setShowNewPassword}
+            showConfirmPassword={showConfirmPassword}
+            setShowConfirmPassword={setShowConfirmPassword}
+            faceDataStatus={faceDataStatus}
+            isProcessingFace={isProcessingFace}
+            startFaceDataUpdate={startFaceDataUpdate}
+            deleteFaceData={deleteFaceData}
+          />
         </TabsContent>
       </Tabs>
 

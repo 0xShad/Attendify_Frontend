@@ -4,100 +4,57 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CameraIcon, UserIcon, SchoolIcon, SmileIcon } from "lucide-react";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { UserIcon, SchoolIcon, SmileIcon } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import AboutYouStep from "./steps/AboutYouStep";
+import SchoolProgramStep from "./steps/SchoolProgramStep";
+import FaceSubmissionStep from "./steps/FaceSubmissionStep";
 
 
 
-import Papa from "papaparse";
-
-type SchoolRow = {
-  region: string;
-  name: string;
-  type: string;
-  province: string;
-  city: string;
-  website: string;
-  contact: string;
-};
+import { programsAPI } from "@/lib/api/programs";
+import { REDIRECT_URLS } from '@/config/auth';
 
 export default function ProfileCreatePage() {
   // Search state for dropdowns
-  const [regionSearch, setRegionSearch] = useState("");
-  const [provinceSearch, setProvinceSearch] = useState("");
   const [schoolSearch, setSchoolSearch] = useState("");
-  // State for parsed school data
-  const [schoolOptions, setSchoolOptions] = useState<SchoolRow[]>([]);
-  const [regionOptions, setRegionOptions] = useState<string[]>([]);
-  const [csvLoading, setCsvLoading] = useState(true);
-  const [csvError, setCsvError] = useState<string | null>(null);
+  const [schools, setSchools] = useState<Array<{ id: number; name: string }>>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(true);
+  const [schoolsError, setSchoolsError] = useState<string | null>(null);
   const router = useRouter();
   const [step, setStep] = useState(0);
-  // Load and parse CSV on mount
+  // Load organization options from the programs API (public options endpoint)
   useEffect(() => {
-    setCsvLoading(true);
-    setCsvError(null);
-    fetch("/LIST_OF_HEI.csv")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch CSV");
-        return res.text();
-      })
-      .then((csvText) => {
-  // Remove BOM and trim whitespace
-  let cleanCsv = csvText.replace(/^\uFEFF/, '').trim();
-  // Normalize line endings to \n
-  cleanCsv = cleanCsv.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  // Remove trailing commas from each line
-  cleanCsv = cleanCsv.split('\n').map(line => line.replace(/,(\s*)$/, '')).join('\n');
-        Papa.parse(cleanCsv, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            // Build a map of trimmed header -> original header
-            const headerMap: Record<string, string> = {};
-            if (results.meta.fields) {
-              for (const h of results.meta.fields) {
-                headerMap[h.trim()] = h;
-              }
-            }
-            // Map CSV headers to our SchoolRow type using trimmed keys
-            const rows: SchoolRow[] = (results.data as any[]).map((row) => ({
-              region: row[headerMap["REGION"]]?.trim() || "",
-              name: row[headerMap["INSTITUTION NAME"]]?.trim() || "",
-              type: row[headerMap["INSTITUTION TYPE"]]?.trim() || "",
-              province: row[headerMap["PROVINCE"]]?.trim() || "",
-              city: row[headerMap["MUNICIPALITY/CITY"]]?.trim() || "",
-              website: row[headerMap["WEBSITE ADDRESS"]]?.trim() || "",
-              contact: row[headerMap["FAX/TELEPHONE NO."]] ?.trim() || "",
-            })).filter(r => r.region && r.name && r.province);
-            setSchoolOptions(rows);
-            setRegionOptions(Array.from(new Set(rows.map(r => r.region))).sort());
-            setCsvLoading(false);
-            setCsvError(null);
-          },
-          error: (err) => {
-            setCsvError("CSV parse error: " + err.message);
-            setCsvLoading(false);
-          },
-        });
-      })
-      .catch((err) => {
-        setCsvError("CSV fetch error: " + err.message);
-        setCsvLoading(false);
-      });
+    let mounted = true;
+    setSchoolsLoading(true);
+    setSchoolsError(null);
+    (async () => {
+      try {
+        const opts = await programsAPI.getOrganizationOptions();
+        if (!mounted) return;
+        // Map to minimal shape expected by the step
+        const mapped = Array.isArray(opts) ? opts.map((o: any) => ({ id: Number(o.id), name: String(o.name) })) : [];
+        setSchools(mapped);
+      } catch (err: any) {
+        console.debug('Failed to load organization options', err);
+        if (!mounted) return;
+        // Prefer readable error message
+        const msg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+        setSchoolsError(msg);
+        setSchools([]);
+      } finally {
+        if (mounted) setSchoolsLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
   }, []);
   const [form, setForm] = useState({
     bio: "",
     face_image: "",
-    region: "",
-    province: "",
     school: "",
     program: "",
     degreeType: "",
@@ -149,23 +106,11 @@ export default function ProfileCreatePage() {
     }
   };
 
-  const handleSelectRegion = (value: string) => {
-    setForm(f => ({ ...f, region: value, province: "", school: "" }));
-  };
-  const handleSelectProvince = (value: string) => {
-    setForm(f => ({ ...f, province: value, school: "" }));
-  };
   const handleSelectSchool = (value: string) => {
     setForm(f => ({ ...f, school: value }));
   };
 
-  function getProvinceOptions(region: string) {
-    return Array.from(new Set(schoolOptions.filter(s => s.region === region).map(s => s.province))).sort();
-  }
-
-  function getSchoolOptions(region: string, province: string) {
-    return schoolOptions.filter(s => s.region === region && s.province === province);
-  }
+  
 
   const handleNext = () => setStep((s) => Math.min(s + 1, 2));
   const handleBack = () => setStep((s) => Math.max(s - 1, 0));
@@ -174,11 +119,54 @@ export default function ProfileCreatePage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // TODO: Replace with actual API call to create profile
-      await new Promise((res) => setTimeout(res, 1000));
-      router.push("/profile");
+      // Build multipart/form-data payload and PATCH to /api/profiles/mine (proxy)
+      const formData = new FormData();
+
+      // organization (school) id
+      if (form.school) {
+        const orgId = Number(form.school);
+        if (Number.isFinite(orgId)) formData.append('organization_id', String(orgId));
+      }
+
+      // program: prefer numeric program_id if user picked one, else send program_code
+      if (form.program) {
+        const pid = Number(form.program);
+        if (Number.isFinite(pid)) {
+          formData.append('program_id', String(pid));
+        } else {
+          formData.append('program_code', String(form.program));
+        }
+      }
+
+      if (form.bio) formData.append('bio', String(form.bio));
+
+      // Attach avatar file if user uploaded one
+      if (avatarFile) {
+        formData.append('avatar_file', avatarFile, avatarFile.name);
+      }
+
+      // If face_image is a data URL, convert to Blob and attach as face_file
+      if (form.face_image && typeof form.face_image === 'string' && form.face_image.startsWith('data:')) {
+        const res = await fetch(form.face_image);
+        const blob = await res.blob();
+        formData.append('face_file', blob, 'face.png');
+      }
+
+      const resp = await fetch('/api/profiles/mine', {
+        method: 'PATCH',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!resp.ok) {
+        const errBody = await resp.json().catch(() => ({ detail: resp.statusText }));
+        throw new Error(errBody?.detail || resp.statusText || `HTTP ${resp.status}`);
+      }
+
+      // on success, backend returns updated profile; navigate to student dashboard
+      router.push(REDIRECT_URLS.STUDENT_DASHBOARD);
     } catch (err) {
-      // Handle error
+      console.error('Failed to create/update profile', err);
     } finally {
       setLoading(false);
     }
@@ -249,186 +237,42 @@ export default function ProfileCreatePage() {
 
           {/* Step 1: Avatar/Bio */}
           {step === 0 && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="flex flex-col items-center gap-4">
-                <Avatar className="w-24 h-24 shadow-lg ring-4 ring-blue-100 dark:ring-blue-900">
-                  <AvatarImage src={avatarPreview} alt="Avatar" />
-                  <AvatarFallback>?</AvatarFallback>
-                </Avatar>
-                <div className="w-full flex flex-col items-center gap-2">
-                  <Label htmlFor="avatar_file" className="font-semibold mb-1">Avatar Image</Label>
-                  <label htmlFor="avatar_file" className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow cursor-pointer transition-all duration-150 focus:ring-2 focus:ring-blue-300">
-                    <CameraIcon size={18} className="mr-1" />
-                    {avatarFile ? "Change Image" : "Upload Image"}
-                    <Input
-                      id="avatar_file"
-                      name="avatar_file"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className="hidden"
-                    />
-                  </label>
-                  {avatarFile && <span className="text-xs text-muted-foreground mt-1">{avatarFile.name}</span>}
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="bio" className="font-semibold">Bio</Label>
-                <Textarea
-                  id="bio"
-                  name="bio"
-                  value={form.bio}
-                  onChange={handleChange}
-                  placeholder="Tell us about yourself..."
-                  className="mt-2 min-h-20 rounded-xl shadow-inner"
-                />
-              </div>
-              <div className="flex justify-end">
-                <Button type="button" onClick={handleNext} className="rounded-xl px-8 py-2 text-base font-semibold bg-blue-600 hover:bg-blue-700">
-                  Next
-                </Button>
-              </div>
-            </div>
+            <AboutYouStep
+              form={form}
+              avatarFile={avatarFile}
+              avatarPreview={avatarPreview}
+              loading={loading}
+              onChange={handleChange}
+              onAvatarChange={handleAvatarChange}
+              onNext={handleNext}
+            />
           )}
 
           {/* Step 2: School/Program */}
-        {step === 1 && (
-          <div className="space-y-6 animate-fade-in">
-            <div>
-              <Label htmlFor="region" className="font-semibold">Region</Label>
-              {csvLoading ? (
-                <div className="mt-2 text-sm text-muted-foreground">Loading regions...</div>
-              ) : csvError ? (
-                <div className="mt-2 text-sm text-red-600">{csvError}</div>
-              ) : regionOptions.length === 0 ? (
-                <div className="mt-2 text-sm text-red-600">No regions found. Check CSV data.</div>
-              ) : (
-                <Select value={form.region} onValueChange={(val) => { handleSelectRegion(val); setRegionSearch(""); }}>
-                  <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200">
-                    <SelectValue placeholder="Select your region" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
-                    <div className="px-2 py-1">
-                      <input
-                        type="text"
-                        value={regionSearch}
-                        onChange={e => setRegionSearch(e.target.value)}
-                        placeholder="Search region..."
-                        className="w-full px-2 py-1 rounded border border-gray-200 text-sm mb-1"
-                        autoFocus
-                      />
-                    </div>
-                    {regionOptions
-                      .filter(region => region.replace(/^\d+\s*-\s*/, '').toLowerCase().includes(regionSearch.toLowerCase()))
-                      .map(region => {
-                        const displayRegion = region.replace(/^\d+\s*-\s*/, '');
-                        return (
-                          <SelectItem key={region} value={region}>{displayRegion}</SelectItem>
-                        );
-                      })}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="province" className="font-semibold">Province</Label>
-              <Select value={form.province} onValueChange={(val) => { handleSelectProvince(val); setProvinceSearch(""); }} disabled={!form.region}>
-                <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200" disabled={!form.region}>
-                  <SelectValue placeholder="Select your province" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
-                  <div className="px-2 py-1">
-                    <input
-                      type="text"
-                      value={provinceSearch}
-                      onChange={e => setProvinceSearch(e.target.value)}
-                      placeholder="Search province..."
-                      className="w-full px-2 py-1 rounded border border-gray-200 text-sm mb-1"
-                      autoFocus
-                      disabled={!form.region}
-                    />
-                  </div>
-                  {getProvinceOptions(form.region)
-                    .filter(province => province.toLowerCase().includes(provinceSearch.toLowerCase()))
-                    .map(province => (
-                      <SelectItem key={province} value={province}>{province}</SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="school" className="font-semibold">School</Label>
-              <Select value={form.school} onValueChange={(val) => { handleSelectSchool(val); setSchoolSearch(""); }} disabled={!form.region || !form.province}>
-                <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200" disabled={!form.region || !form.province}>
-                  <SelectValue placeholder="Select your school" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
-                  <div className="px-2 py-1">
-                    <input
-                      type="text"
-                      value={schoolSearch}
-                      onChange={e => setSchoolSearch(e.target.value)}
-                      placeholder="Search school..."
-                      className="w-full px-2 py-1 rounded border border-gray-200 text-sm mb-1"
-                      autoFocus
-                      disabled={!form.region || !form.province}
-                    />
-                  </div>
-                  {getSchoolOptions(form.region, form.province)
-                    .filter(school => school.name.toLowerCase().includes(schoolSearch.toLowerCase()))
-                    .map(school => (
-                      <SelectItem key={school.name} value={school.name}>{school.name}</SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="program" className="font-semibold">Program / Department</Label>
-              <select
-                id="program"
-                name="program"
-                className="mt-2 w-full rounded-xl border px-3 py-2 text-sm shadow-inner bg-gray-100 text-gray-500 cursor-not-allowed"
-                disabled
-                value=""
-              >
-                <option value="">(Select a school to load programs...)</option>
-              </select>
-            </div>
-            <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={handleBack} className="rounded-xl px-8 py-2 text-base font-semibold">
-                Back
-              </Button>
-              <Button type="button" onClick={handleNext} disabled={!form.region || !form.province || !form.school || !form.program} className="rounded-xl px-8 py-2 text-base font-semibold bg-blue-600 hover:bg-blue-700">
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
-        {/* Step 3: Face Submission Placeholder */}
-        {step === 2 && (
-          <div className="space-y-6 animate-fade-in">
-            <div>
-              <Label htmlFor="face_image" className="font-semibold">Face Image URL</Label>
-              <Input
-                id="face_image"
-                name="face_image"
-                value={form.face_image}
-                onChange={handleChange}
-                placeholder="https://..."
-                className="mt-2 rounded-xl shadow-inner"
-              />
-              <p className="text-xs text-muted-foreground mt-2">(Face submission coming soon. For now, paste a photo URL.)</p>
-            </div>
-            <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={handleBack} className="rounded-xl px-8 py-2 text-base font-semibold">
-                Back
-              </Button>
-              <Button type="submit" className="rounded-xl px-8 py-2 text-base font-semibold bg-blue-600 hover:bg-blue-700" disabled={loading || !form.face_image}>
-                {loading ? "Creating..." : "Create Profile"}
-              </Button>
-            </div>
-          </div>
-        )}
+          {step === 1 && (
+            <SchoolProgramStep
+              form={form}
+              schools={schools}
+              schoolsLoading={schoolsLoading}
+              schoolsError={schoolsError}
+              schoolSearch={schoolSearch}
+              setSchoolSearch={setSchoolSearch}
+              handleSelectSchool={handleSelectSchool}
+              onProgramChange={val => setForm(f => ({ ...f, program: val }))}
+              onBack={handleBack}
+              onNext={handleNext}
+            />
+          )}
+          {/* Step 3: Face Submission Placeholder */}
+          {step === 2 && (
+            <FaceSubmissionStep
+              form={form}
+              loading={loading}
+              onChange={handleChange}
+              onBack={handleBack}
+              onSubmit={handleSubmit}
+            />
+          )}
       </form>
     </Card>
   </div>

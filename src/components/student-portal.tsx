@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -46,13 +46,13 @@ import {
   Send,
 } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,13 +73,6 @@ import {
   DrawerFooter,
 } from "@/components/ui/drawer";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -87,12 +80,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { checkAuth } from "@/lib/clientAuth";
+import NotificationBell from '@/components/NotificationBell';
 import {
   Sidebar,
   SidebarContent,
@@ -113,6 +110,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import SidebarNav from '@/components/student-portal/SidebarNav';
+import TopHeader from '@/components/student-portal/TopHeader';
+import StudentClasses from '@/components/student-portal/classes';
 import {
   Bar,
   BarChart,
@@ -192,46 +192,7 @@ interface AttendanceSession {
   cutoffTime?: number; // minutes
 }
 
-// Notification Menu Component
-function NotificationMenu() {
-  const [unreadCount, setUnreadCount] = useState(3);
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-xs flex items-center justify-center">
-              {unreadCount}
-            </span>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64 bg-stone-50/70 supports-[backdrop-filter]:backdrop-blur-md border shadow-lg">
-        <div className="p-2">
-          <div className="text-sm font-medium mb-2">Notifications</div>
-          <div className="space-y-2">
-            <div className="text-sm p-2 rounded bg-blue-50 border-l-2 border-blue-400">
-              CS101 session starts in 10 minutes
-            </div>
-            <div className="text-sm p-2 rounded bg-green-50 border-l-2 border-green-400">
-              Attendance recorded successfully
-            </div>
-            <div className="text-sm p-2 rounded bg-yellow-50 border-l-2 border-yellow-400">
-              New announcement in Math 201
-            </div>
-          </div>
-          <div className="mt-2 pt-2 border-t">
-            <Button variant="ghost" size="sm" className="w-full text-xs">
-              View All
-            </Button>
-          </div>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
+// Notifications are rendered by `NotificationBell` component (see components/NotificationBell.tsx)
 
 // Sidebar User Menu Component
 function SidebarUserMenu({
@@ -240,6 +201,52 @@ function SidebarUserMenu({
   setSettingsOpen: (open: boolean) => void;
 }) {
   const { isMobile } = useSidebar();
+  const { user, logout } = useAuthContext();
+  const [enrichment, setEnrichment] = useState<{
+    profileId?: number | null;
+    email?: string | null;
+    username?: string | null;
+    full_name?: string | null;
+    role?: string | null;
+    avatar_url?: string | null;
+  } | null>(null);
+
+  const avatarSrc = useMemo(() => {
+    const raw = enrichment?.avatar_url ?? (user as any)?.avatarUrl ?? (user as any)?.avatar_url ?? null;
+    try {
+      return resolveAvatarUrl(raw ?? undefined);
+    } catch (e) {
+      return null;
+    }
+  }, [enrichment, user]);
+
+  const displayName =
+    (user && ((user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : (user.username || user.email))) ||
+    enrichment?.full_name ||
+    "Guest";
+  const displayUsername = (user && (enrichment?.username || user.username)) || enrichment?.email || "";
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchEnrichment() {
+      try {
+        const res = await fetch('/api/session/enrichment', { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+        setEnrichment(data);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Only fetch if user info is missing
+    if (!user || !(user.firstName && user.lastName) && !(user.email || user.username)) {
+      fetchEnrichment();
+    }
+
+    return () => { mounted = false; };
+  }, [user]);
 
   return (
     <SidebarMenu>
@@ -251,15 +258,21 @@ function SidebarUserMenu({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src="/avatars/student.jpg" />
-                <AvatarFallback className="rounded-lg bg-purple-500 text-white">
-                  <User className="w-4 h-4" />
-                </AvatarFallback>
+                {avatarSrc ? (
+                  <AvatarImage src={avatarSrc} />
+                ) : (
+                  <>
+                    <AvatarImage src="/avatars/student.jpg" />
+                    <AvatarFallback className="rounded-lg bg-purple-500 text-white">
+                      <User className="w-4 h-4" />
+                    </AvatarFallback>
+                  </>
+                )}
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Alex Johnson</span>
+                <span className="truncate font-medium">{displayName}</span>
                 <span className="text-muted-foreground truncate text-xs">
-                  alex.johnson@student.edu
+                  {displayUsername}
                 </span>
               </div>
               <MoreHorizontal className="ml-auto size-4" />
@@ -274,15 +287,21 @@ function SidebarUserMenu({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src="/avatars/student.jpg" />
-                  <AvatarFallback className="rounded-lg bg-purple-500 text-white">
-                    <User className="w-4 h-4" />
-                  </AvatarFallback>
+                  {avatarSrc ? (
+                    <AvatarImage src={avatarSrc} />
+                  ) : (
+                    <>
+                      <AvatarImage src="/avatars/student.jpg" />
+                      <AvatarFallback className="rounded-lg bg-purple-500 text-white">
+                        <User className="w-4 h-4" />
+                      </AvatarFallback>
+                    </>
+                  )}
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Alex Johnson</span>
+                  <span className="truncate font-medium">{displayName}</span>
                   <span className="text-muted-foreground truncate text-xs">
-                    alex.johnson@student.edu
+                    {displayUsername}
                   </span>
                 </div>
               </div>
@@ -292,7 +311,7 @@ function SidebarUserMenu({
               <Settings className="w-4 h-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => logout()}>
               <LogOut className="w-4 h-4" />
               Log out
             </DropdownMenuItem>
@@ -303,13 +322,10 @@ function SidebarUserMenu({
   );
 }
 
-export default function StudentPortal({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function StudentPortal({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const pathname = usePathname();
+  const router = useRouter();
 
   // Get current tab from pathname
   const getCurrentTab = () => {
@@ -323,7 +339,6 @@ export default function StudentPortal({
 
   const [activeTab, setActiveTab] = useState(getCurrentTab());
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [joinClassOpen, setJoinClassOpen] = useState(false);
   const [faceRecognitionOpen, setFaceRecognitionOpen] = useState(false);
   const [selectedSession, setSelectedSession] =
     useState<AttendanceSession | null>(null);
@@ -499,29 +514,58 @@ export default function StudentPortal({
     [enrolledClasses, announcements]
   );
 
-  // Handlers
-  const handleJoinClass = async (classCode: string) => {
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    setJoinClassOpen(false);
+  // Update tab based on pathname changes
+  useEffect(() => {
+    setActiveTab(getCurrentTab());
+  }, [pathname]);
 
-    toast({
-      title: "Join Request Sent",
-      description: `Your request to join ${classCode} has been sent to the instructor.`,
-    });
-  };
+  // Check auth on mount and redirect if session expired
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const ok = await checkAuth();
+        if (!mounted) return;
+        if (!ok) {
+          const redirectTo = encodeURIComponent(window.location.pathname || '/');
+          router.push(`/auth/login?redirect=${redirectTo}`);
+        }
+      } catch (err) {
+        // On network/auth check error, redirect to login as a safe fallback.
+        if (mounted) {
+          const redirectTo = encodeURIComponent(window.location.pathname || '/');
+          router.push(`/auth/login?redirect=${redirectTo}`);
+        }
+      }
+    })();
+    return () => { mounted = false; };
+  }, [router]);
+
+  // Handlers
 
   const handleStartAttendance = async (
     session: AttendanceSession,
     mode: "face" | "online"
   ) => {
+    // Verify session before performing attendance action
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     setSelectedSession(session);
 
     if (mode === "face") {
       setFaceRecognitionOpen(true);
     } else {
-      // Simulate online attendance
       setIsLoading(true);
       await new Promise((resolve) => setTimeout(resolve, 2000));
       setIsLoading(false);
@@ -537,14 +581,26 @@ export default function StudentPortal({
   const handleFaceRecognition = async () => {
     if (!selectedSession) return;
 
+    // Verify session before performing face recognition
+    try {
+      const ok = await checkAuth();
+      if (!ok) {
+        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        router.push(`/auth/login?redirect=${redirectTo}`);
+        return;
+      }
+    } catch (err) {
+      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      router.push(`/auth/login?redirect=${redirectTo}`);
+      return;
+    }
+
     setIsLoading(true);
-    // Simulate face recognition processing
     await new Promise((resolve) => setTimeout(resolve, 3000));
     setIsLoading(false);
     setFaceRecognitionOpen(false);
     setSelectedSession(null);
 
-    // Simulate different outcomes
     const outcomes = ["success", "invalid", "duplicate"];
     const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
 
@@ -552,15 +608,14 @@ export default function StudentPortal({
       case "success":
         toast({
           title: "Attendance Recorded ✓",
-          description: `Successfully recorded attendance for ${selectedSession.className}`,
+          description: `Successfully recorded attendance for ${selectedSession?.className}`,
           variant: "default",
         });
         break;
       case "invalid":
         toast({
           title: "Recognition Failed ✗",
-          description:
-            "Face not recognized. Please try again or contact support.",
+          description: "Face not recognized. Please try again or contact support.",
           variant: "destructive",
         });
         break;
@@ -574,29 +629,18 @@ export default function StudentPortal({
     }
   };
 
-  // Update tab based on pathname changes
-  useEffect(() => {
-    setActiveTab(getCurrentTab());
-  }, [pathname]);
-
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         {/* Student Sidebar */}
         <Sidebar
           variant="sidebar"
-          className="border-r border-border bg-stone-50/60 supports-[backdrop-filter]:backdrop-blur-md shadow-lg flex flex-col min-h-screen relative z-50"
+          className="border-r border-border bg-stone-50/60 supports-backdrop-filter:backdrop-blur-md shadow-lg flex flex-col min-h-screen relative z-50"
         >
           {/* Sidebar Header */}
           <SidebarHeader className="px-4 py-6 border-b">
             <div className="flex items-center gap-3">
-              <Image
-                src="/logo_blue.png"
-                alt="Attendify Logo"
-                width={48}
-                height={48}
-                className="flex-shrink-0"
-              />
+                    <Image src="/logo_blue.png" alt="Attendify Logo" width={24} height={24} className="shrink-0" />
               <div className="group-data-[collapsible=icon]:hidden">
                 <span className="font-bold text-lg block">Attendify</span>
                 <span className="text-xs text-muted-foreground">
@@ -612,19 +656,19 @@ export default function StudentPortal({
               <SidebarGroupContent>
                 <SidebarMenu className="space-y-2">
                   {navigationItems.map((item) => (
-                    <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={activeTab === item.id}
-                        className="w-full justify-start"
-                        size="lg"
-                      >
-                        <Link href={item.href}>
-                          <item.icon className="w-5 h-5" />
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                      <SidebarMenuItem key={item.id}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={activeTab === item.id}
+                          className="w-full justify-start"
+                          size="lg"
+                        >
+                          <Link href={item.href}>
+                            <item.icon className="w-5 h-5" />
+                            <span>{item.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
               </SidebarGroupContent>
@@ -640,43 +684,26 @@ export default function StudentPortal({
         {/* Main Content Area */}
         <SidebarInset className="flex-1 overflow-x-hidden">
           {/* Top Header */}
-          <header className="sticky top-0 z-40 border-b bg-stone-50/98 backdrop-blur-xl supports-[backdrop-filter]:bg-stone-50/95 shadow-lg transition-all duration-300">
+          <header className="sticky top-0 z-40 border-b bg-stone-50/98 backdrop-blur-xl supports-backdrop-filter:bg-stone-50/95 shadow-lg transition-all duration-300">
             <div className="flex h-16 items-center justify-between px-6">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="md:hidden" />
                 <div className="flex items-center gap-2 md:hidden">
-                  <Image
-                    src="/logo_blue.png"
-                    alt="Attendify Logo"
-                    width={24}
-                    height={24}
-                    className="flex-shrink-0"
-                  />
+                  <Image src="/logo_blue.png" alt="Attendify Logo" width={24} height={24} className="shrink-0" />
                   <span className="font-semibold">Attendify</span>
                 </div>
 
                 <div className="hidden md:flex md:items-center md:gap-4">
                   <div className="flex items-center gap-3">
-                    <Image
-                      src="/logo_blue.png"
-                      alt="Attendify Logo"
-                      width={40}
-                      height={40}
-                      className="flex-shrink-0"
-                    />
+                    <Image src="/logo_blue.png" alt="Attendify Logo" width={40} height={40} className="shrink-0" />
                     <div>
-                      <h2 className="text-2xl font-bold capitalize">
-                        {activeTab}
-                      </h2>
+                      <h2 className="text-2xl font-bold capitalize">{activeTab}</h2>
                       <p className="text-sm text-muted-foreground">
                         {activeTab === "dashboard" && "Your academic overview"}
-                        {activeTab === "classes" &&
-                          "Manage your enrolled classes"}
+                        {activeTab === "classes" && "Manage your enrolled classes"}
                         {activeTab === "attendance" && "Record your attendance"}
-                        {activeTab === "profile" &&
-                          "Update your profile and preferences"}
-                        {activeTab === "announcements" &&
-                          "View class announcements"}
+                        {activeTab === "profile" && "Update your profile and preferences"}
+                        {activeTab === "announcements" && "View class announcements"}
                       </p>
                     </div>
                   </div>
@@ -684,7 +711,7 @@ export default function StudentPortal({
               </div>
 
               <div className="flex items-center gap-3">
-                <NotificationMenu />
+                <NotificationBell />
               </div>
             </div>
           </header>
@@ -695,93 +722,7 @@ export default function StudentPortal({
           </div>
         </SidebarInset>
 
-        {/* Join Class Drawer */}
-        <Drawer open={joinClassOpen} onOpenChange={setJoinClassOpen}>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>Join a Class</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4 space-y-4 overflow-y-auto">
-              <Tabs defaultValue="code" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="code">Class Code</TabsTrigger>
-                  <TabsTrigger value="browse">Browse Classes</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="code" className="space-y-4">
-                  <div>
-                    <Label htmlFor="class-code">Enter Class Code</Label>
-                    <Input
-                      id="class-code"
-                      placeholder="e.g., CS101-001"
-                      className="mt-1"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Get the class code from your instructor
-                    </p>
-                  </div>
-                  <Button
-                    className="w-full"
-                    onClick={() => handleJoinClass("CS101-001")}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Plus className="w-4 h-4 mr-2" />
-                    )}
-                    Request to Join
-                  </Button>
-                </TabsContent>
-
-                <TabsContent value="browse" className="space-y-4">
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {/* Mock available classes */}
-                    <div className="p-3 border rounded-lg">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-medium">Physics 101</h4>
-                          <p className="text-sm text-muted-foreground">
-                            PHY101 • Dr. Smith
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Mon, Wed, Fri 10:00 AM
-                          </p>
-                        </div>
-                        <Button size="sm" variant="outline">
-                          Join
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="p-3 border rounded-lg">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-medium">Chemistry Lab</h4>
-                          <p className="text-sm text-muted-foreground">
-                            CHEM102 • Dr. Wilson
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Tue, Thu 2:00 PM
-                          </p>
-                        </div>
-                        <Button size="sm" variant="outline">
-                          Join
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-            <DrawerFooter>
-              <DrawerClose asChild>
-                <Button variant="outline" className="w-full">
-                  Cancel
-                </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
+        {/* Join Class Drawer moved to `src/components/student-portal/classes` */}
 
         {/* Face Recognition Dialog */}
         <Dialog

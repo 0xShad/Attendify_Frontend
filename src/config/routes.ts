@@ -7,7 +7,12 @@
  * Protected routes that require authentication
  */
 export const PROTECTED_ROUTES = [
+  "/admin",
+  "/faculty",
+  "/student",
   "/admin/dashboard",
+  "/admin/schools",
+  "/admin/programs",
   "/admin/courses",
   "/admin/attendance",
   "/faculty/dashboard",
@@ -45,7 +50,7 @@ export const PUBLIC_ROUTES = [
  * Auth routes that authenticated users shouldn't access
  * These will redirect to dashboard if user is already logged in
  */
-export const AUTH_ROUTES = ["/auth/login", "/auth/signup", "/"] as const;
+export const AUTH_ROUTES = ["/auth/login", "/auth/signup"] as const;
 
 /**
  * API routes (excluded from middleware)

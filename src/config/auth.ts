@@ -34,6 +34,9 @@ export const VALIDATION_CONFIG = {
   FAILURE_CACHE_TTL_MS: 10 * 1000, // 10 seconds cache for failed validations
   REQUEST_TIMEOUT_MS: 5000, // 5 second timeout for backend calls
   TOKEN_EXPIRY_BUFFER_SECONDS: 30, // Refresh tokens 30 seconds before expiry
+  // If we attempt to auto-create a profile from middleware, don't retry immediately.
+  // This prevents flooding the onboard endpoint when the created profile is incomplete.
+  ONBOARD_ATTEMPT_TTL_MS: 5 * 60 * 1000, // 5 minutes
 } as const;
 
 /**

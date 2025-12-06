@@ -1,0 +1,158 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
+import { IconTrash } from "@tabler/icons-react";
+import { useToast } from "@/hooks/use-toast";
+import AddStudentDialog from "@/components/faculty/classes/AddStudentDialog";
+import DeleteEnrolleeDialog from "@/components/faculty/classes/DeleteEnrolleeDialog";
+import { classesAPI } from "@/lib/api/classes";
+
+type Props = { classId?: number | null };
+
+type Enrollee = {
+  id: number;
+  profile_id?: number | null;
+  user_id?: number | null;
+  full_name?: string | null;
+  email?: string | null;
+  avatar_url?: string | null;
+  enrollment_date?: string | null;
+  attendance_rate?: number | null;
+};
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  try {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleDateString();
+  } catch (e) {
+    return String(value);
+  }
+}
+
+export default function StudentsTab({ classId }: Props) {
+  const { toast } = useToast();
+  const [enrollees, setEnrollees] = useState<Enrollee[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [enrolleeToDelete, setEnrolleeToDelete] = useState<Enrollee | null>(null);
+  const [failedAvatarIds, setFailedAvatarIds] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!classId) {
+        setEnrollees([]);
+        return;
+      }
+      setLoading(true);
+      try {
+        const data = await classesAPI.getMyClassEnrollees(Number(classId));
+        if (cancelled) return;
+        setEnrollees(Array.isArray(data) ? data : []);
+      } catch (err: any) {
+        console.error('Failed to load enrollees:', err);
+        if (!cancelled) toast({ title: 'Error', description: 'Unable to load students.' });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [classId, toast]);
+
+  const handleRemoveClick = (e: Enrollee) => {
+    setEnrolleeToDelete(e);
+    setDeleteOpen(true);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-medium">Students</h3>
+        <div>
+          <Button size="sm" variant="outline" onClick={() => setAddOpen((v) => !v)} disabled={!classId}>
+            Add Student
+          </Button>
+        </div>
+      </div>
+
+      {/* Use the faculty AddStudentDialog when Add Student is clicked */}
+      <DeleteEnrolleeDialog open={deleteOpen} onOpenChange={setDeleteOpen} classId={classId} enrollee={enrolleeToDelete ? { id: enrolleeToDelete.id, full_name: enrolleeToDelete.full_name } : null} onDeleted={(id) => {
+        // remove from local list after successful delete
+        setEnrollees((p) => p.filter((x) => x.id !== id));
+        setEnrolleeToDelete(null);
+      }} />
+
+      <AddStudentDialog open={addOpen} onOpenChange={setAddOpen} classId={classId} onAdded={async () => {
+        // refresh list after adding
+        try {
+          setLoading(true);
+          const data = await classesAPI.getMyClassEnrollees(Number(classId));
+          setEnrollees(Array.isArray(data) ? data : []);
+        } catch (err: any) {
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      }} />
+
+      <div className="overflow-x-auto">
+        <div className="max-h-[40vh] overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                  <TableHead></TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Attendance</TableHead>
+                  <TableHead>Enrollment</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-muted-foreground">Loading students…</TableCell>
+                </TableRow>
+              )}
+              {!loading && enrollees.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-muted-foreground">No students found for this class.</TableCell>
+                </TableRow>
+              )}
+              {!loading && enrollees.map((e, idx) => (
+                <TableRow key={e.id}>
+                  <TableCell className="w-12">
+                    <div className="w-8 h-8">
+                      <Avatar>
+                        {e.avatar_url && !failedAvatarIds[e.id] ? (
+                          <AvatarImage src={String(resolveAvatarUrl(e.avatar_url) ?? undefined)} alt={e.full_name ?? 'avatar'} onError={() => setFailedAvatarIds((p) => ({ ...p, [e.id]: true }))} />
+                        ) : (
+                          <AvatarFallback className="text-xs">{String(idx + 1)}</AvatarFallback>
+                        )}
+                      </Avatar>
+                    </div>
+                  </TableCell>
+                  <TableCell>{e.full_name ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{`${Number(e.attendance_rate ?? 0).toFixed(2)}%`}</TableCell>
+                  <TableCell className="font-mono">{formatDate(e.enrollment_date ?? null)}</TableCell>
+                  <TableCell className="text-right">
+                    <button title="Remove" className="p-1 rounded hover:bg-gray-100 text-rose-600" onClick={() => handleRemoveClick(e)}>
+                      <IconTrash className="w-4 h-4" />
+                    </button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </div>
+  );
+}
