@@ -221,17 +221,17 @@ export class ApiError extends Error {
 // ==================== HTTP Client ====================
 
 class HttpClient {
-  private baseURL: string;
+  private getBaseURL: () => string;
 
-  constructor(baseURL: string) {
-    this.baseURL = baseURL;
+  constructor(getBaseURL: () => string) {
+    this.getBaseURL = getBaseURL;
   }
 
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
+    const url = `${this.getBaseURL()}${endpoint}`;
     
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -355,7 +355,7 @@ class AuthAPI {
   private client: HttpClient;
 
   constructor() {
-    this.client = new HttpClient(getAuthApiBaseUrl());
+    this.client = new HttpClient(() => getAuthApiBaseUrl());
   }
 
   // ==================== REGISTRATION FLOW ====================

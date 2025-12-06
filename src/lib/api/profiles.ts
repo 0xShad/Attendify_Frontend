@@ -3,15 +3,20 @@
  * Read-only endpoints for user profiles (enriched by the backend).
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+const getApiBaseUrl = () => {
+  if (typeof window !== "undefined" && (window as any).__ENV__?.NEXT_PUBLIC_BACKEND_API_URL) {
+    return (window as any).__ENV__.NEXT_PUBLIC_BACKEND_API_URL;
+  }
+  return process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+};
 
 const PROFILES_ENDPOINTS = {
-  DETAIL: (userId: number) => `${API_BASE_URL}/profiles/${userId}`,
-  SEARCH: `${API_BASE_URL}/profiles/search`,
-  ROLES: `${API_BASE_URL}/options/profiles/roles`,
-  ORGANIZATIONS: `${API_BASE_URL}/organizations/options/organizations`,
-  ADMIN_CREATE: `${API_BASE_URL}/admin/users`,
-  LIST: `${API_BASE_URL}/profiles`,
+  DETAIL: (userId: number) => `${getApiBaseUrl()}/profiles/${userId}`,
+  SEARCH: () => `${getApiBaseUrl()}/profiles/search`,
+  ROLES: () => `${getApiBaseUrl()}/options/profiles/roles`,
+  ORGANIZATIONS: () => `${getApiBaseUrl()}/organizations/options/organizations`,
+  ADMIN_CREATE: () => `${getApiBaseUrl()}/admin/users`,
+  LIST: () => `${getApiBaseUrl()}/profiles`,
 } as const;
 
 export interface Profile {
@@ -96,7 +101,7 @@ export async function getProfile(userId: number): Promise<Profile> {
   }
 
   const url = PROFILES_ENDPOINTS.DETAIL(userId);
-  const data = await fetchWithDedupe(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+  const data = await fetchWithDedupe(url.toString(), { method: 'GET', headers: { 'Content-Type': 'application/json' } });
   return data as Profile;
 }
 
@@ -113,7 +118,7 @@ export async function getProfileByProfileId(profileId: number): Promise<Profile>
     return data as Profile;
   }
 
-  const url = `${API_BASE_URL}/profiles/id/${profileId}`;
+  const url = `${getApiBaseUrl()}/profiles/id/${profileId}`;
   const data = await fetchWithDedupe(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
   return data as Profile;
 }
@@ -139,7 +144,7 @@ export async function searchProfiles(params: SearchProfilesParams = {}, token?: 
   if (isBrowser && !token) {
     requestUrl = `/api/profiles/search?${searchParams.toString()}`;
   } else {
-    const url = new URL(PROFILES_ENDPOINTS.SEARCH);
+    const url = new URL(PROFILES_ENDPOINTS.SEARCH());
     url.search = searchParams.toString();
     requestUrl = url.toString();
   }
@@ -164,7 +169,7 @@ export interface ListRolesParams {
 }
 
 export async function listRoles(params: ListRolesParams = {}): Promise<string[]> {
-  const url = new URL(PROFILES_ENDPOINTS.ROLES);
+  const url = new URL(PROFILES_ENDPOINTS.ROLES());
   if (params.organization_id !== undefined) url.searchParams.append('organization_id', String(params.organization_id));
   if (params.organization_type) url.searchParams.append('organization_type', params.organization_type);
   const data = await fetchWithDedupe(url.toString(), { method: 'GET' });
@@ -175,7 +180,7 @@ export async function listRoles(params: ListRolesParams = {}): Promise<string[]>
 // an array of objects; normalize in callers.
 export async function listProgramCodesByOrganization(organizationId: number) {
   // Programs endpoints live under the /programs router (e.g. /api/v1/programs/options/codes/organization/{id})
-  const url = `${API_BASE_URL}/programs/options/codes/organization/${organizationId}`;
+  const url = `${getApiBaseUrl()}/programs/options/codes/organization/${organizationId}`;
   const data = await fetchWithDedupe(url, { method: 'GET' });
   return data;
 }
@@ -187,7 +192,7 @@ export interface OrganizationOption {
 }
 
 export async function listOrganizations(): Promise<OrganizationOption[]> {
-  const url = PROFILES_ENDPOINTS.ORGANIZATIONS;
+  const url = PROFILES_ENDPOINTS.ORGANIZATIONS();
   const data = await fetchWithDedupe(url.toString(), { method: 'GET' });
   return data as OrganizationOption[];
 }
@@ -202,7 +207,7 @@ export async function listProfiles(params: ListProfilesParams = {}): Promise<Pro
     limit = 50,
   } = params;
 
-  const url = new URL(PROFILES_ENDPOINTS.LIST);
+  const url = new URL(PROFILES_ENDPOINTS.LIST());
   if (role) url.searchParams.append('role', role);
   if (params.organization) url.searchParams.append('organization', params.organization);
   if (params.type) url.searchParams.append('type', params.type);
@@ -230,7 +235,7 @@ export async function listProfiles(params: ListProfilesParams = {}): Promise<Pro
  * Calls backend: GET /options/profiles/faculty?organization_id={id}
  */
 export async function listFacultyOptions(organization_id?: number): Promise<Array<{ id: number; name: string }>> {
-  const url = new URL(`${API_BASE_URL}/options/profiles/faculty`);
+  const url = new URL(`${getApiBaseUrl()}/options/profiles/faculty`);
   if (organization_id !== undefined && organization_id !== null) url.searchParams.append('organization_id', String(organization_id));
   const data = await fetchWithDedupe(url.toString(), { method: 'GET' });
   return Array.isArray(data) ? data as Array<{ id: number; name: string }> : [];
@@ -263,7 +268,6 @@ async function fetchWithDedupe(url: string, init?: RequestInit) {
     if (safeInit && (safeInit.method || 'GET').toUpperCase() === 'GET') {
       // Remove Content-Type for GET
       if (safeInit.headers && 'Content-Type' in safeInit.headers) {
-        // @ts-expect-error - headers is a plain object here
         delete (safeInit.headers as Record<string, string>)['Content-Type'];
       }
     }
@@ -312,7 +316,7 @@ export const profilesAPI = {
 export async function createAdminUser(formData: FormData, token?: string) {
   // If a token is provided, call backend directly with Authorization header.
   if (token) {
-    const url = PROFILES_ENDPOINTS.ADMIN_CREATE;
+    const url = PROFILES_ENDPOINTS.ADMIN_CREATE();
     const headers: Record<string, string> = {};
     headers['Authorization'] = `Bearer ${token}`;
 
@@ -368,7 +372,7 @@ export async function updateAdminUser(userId: number | string, body: Record<stri
   const path = String(userId);
 
   if (token) {
-    const url = `${API_BASE_URL}/users/${path}`;
+    const url = `${getApiBaseUrl()}/users/${path}`;
     const resp = await fetch(url, {
       method: 'PATCH',
       headers: {
@@ -411,7 +415,7 @@ export async function updateAdminUser(userId: number | string, body: Record<stri
   }
 
   // Server-side but no token: call backend directly (may fail if auth required)
-  const url = `${API_BASE_URL}/users/${path}`;
+  const url = `${getApiBaseUrl()}/users/${path}`;
   const resp = await fetch(url, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -439,7 +443,7 @@ export async function deleteAdminUser(profileId: number | string, hard: boolean 
 
   // If a token is provided, call backend directly with Authorization header
   if (token) {
-    const url = `${API_BASE_URL}/admin/users/${path}?hard=${hard ? 'true' : 'false'}`;
+    const url = `${getApiBaseUrl()}/admin/users/${path}?hard=${hard ? 'true' : 'false'}`;
     const resp = await fetch(url, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` },
@@ -473,7 +477,7 @@ export async function deleteAdminUser(profileId: number | string, hard: boolean 
   }
 
   // Server-side without token: call backend directly
-  const url = `${API_BASE_URL}/admin/users/${path}?hard=${hard ? 'true' : 'false'}`;
+  const url = `${getApiBaseUrl()}/admin/users/${path}?hard=${hard ? 'true' : 'false'}`;
   const resp = await fetch(url, { method: 'DELETE' });
   let parsed: any = {};
   try { parsed = await resp.json(); } catch (e) { parsed = { detail: resp.statusText }; }
