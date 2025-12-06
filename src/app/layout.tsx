@@ -39,6 +39,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.__ENV__ = {
+                NEXT_PUBLIC_AUTH_API_URL: "${process.env.NEXT_PUBLIC_AUTH_API_URL}",
+                NEXT_PUBLIC_USER_API_URL: "${process.env.NEXT_PUBLIC_USER_API_URL}",
+                NEXT_PUBLIC_BACKEND_API_URL: "${process.env.NEXT_PUBLIC_BACKEND_API_URL}",
+                NEXT_PUBLIC_APP_URL: "${process.env.NEXT_PUBLIC_APP_URL}",
+              };
+            `,
+          }}
+        />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
           {children}

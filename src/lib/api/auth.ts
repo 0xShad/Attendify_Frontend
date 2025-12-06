@@ -8,10 +8,18 @@ import { z } from "zod";
 // ==================== API Configuration ====================
 // Read at runtime instead of build time
 function getAuthApiBaseUrl() {
+  // Try to read from window.__ENV__ first (injected at runtime in layout)
+  if (typeof window !== "undefined" && (window as any).__ENV__?.NEXT_PUBLIC_AUTH_API_URL) {
+    return (window as any).__ENV__.NEXT_PUBLIC_AUTH_API_URL;
+  }
   return process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8000/api/v1/auth";
 }
 
 function getApiBaseUrl() {
+  // Try to read from window.__ENV__ first (injected at runtime in layout)
+  if (typeof window !== "undefined" && (window as any).__ENV__?.NEXT_PUBLIC_USER_API_URL) {
+    return (window as any).__ENV__.NEXT_PUBLIC_USER_API_URL;
+  }
   return process.env.NEXT_PUBLIC_USER_API_URL || "http://localhost:8000/api/v1/users";
 }
 
