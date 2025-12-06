@@ -327,7 +327,6 @@ export default function ClassesManagement() {
         <>
           {typeof window !== "undefined" ? (
             <React.Suspense fallback={null}>
-              {/* @ts-expect-error */}
               <ViewClassDrawer open={viewOpen} classId={viewClassId ?? undefined} onClose={() => { setViewOpen(false); setViewClassId(null); }} />
             </React.Suspense>
           ) : null}
@@ -336,7 +335,6 @@ export default function ClassesManagement() {
         <>
           {typeof window !== "undefined" ? (
             <React.Suspense fallback={null}>
-              {/* @ts-expect-error */}
               <EditClassDrawer
                 open={editOpen}
                 classId={editClassId ?? undefined}
@@ -351,7 +349,6 @@ export default function ClassesManagement() {
         <>
           {typeof window !== "undefined" ? (
             <React.Suspense fallback={null}>
-              {/* @ts-expect-error */}
               <DeleteClassDialog open={deleteOpen} classId={deleteClassId ?? undefined} classLabel={deleteClassLabel} onClose={() => { setDeleteOpen(false); setDeleteClassId(null); setDeleteClassLabel(null); }} onDeleted={onDeleted} />
             </React.Suspense>
           ) : null}
