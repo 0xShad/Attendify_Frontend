@@ -333,7 +333,7 @@ export default function ClassesManagement() {
           ) : null}
         </>
         {/* Edit drawer (client-only) */}
-        </>
+        <>
           {typeof window !== "undefined" ? (
             <React.Suspense fallback={null}>
               {/* @ts-expect-error */}
