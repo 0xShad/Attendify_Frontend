@@ -12,7 +12,7 @@ function parseCookie(header: string | null, name: string) {
 
 export const runtime = 'nodejs';
 
-export async function GET(request: Request, { params }: { params: { classId: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ classId: string }> } | { params: { classId: string } }) {
   let resolvedParams: any = params;
   try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
   const { classId } = resolvedParams || {};
@@ -51,7 +51,7 @@ export async function GET(request: Request, { params }: { params: { classId: str
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: { classId: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ classId: string }> } | { params: { classId: string } }) {
   let resolvedParams: any = params;
   try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
   const { classId } = resolvedParams || {};
@@ -89,7 +89,7 @@ export async function PATCH(request: Request, { params }: { params: { classId: s
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { classId: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ classId: string }> } | { params: { classId: string } }) {
   let resolvedParams: any = params;
   try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
   const { classId } = resolvedParams || {};

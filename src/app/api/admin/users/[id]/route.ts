@@ -56,7 +56,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 }
 
 // Support PATCH as well (backend may expose PATCH for partial updates).
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> } | { params: { id: string } }) {
   // Resolve params
   let resolvedParams: any = params;
   try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }
@@ -98,7 +98,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 }
 
 // Support DELETE for admin user soft/hard delete. Forwards query string (e.g. ?hard=true)
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> } | { params: { id: string } }) {
   // Resolve params
   let resolvedParams: any = params;
   try { if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any); } catch (e) { /* ignore */ }

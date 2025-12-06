@@ -12,7 +12,7 @@ function parseCookie(header: string | null, name: string) {
 
 export const runtime = 'nodejs';
 
-export async function GET(request: Request, { params }: { params: { orgId: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ orgId: string }> } | { params: { orgId: string } }) {
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8082/api/v1';
 
   // Resolve params in case the runtime provides a thenable.
