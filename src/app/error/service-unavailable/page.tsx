@@ -109,7 +109,7 @@ export default function ServiceUnavailablePage() {
               <strong>What happened?</strong>
             </p>
             <p className="text-sm text-blue-700 dark:text-blue-400 mt-2">
-              We couldn't connect to the authentication service. This might be due to:
+              We couldn&apos;t connect to the authentication service. This might be due to:
             </p>
             <ul className="list-disc list-inside text-sm text-blue-700 dark:text-blue-400 mt-2 space-y-1">
               <li>Temporary server maintenance</li>

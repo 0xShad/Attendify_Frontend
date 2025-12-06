@@ -62,7 +62,7 @@ export default function ViewClassDrawer({ open, classId, selectedClass: selClass
         assigned_secretary: selClass.assigned_secretary ?? selClass.secretary_id ?? selClass.secretary?.id ?? null,
         assigned_secretary_name: selClass.assigned_secretary_name ?? selClass.secretary_name ?? selClass.secretary?.name ?? null,
         // pass through schedules if present
-        // @ts-ignore
+        // @ts-expect-error
         schedules: selClass.schedules ?? undefined,
       };
         setData(mapped as Partial<Class>);

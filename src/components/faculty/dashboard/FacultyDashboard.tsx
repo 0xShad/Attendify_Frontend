@@ -340,7 +340,7 @@ export default function FacultyDashboard({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <Greeting />
-          <p className="text-stone-500">Here's what's happening in your classes today.</p>
+          <p className="text-stone-500">Here&apos;s what&apos;s happening in your classes today.</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={onOpenNewAnnouncement} variant="outline" className="gap-2">

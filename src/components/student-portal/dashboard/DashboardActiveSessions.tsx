@@ -219,7 +219,7 @@ export default function DashboardActiveSessions({ sessions, currentSession, onRe
                           if (modeIsF2F && !userIsSecretary) {
                             return (
                               <div className="mt-2 sm:mt-0 text-sm text-muted-foreground">
-                                Face to face attendance has to be taken on your professor's or class secretary's device.
+                                Face to face attendance has to be taken on your professor&apos;s or class secretary&apos;s device.
                               </div>
                             );
                           }
