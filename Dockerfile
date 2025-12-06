@@ -34,11 +34,14 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 
 # Expose port (Cloud Run uses PORT environment variable)
-EXPOSE 8080
+EXPOSE ${PORT:-8080}
+
+# Set environment for Next.js to use PORT
+ENV PORT=${PORT:-8080}
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+  CMD node -e "require('http').get('http://localhost:${PORT:-8080}', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
 # Use dumb-init to run Node.js
 ENTRYPOINT ["/sbin/dumb-init", "--"]
