@@ -33,6 +33,10 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 
+# Copy startup script
+COPY start.sh ./
+RUN chmod +x ./start.sh
+
 # Expose port (Cloud Run uses PORT environment variable)
 EXPOSE 8080
 
@@ -43,5 +47,5 @@ ENV PORT=8080
 # Use dumb-init to run Node.js
 ENTRYPOINT ["/sbin/dumb-init", "--"]
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application using the startup script
+CMD ["./start.sh"]
