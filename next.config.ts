@@ -9,9 +9,6 @@ const nextConfig: NextConfig = {
     dirs: ["src"],
     ignoreDuringBuilds: true,
   },
-  serverRuntimeConfig: {
-    port: process.env.PORT || 3000,
-  },
 };
 
 export default nextConfig;
