@@ -20,7 +20,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // it if necessary to avoid the runtime error about sync dynamic APIs.
   let resolvedParams: any = params;
   try {
-    if (typeof params?.then === 'function') resolvedParams = await params;
+    if (typeof (params as any)?.then === 'function') resolvedParams = await (params as any);
   } catch (e) {
     // ignore
   }
