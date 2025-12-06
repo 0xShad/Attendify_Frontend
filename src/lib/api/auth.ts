@@ -6,8 +6,15 @@
 import { z } from "zod";
 
 // ==================== API Configuration ====================
-const AUTH_API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8000/api/v1/auth";
-const API_BASE_URL = process.env.NEXT_PUBLIC_USER_API_URL || "http://localhost:8000/api/v1/users";
+// Read at runtime instead of build time
+function getAuthApiBaseUrl() {
+  return process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8000/api/v1/auth";
+}
+
+function getApiBaseUrl() {
+  return process.env.NEXT_PUBLIC_USER_API_URL || "http://localhost:8000/api/v1/users";
+}
+
 const AUTH_ENDPOINTS = {
   // Registration endpoints
   REGISTER_INITIATE: "/register/initiate",
@@ -25,9 +32,9 @@ const AUTH_ENDPOINTS = {
   RESET_PASSWORD: "/reset-password",
 } as const;
 
-const USER_ENDPOINTS = {
-  ME: `${API_BASE_URL}/users/me`,
-} as const;
+const getUserEndpoints = () => ({
+  ME: `${getApiBaseUrl()}/users/me`,
+});
 
 // ==================== Request/Response Types ====================
 
@@ -340,7 +347,7 @@ class AuthAPI {
   private client: HttpClient;
 
   constructor() {
-    this.client = new HttpClient(AUTH_API_BASE_URL);
+    this.client = new HttpClient(getAuthApiBaseUrl());
   }
 
   // ==================== REGISTRATION FLOW ====================
@@ -584,7 +591,7 @@ class AuthAPI {
       throw new ApiError(401, "No authentication token");
     }
 
-    const response = await fetch(USER_ENDPOINTS.ME, {
+    const response = await fetch(getUserEndpoints().ME, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -680,7 +687,7 @@ export async function checkAuth(force = false): Promise<boolean> {
   // If called on server (no window), we cannot perform client-side check
   if (typeof window === "undefined") return false;
 
-  const url = USER_ENDPOINTS.ME;
+  const url = getUserEndpoints().ME;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
 
   // Try to include any locally-stored token if available (best-effort)
