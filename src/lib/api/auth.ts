@@ -481,7 +481,9 @@ class AuthAPI {
     loginVerifySchema.parse(otpData);
 
     console.log('🔐 [API] Sending login verify request:', { 
-      username_or_email: otpData.username_or_email 
+      username_or_email: otpData.username_or_email,
+      code: otpData.code,
+      requestBody: JSON.stringify(otpData)
     });
 
     try {
