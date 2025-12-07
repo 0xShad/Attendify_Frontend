@@ -12,6 +12,18 @@ export default function resolveAvatarUrl(u?: string | null): string | null {
   const v = String(u).trim();
   // Absolute (http/https)
   if (/^https?:\/\//i.test(v)) return v;
+  // Google Cloud Storage URI (gs://bucket/path)
+  const gsMatch = v.match(/^gs:\/\/(?<bucket>[^\/]+)\/(?<path>.+)$/i);
+  if (gsMatch && gsMatch.groups) {
+    const { bucket, path } = gsMatch.groups as { bucket: string; path: string };
+    // Convert to public storage URL using googleapis URL (storage.googleapis.com)
+    return `https://storage.googleapis.com/${bucket}/${encodeURI(path)}`;
+  }
+  // Storage URL without protocol but starting with bucket/.. or /bucket/... : support optional STORAGE_BASE_URL env var
+  if (!/^\//.test(v) && !/^\w+:\/\//.test(v) && process.env.NEXT_PUBLIC_STORAGE_BASE_URL) {
+    const base = String(process.env.NEXT_PUBLIC_STORAGE_BASE_URL).replace(/\/$/, "");
+    return `${base}/${encodeURI(v)}`;
+  }
   // Protocol-relative (//cdn.example.com/img.png) — treat as absolute
   if (/^\/\//.test(v)) return `${window?.location?.protocol || 'https:'}${v}`;
   // Path-absolute: prefix origin directly

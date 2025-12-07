@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../styles/globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -45,21 +46,23 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.__ENV__ = {
-                NEXT_PUBLIC_AUTH_API_URL: "${process.env.NEXT_PUBLIC_AUTH_API_URL}",
-                NEXT_PUBLIC_USER_API_URL: "${process.env.NEXT_PUBLIC_USER_API_URL}",
-                NEXT_PUBLIC_BACKEND_API_URL: "${process.env.NEXT_PUBLIC_BACKEND_API_URL}",
-                NEXT_PUBLIC_APP_URL: "${process.env.NEXT_PUBLIC_APP_URL}",
-              };
-              console.log('📍 [LAYOUT] Environment injected:', window.__ENV__);
-            `,
-          }}
-        />
+        {/* Explicit favicon links to cover cases where browsers prefer link tags over metadata */}
+        <link rel="icon" href="/logo_blue.png" sizes="32x32" type="image/png" />
+        <link rel="shortcut icon" href="/logo_blue.png" />
+        <link rel="apple-touch-icon" href="/logo_blue.png" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        {/* Use next/script with strategy beforeInteractive so env is available as early as possible */}
+        <Script id="env" strategy="beforeInteractive">
+          {`window.__ENV__ = {
+              NEXT_PUBLIC_AUTH_API_URL: "${process.env.NEXT_PUBLIC_AUTH_API_URL}",
+              NEXT_PUBLIC_USER_API_URL: "${process.env.NEXT_PUBLIC_USER_API_URL}",
+              NEXT_PUBLIC_BACKEND_API_URL: "${process.env.NEXT_PUBLIC_BACKEND_API_URL}",
+              NEXT_PUBLIC_APP_URL: "${process.env.NEXT_PUBLIC_APP_URL}",
+            };
+            console.log('📍 [LAYOUT] Environment injected:', window.__ENV__);
+          `}
+        </Script>
         <AuthProvider>
           {children}
           <Toaster />
