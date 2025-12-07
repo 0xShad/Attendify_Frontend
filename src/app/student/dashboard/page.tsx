@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useEffect, useState } from "react";
+import { useAuthContext } from '@/contexts/AuthContext';
 import Link from "next/link";
 import {
   TrendingUp,
@@ -81,6 +82,10 @@ export default function StudentDashboard() {
       setLoading(false);
     }
   }, []);
+
+  // Get the authenticated user's name for the greeting
+  const { user } = useAuthContext();
+  const displayName = user ? `${(user.firstName || user.username || user.email || '').trim()}${user.lastName ? ` ${user.lastName}` : ''}`.trim() || 'Guest' : 'Guest';
 
   // Map enrolled classes from the dashboard payload when available. The
   // backend returns `Enrolled_Classes_This_Semester` with fields like
@@ -390,8 +395,8 @@ export default function StudentDashboard() {
       {/* Welcome Section - Mobile First */}
       <div className="flex flex-col space-y-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">
-            Welcome back, Alex!
+            <h1 className="text-2xl md:text-3xl font-bold">
+            Welcome back, {displayName}!
           </h1>
           <p className="text-muted-foreground">
             Here&apos;s what&apos;s happening with your classes today.

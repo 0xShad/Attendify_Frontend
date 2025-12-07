@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/drawer";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import useAvatarSrc from '@/hooks/useAvatarSrc';
+import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
 import { profilesAPI } from "@/lib/api/profiles";
 import { useToast } from "@/hooks/use-toast";
 
@@ -35,14 +37,10 @@ export default function ViewUserDrawer({ profileId, authUserId, open: openProp, 
   const [profile, setProfile] = React.useState<any>(null);
   const { toast } = useToast();
 
-  const getAvatarSrc = (avatar?: string | null) => {
-    if (!avatar) return undefined;
-    if (/^https?:\/\//i.test(avatar)) return avatar;
-    const raw = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
-    const origin = raw.replace(/\/api\/(v\d+|v1)\/?$/i, "");
-    const path = avatar.startsWith('/') ? avatar : `/${avatar}`;
-    return `${origin}${path}`;
-  };
+  // useAvatarSrc hook will resolve avatars, support gs:// and signed URL refresh
+  const { src: resolvedAvatarSrc, setSrc: setResolvedAvatarSrc } = useAvatarSrc(profile?.avatar_url ?? null, {
+    profilePath: profile ? `/api/profiles/${profile.id}` : undefined,
+  });
 
   React.useEffect(() => {
     if (!open) return;
@@ -123,8 +121,8 @@ export default function ViewUserDrawer({ profileId, authUserId, open: openProp, 
             <div className="grid grid-cols-1 gap-4">
               <div className="flex items-center gap-4">
                 <Avatar className="w-20 h-20">
-                  {profile.avatar_url ? (
-                    <AvatarImage src={getAvatarSrc(profile.avatar_url)} alt={profile.username ?? 'avatar'} />
+                  {resolvedAvatarSrc ? (
+                    <AvatarImage src={resolvedAvatarSrc} alt={profile.username ?? 'avatar'} onError={() => setResolvedAvatarSrc(null)} />
                   ) : (
                     <AvatarFallback className="bg-slate-500 text-white">{(profile.firstname || profile.username || 'U').charAt(0)}</AvatarFallback>
                   )}
@@ -171,11 +169,11 @@ export default function ViewUserDrawer({ profileId, authUserId, open: openProp, 
                 <div className="mt-1 text-sm">{profile.bio ?? '-'}</div>
               </div>
 
-              {profile.face_image && (
+                {profile.face_image && (
                 <div>
                   <Label>Face image</Label>
                   <div className="mt-2">
-                    <img src={getAvatarSrc(profile.face_image)} alt="face" className="w-48 h-48 object-cover rounded-md" />
+                    <img src={resolveAvatarUrl(profile.face_image as string) ?? undefined} alt="face" className="w-48 h-48 object-cover rounded-md" />
                   </div>
                 </div>
               )}

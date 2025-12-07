@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
+import useAvatarSrc from '@/hooks/useAvatarSrc';
 import { IconTrash } from "@tabler/icons-react";
 import DeleteEnrolleeDialog from "./DeleteEnrolleeDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -121,12 +122,28 @@ export default function StudentsTab({ classId }: Props) {
                   <TableCell className="w-12">
                     <div className="w-8 h-8">
                       <Avatar>
-                        {e.avatar_url && !failedAvatarIds[e.id] ? (
-                          <AvatarImage src={String(resolveAvatarUrl(e.avatar_url))} alt={e.full_name ?? 'avatar'} onError={() => { console.debug(`Avatar load failed for enrollee ${e.id} -> ${String(resolveAvatarUrl(e.avatar_url))}`); setFailedAvatarIds((p) => ({ ...p, [e.id]: true })); }} />
-                        ) : (
-                          <AvatarFallback className="bg-gray-200 text-gray-700 text-sm font-medium">{(e.full_name || "").split(' ').map(s => s[0]).slice(0,2).join('').toUpperCase() || '—'}</AvatarFallback>
-                        )}
-                      </Avatar>
+                            {e.avatar_url && !failedAvatarIds[e.id] ? (
+                              (() => {
+                                const AvatarForEnrollee = ({ enrollee }: { enrollee: Enrollee }) => {
+                                  const { src: avatarSrc, setSrc: setAvatarSrc } = useAvatarSrc(enrollee.avatar_url ?? null, { profilePath: enrollee.profile_id ? `/api/profiles/${enrollee.profile_id}` : undefined });
+                                  return (
+                                    <AvatarImage
+                                      src={String(avatarSrc ?? undefined)}
+                                      alt={enrollee.full_name ?? 'avatar'}
+                                      onError={() => {
+                                        console.debug(`Avatar load failed for enrollee ${enrollee.id} -> ${String(resolveAvatarUrl(enrollee.avatar_url ?? null))}`);
+                                        setFailedAvatarIds((p) => ({ ...p, [enrollee.id]: true }));
+                                        setAvatarSrc(null);
+                                      }}
+                                    />
+                                  );
+                                };
+                                return <AvatarForEnrollee enrollee={e} />;
+                              })()
+                            ) : (
+                              <AvatarFallback className="bg-gray-200 text-gray-700 text-sm font-medium">{(e.full_name || "").split(' ').map(s => s[0]).slice(0,2).join('').toUpperCase() || '—'}</AvatarFallback>
+                            )}
+                          </Avatar>
                     </div>
                   </TableCell>
                   <TableCell>{e.full_name ?? "—"}</TableCell>

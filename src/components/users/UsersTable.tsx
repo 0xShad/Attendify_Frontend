@@ -20,6 +20,7 @@ import {
 import { User, userSchema } from "./types";
 
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import useAvatarSrc from '@/hooks/useAvatarSrc';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -92,34 +93,44 @@ const columns: ColumnDef<User>[] = [
     header: "User",
     cell: ({ row }) => {
       const user = row.original;
-      return (
-        <div className="flex items-center gap-3">
-          <Avatar className="w-10 h-10">
-            {(() => {
-              const avatar = user.avatar;
-              if (!avatar) return (
+      // Use a small child component so we can use hooks for avatar logic
+        const AvatarCell = ({ user }: { user: User }) => {
+        const { src: avatarSrc, setSrc: setAvatarSrc } = useAvatarSrc(user.avatar ?? null, {
+          // attempt to refresh by fetching profile endpoint when needed
+          profilePath: `/api/profiles/${user.id}`,
+        });
+        const displayName = user.name ?? user.email ?? '—';
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar className="w-10 h-10">
+              {avatarSrc ? (
+                <AvatarImage
+                  src={avatarSrc as string}
+                  alt={displayName}
+                  onError={() => {
+                    console.debug('UsersTable avatar error for user', user.id, avatarSrc);
+                    // Clear the src and let the hook attempt refresh
+                    setAvatarSrc(null);
+                  }}
+                />
+              ) : (
                 <AvatarFallback className="bg-slate-500 text-white">
                   <UserIcon className="w-5 h-5" />
                 </AvatarFallback>
-              );
-              if (/^https?:\/\//i.test(avatar)) {
-                return <AvatarImage src={avatar} alt={`${user.name ?? 'avatar'}`} />;
-              }
-              const raw = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
-              const origin = raw.replace(/\/api\/(v\d+|v1)\/?$/i, "");
-              const src = `${origin}${avatar}`;
-              return <AvatarImage src={src} alt={`${user.name ?? 'avatar'}`} />;
-            })()}
-          </Avatar>
-          <div>
-            <div className="font-medium">{user.name}</div>
-            {user.email && (
-              <div className="text-sm text-muted-foreground">{user.email}</div>
-            )}
-            <div className="text-xs text-muted-foreground">ID: {user.id}</div>
+              )}
+            </Avatar>
+            <div>
+              <div className="font-medium">{displayName}</div>
+              {user.email && (
+                <div className="text-sm text-muted-foreground">{user.email}</div>
+              )}
+              <div className="text-xs text-muted-foreground">ID: {user.id}</div>
+            </div>
           </div>
-        </div>
-      );
+        );
+      };
+
+      return <AvatarCell user={user} />;
     },
     enableHiding: false,
   },

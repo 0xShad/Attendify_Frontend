@@ -10,7 +10,6 @@ import {
   UserCheck,
   User,
   Megaphone,
-  Settings,
   Bell,
   MoreHorizontal,
   LogOut,
@@ -85,6 +84,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
+import useAvatarSrc from '@/hooks/useAvatarSrc';
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -211,14 +211,8 @@ function SidebarUserMenu({
     avatar_url?: string | null;
   } | null>(null);
 
-  const avatarSrc = useMemo(() => {
-    const raw = enrichment?.avatar_url ?? (user as any)?.avatarUrl ?? (user as any)?.avatar_url ?? null;
-    try {
-      return resolveAvatarUrl(raw ?? undefined);
-    } catch (e) {
-      return null;
-    }
-  }, [enrichment, user]);
+  const raw = enrichment?.avatar_url ?? (user as any)?.avatarUrl ?? (user as any)?.avatar_url ?? null;
+  const { src: avatarSrc, setSrc: setAvatarSrc } = useAvatarSrc(raw, { profilePath: '/api/profiles/mine' });
 
   const displayName =
     (user && ((user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : (user.username || user.email))) ||
@@ -259,7 +253,18 @@ function SidebarUserMenu({
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 {avatarSrc ? (
-                  <AvatarImage src={avatarSrc} />
+                  <AvatarImage src={avatarSrc} onError={async () => {
+                    // Try to refresh signed url by re-fetching profile
+                    try {
+                      const resp = await fetch('/api/profiles/mine', { credentials: 'include' });
+                      if (!resp.ok) return;
+                      const data = await resp.json();
+                      const newUrl = data?.avatar_url ?? data?.avatar ?? null;
+                      if (newUrl) setAvatarSrc(resolveAvatarUrl(newUrl));
+                    } catch (err) {
+                      // ignore
+                    }
+                  }} />
                 ) : (
                   <>
                     <AvatarImage src="/avatars/student.jpg" />
@@ -307,10 +312,6 @@ function SidebarUserMenu({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-              <Settings className="w-4 h-4" />
-              Settings
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => logout()}>
               <LogOut className="w-4 h-4" />
               Log out

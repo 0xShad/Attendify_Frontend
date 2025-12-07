@@ -17,6 +17,8 @@ import FaceCamera from "@/components/face-camera";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { profilesAPI, OrganizationOption } from "@/lib/api/profiles";
+import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
+import useAvatarSrc from '@/hooks/useAvatarSrc';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 
@@ -66,23 +68,23 @@ export function EditUserDrawer({ profileId, authUserId, onUpdated, open: openPro
   const [initial, setInitial] = React.useState<any>(null);
   const [saving, setSaving] = React.useState(false);
 
-  // Helper: normalize avatar URLs returned by the backend so preview images load
-  // when the API returns app-relative paths like `/static/...`.
-  const getAvatarSrc = (avatar?: string | null) => {
-    if (!avatar) return undefined;
-    if (/^https?:\/\//i.test(avatar)) return avatar;
-    const raw = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
-    const origin = raw.replace(/\/api\/(v\d+|v1)\/?$/i, "");
-    // Ensure avatar begins with a slash
-    const path = avatar.startsWith('/') ? avatar : `/${avatar}`;
-    return `${origin}${path}`;
-  };
+  // Use shared resolver (supports gs://, STORAGE_BASE_URL, and backend origin normalization)
+  // For editing and preview, converting to an absolute url is sufficient for display.
 
   const isControlled = typeof openProp === 'boolean' && typeof onOpenChange === 'function';
   const open = isControlled ? (openProp as boolean) : internalOpen;
   const setOpen = (v: boolean) => {
     if (isControlled) onOpenChange?.(v); else setInternalOpen(v);
   };
+
+  // Avatar preview and refresh resolver
+  const { src: avatarSrc, setSrc: setAvatarSrc } = useAvatarSrc((initial?.profile_image as string) ?? null, {
+    profilePath: initial ? `/api/profiles/${initial?.id ?? profileId}` : undefined,
+  });
+
+  React.useEffect(() => {
+    if (avatarSrc) setPreviewUrl(avatarSrc);
+  }, [avatarSrc]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -139,7 +141,6 @@ export function EditUserDrawer({ profileId, authUserId, onUpdated, open: openPro
           username: profile.username ?? undefined,
           firstname: profile.firstname ?? undefined,
           middlename: profile.middlename ?? null,
-          lastname: profile.lastname ?? undefined,
           role: profile.role ?? undefined,
           organization: (profile.organization_data && profile.organization_data.id !== undefined) ? String(profile.organization_data.id) : (profile.organization_id ? String(profile.organization_id) : undefined),
           bio: profile.bio ?? undefined,
@@ -152,7 +153,7 @@ export function EditUserDrawer({ profileId, authUserId, onUpdated, open: openPro
         };
   setInitial(seed);
   setForm(seed);
-  if (seed.profile_image && typeof seed.profile_image === 'string') setPreviewUrl(getAvatarSrc(String(seed.profile_image)) ?? null);
+  if (seed.profile_image && typeof seed.profile_image === 'string') setPreviewUrl(resolveAvatarUrl(String(seed.profile_image)) ?? null);
 
     // seeded form values derived from profile (no debug logging emitted)
 
