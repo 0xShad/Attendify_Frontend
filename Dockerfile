@@ -12,8 +12,21 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Build arguments passed at build time
+ARG NEXT_PUBLIC_AUTH_API_URL=""
+ARG NEXT_PUBLIC_USER_API_URL=""
+ARG NEXT_PUBLIC_BACKEND_API_URL=""
+ARG NEXT_PUBLIC_APP_URL=""
+ARG NEXT_PUBLIC_DEV_AUTH_BYPASS=""
+
 # Build the application with standalone output
-RUN npm run build
+# Environment variables are passed to the build process
+RUN NEXT_PUBLIC_AUTH_API_URL=$NEXT_PUBLIC_AUTH_API_URL \
+    NEXT_PUBLIC_USER_API_URL=$NEXT_PUBLIC_USER_API_URL \
+    NEXT_PUBLIC_BACKEND_API_URL=$NEXT_PUBLIC_BACKEND_API_URL \
+    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NEXT_PUBLIC_DEV_AUTH_BYPASS=$NEXT_PUBLIC_DEV_AUTH_BYPASS \
+    npm run build
 
 # Runtime stage
 FROM node:18-alpine
