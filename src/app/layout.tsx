@@ -49,6 +49,7 @@ export default function RootLayout({
                 NEXT_PUBLIC_BACKEND_API_URL: "${process.env.NEXT_PUBLIC_BACKEND_API_URL}",
                 NEXT_PUBLIC_APP_URL: "${process.env.NEXT_PUBLIC_APP_URL}",
               };
+              console.log('📍 [LAYOUT] Environment injected:', window.__ENV__);
             `,
           }}
         />

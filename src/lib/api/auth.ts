@@ -10,9 +10,12 @@ import { z } from "zod";
 function getAuthApiBaseUrl() {
   // Try to read from window.__ENV__ first (injected at runtime in layout)
   if (typeof window !== "undefined" && (window as any).__ENV__?.NEXT_PUBLIC_AUTH_API_URL) {
+    console.log('🔑 [AUTH] Using window.__ENV__ AUTH_API_URL:', (window as any).__ENV__.NEXT_PUBLIC_AUTH_API_URL);
     return (window as any).__ENV__.NEXT_PUBLIC_AUTH_API_URL;
   }
-  return process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8000/api/v1/auth";
+  const fallback = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8000/api/v1/auth";
+  console.log('🔑 [AUTH] Using fallback AUTH_API_URL:', fallback, 'process.env:', process.env.NEXT_PUBLIC_AUTH_API_URL);
+  return fallback;
 }
 
 function getApiBaseUrl() {
