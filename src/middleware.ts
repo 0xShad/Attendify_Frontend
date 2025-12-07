@@ -229,8 +229,10 @@ export async function middleware(request: NextRequest) {
             console.error(`[MIDDLEWARE] NEXT_PUBLIC_BACKEND_API_URL not configured`);
             profileFetchError = true;
           } else {
-            // Try to get profile by user_id
-            const profileUrl = `${backendBaseUrl}/v1/profiles/user/${userId}`;
+            // Try to get profile - using correct backend endpoint structure
+            // Backend endpoint: GET /api/v1/users/profiles/{user_id}
+            // NEXT_PUBLIC_BACKEND_API_URL should be: https://...run.app/api
+            let profileUrl = `${backendBaseUrl}/v1/users/profiles/${userId}`;
             console.log(`[MIDDLEWARE] Calling backend profile endpoint: ${profileUrl}`);
             
             try {
@@ -244,7 +246,71 @@ export async function middleware(request: NextRequest) {
 
               console.log(`[MIDDLEWARE] Profile fetch status: ${profileRes.status}`);
 
-              if (profileRes.ok) {
+              // If 404, try alternative endpoint /profiles/{id} where id = user_id
+              if (profileRes.status === 404) {
+                console.log(`[MIDDLEWARE] Profile not found via /user/${userId}, trying /profiles/${userId}`);
+                profileUrl = `${backendBaseUrl}/v1/profiles/${userId}`;
+                
+                try {
+                  const altProfileRes = await fetch(profileUrl, {
+                    headers: { 
+                      Authorization: `Bearer ${accessToken}`,
+                      "Content-Type": "application/json"
+                    },
+                    signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
+                  });
+                  
+                  console.log(`[MIDDLEWARE] Alternative profile fetch status: ${altProfileRes.status}`);
+                  
+                  if (altProfileRes.ok) {
+                    const profile = await altProfileRes.json();
+                    
+                    // Process profile same as before
+                    const roleValue = profile.role || profile.Role;
+                    const isAdmin = roleValue && String(roleValue).toLowerCase() === "admin";
+                    
+                    if (isAdmin) {
+                      userRole = "Admin";
+                      console.log(`[MIDDLEWARE] Got Admin profile via alt endpoint, Role: ${userRole}, profile:`, profile);
+                    } else {
+                      const hasOrganization = profile.organization_id != null;
+                      if (hasOrganization) {
+                        userRole = profile.role || profile.Role;
+                        console.log(`[MIDDLEWARE] Got profile via alt endpoint with role: ${userRole}, organization_id: ${profile.organization_id}`);
+                      } else {
+                        userRole = undefined;
+                        console.log(`[MIDDLEWARE] Profile via alt endpoint NOT onboarded (no organization_id)`);
+                      }
+                    }
+                    
+                    // Cache the result
+                    try {
+                      setTokenEntry(accessToken, {
+                        isValid: true,
+                        userId,
+                        role: userRole,
+                        profileId: profile.id ?? undefined,
+                        email: typeof profile.email !== 'undefined' ? profile.email : null,
+                        username: typeof profile.username !== 'undefined' ? profile.username : null,
+                        full_name:
+                          typeof profile.full_name !== 'undefined'
+                            ? profile.full_name
+                            : (profile.firstname || profile.lastname) ? `${profile.firstname || ''} ${profile.lastname || ''}`.trim() : null,
+                        expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
+                      });
+                    } catch (e) {
+                      // ignore
+                    }
+                  } else {
+                    // Still 404 or other error
+                    userRole = undefined;
+                    console.log(`[MIDDLEWARE] Profile not found via alternative endpoint either, userRole set to undefined`);
+                  }
+                } catch (err) {
+                  console.error("[MIDDLEWARE] Alternative profile fetch failed:", err);
+                  userRole = undefined;
+                }
+              } else if (profileRes.ok) {
                 const profile = await profileRes.json();
                 
                 // Admins don't need organization_id - they can access system immediately
@@ -255,7 +321,7 @@ export async function middleware(request: NextRequest) {
                 if (isAdmin) {
                   // Admin users bypass onboarding requirements
                   userRole = "Admin"; // Normalize to "Admin"
-                  console.log(`[MIDDLEWARE] Got Admin profile, bypassing onboarding check. Role: ${userRole}`);
+                  console.log(`[MIDDLEWARE] Got Admin profile, bypassing onboarding check. Role: ${userRole}, profile:`, profile);
                 } else {
                   // Non-admin users must have organization_id to be considered onboarded
                   const hasOrganization = profile.organization_id != null;
@@ -289,11 +355,8 @@ export async function middleware(request: NextRequest) {
                 } catch (e) {
                   // ignore cache write errors
                 }
-              } else if (profileRes.status === 404) {
-                // No local profile — user hasn't completed onboarding yet
-                userRole = undefined;
-                console.log(`[MIDDLEWARE] Profile not found (404), userRole set to undefined`);
               } else {
+                // Original endpoint returned non-404 error
                 console.error("Profile fetch failed with status:", profileRes.status);
                 profileFetchError = true;
               }
