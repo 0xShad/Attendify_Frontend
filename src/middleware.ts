@@ -66,7 +66,10 @@ function isTokenExpired(token: string): boolean {
  * Verify JWT token with backend and return user info if valid
  * Returns { isValid, userId } or { isValid: false }
  */
-async function verifyTokenAndGetUser(accessToken: string): Promise<{ isValid: boolean; userId?: number }> {
+async function verifyTokenAndGetUser(
+  accessToken: string,
+  request: NextRequest
+): Promise<{ isValid: boolean; userId?: number }> {
   // Check cache first
   const cachedEntry = getTokenEntry(accessToken);
   if (cachedEntry) {
@@ -83,11 +86,13 @@ async function verifyTokenAndGetUser(accessToken: string): Promise<{ isValid: bo
     return { isValid: false };
   }
 
-  // Validate with backend
+  // Validate with backend via local proxy
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_USER_API_URL}/me`, {
+    // Use the request origin to construct the URL (handles localhost:3000, deployed apps, etc.)
+    const baseUrl = request.nextUrl.origin || "http://localhost:3000";
+    const response = await fetch(`${baseUrl}/api/session/me`, {
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Cookie: `access_token=${accessToken}`,
       },
       signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
     });
@@ -156,7 +161,7 @@ export async function middleware(request: NextRequest) {
   let profileFetchError = false;
 
   if (accessToken) {
-    const result = await verifyTokenAndGetUser(accessToken);
+    const result = await verifyTokenAndGetUser(accessToken, request);
     isAuthenticated = result.isValid;
     userId = result.userId;
     // Detect token change per-user to reset onboarding attempt state on login
@@ -181,9 +186,10 @@ export async function middleware(request: NextRequest) {
           userRole = cached.role;
         } else {
           // Prefer fetching the canonical profile endpoint which returns full profile (200) or 404 if missing.
-          const profileUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/profiles/${userId}`;
+          const baseUrl = request.nextUrl.origin || "http://localhost:3000";
+          const profileUrl = `${baseUrl}/api/session/profile/${userId}`;
           const profileRes = await fetch(profileUrl, {
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers: { Cookie: `access_token=${accessToken}` },
             signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
           });
 
@@ -211,9 +217,10 @@ export async function middleware(request: NextRequest) {
             }
           } else if (profileRes.status === 404) {
             // No local profile — fallback to /profiles/onboarded to get reason and possibly attempt create
-            const onboardUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/profiles/onboarded`;
+            const baseUrl = request.nextUrl.origin || "http://localhost:3000";
+            const onboardUrl = `${baseUrl}/api/session/profile/onboarded`;
             const onboardRes = await fetch(onboardUrl, {
-              headers: { Authorization: `Bearer ${accessToken}` },
+              headers: { Cookie: `access_token=${accessToken}` },
               signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
             });
 
@@ -237,8 +244,9 @@ export async function middleware(request: NextRequest) {
 
                 // Try to fetch the full profile (best-effort) to obtain role
                 try {
-                  const profileRes2 = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/profiles/${userId}`, {
-                    headers: { Authorization: `Bearer ${accessToken}` },
+                  const baseUrl = request.nextUrl.origin || "http://localhost:3000";
+                  const profileRes2 = await fetch(`${baseUrl}/api/session/profile/${userId}`, {
+                    headers: { Cookie: `access_token=${accessToken}` },
                     signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
                   });
                   if (profileRes2.ok) {
@@ -280,12 +288,13 @@ export async function middleware(request: NextRequest) {
                   // recently attempted; skip POST and treat as not onboarded
                 } else {
                   if (userId) userOnboardAttempt.set(userId, now);
-                  const createUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/profiles/onboard`;
+                  const baseUrl = request.nextUrl.origin || "http://localhost:3000";
+                  const createUrl = `${baseUrl}/api/session/profile/onboarded`;
                   try {
                     const createRes = await fetch(createUrl, {
                       method: 'POST',
                       headers: {
-                        Authorization: `Bearer ${accessToken}`,
+                        Cookie: `access_token=${accessToken}`,
                         'Content-Type': 'application/json',
                       },
                       body: '{}',
