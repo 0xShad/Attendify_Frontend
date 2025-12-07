@@ -55,7 +55,7 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarImage src={avatarSrc ?? undefined} alt={user.name} onError={async () => {
+                <AvatarImage src={avatarSrc ?? undefined} alt={user.name} onError={async (e) => {
                   try {
                     const resp = await fetch('/api/profiles/mine', { credentials: 'include' });
                     if (!resp.ok) return;
@@ -66,6 +66,7 @@ export function NavUser({
                     // ignore
                   }
                   try { setAvatarSrc('/api/profiles/mine/avatar'); } catch (e) {}
+                  try { console.debug('Nav user avatar onError, tried src:', avatarSrc, 'falling back to /api/profiles/mine/avatar'); } catch (e) {}
                 }} />
                 <AvatarFallback className="rounded-lg">CN</AvatarFallback>
               </Avatar>
@@ -90,7 +91,7 @@ export function NavUser({
                   <AvatarImage
                     src={avatarSrc ?? undefined}
                     alt={user.name}
-                    onError={async () => {
+                    onError={async (e) => {
                       try {
                         const resp = await fetch('/api/profiles/mine', { credentials: 'include' });
                         if (!resp.ok) return;
@@ -101,6 +102,7 @@ export function NavUser({
                         // ignore
                       }
                       try { setAvatarSrc('/api/profiles/mine/avatar'); } catch (e) {}
+                      try { console.debug('Nav user avatar dropdown onError, tried src:', avatarSrc, 'falling back to /api/profiles/mine/avatar'); } catch (e) {}
                     }}
                   />
                   <AvatarFallback className="rounded-lg">CN</AvatarFallback>

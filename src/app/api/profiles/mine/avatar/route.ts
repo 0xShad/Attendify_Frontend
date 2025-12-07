@@ -44,12 +44,20 @@ export async function GET(request: Request) {
     // Try to fetch the avatar resource and stream back to the client. Forward cookies/auth if available.
     try {
       const avatarResp = await fetch(src, { method: 'GET', headers: forwardedHeaders });
-      if (!avatarResp.ok) {
-        return new NextResponse(JSON.stringify({ detail: 'Failed to fetch avatar' }), { status: avatarResp.status });
-      }
       const contentType = avatarResp.headers.get('content-type') || 'application/octet-stream';
+      const sizeHeader = avatarResp.headers.get('content-length');
+      try { console.debug('Avatar resource fetch', { status: avatarResp.status, contentType, size: sizeHeader }); } catch (e) {}
+      if (!avatarResp.ok) {
+        const errorText = await avatarResp.text().catch(() => '');
+        try { console.error('Avatar fetch failed', { status: avatarResp.status, body: errorText }); } catch (e) {}
+        return new NextResponse(JSON.stringify({ detail: 'Failed to fetch avatar', backend: errorText }), { status: avatarResp.status });
+      }
       const buf = await avatarResp.arrayBuffer();
-      return new NextResponse(Buffer.from(buf), { status: 200, headers: { 'content-type': contentType } });
+      const headers = { 'content-type': contentType } as Record<string, string>;
+      if (sizeHeader) headers['content-length'] = String(sizeHeader);
+      // Allow caching for public avatars
+      headers['cache-control'] = 'public, max-age=3600';
+      return new NextResponse(Buffer.from(buf), { status: 200, headers });
     } catch (err) {
       console.error('Failed to fetch avatar resource:', err);
       return new NextResponse(JSON.stringify({ detail: 'Failed to fetch avatar resource' }), { status: 502 });

@@ -260,7 +260,7 @@ function SidebarUserMenu({
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 {avatarSrc ? (
-                  <AvatarImage src={avatarSrc} onError={async () => {
+                  <AvatarImage src={avatarSrc} onError={async (e) => {
                     // Try to refresh signed url by re-fetching profile
                     try {
                       const resp = await fetch('/api/profiles/mine', { credentials: 'include' });
@@ -271,6 +271,9 @@ function SidebarUserMenu({
                     } catch (err) {
                       // ignore
                     }
+                    try {
+                      console.debug('Avatar image onError, tried src:', avatarSrc, 'falling back to /api/profiles/mine/avatar');
+                    } catch (e) {}
                     // As a final fallback, try proxying the avatar via same-origin route
                     try { setAvatarSrc('/api/profiles/mine/avatar'); } catch (e) {}
                   }} />

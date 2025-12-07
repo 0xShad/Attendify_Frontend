@@ -5,6 +5,7 @@ export default function useAvatarSrc(raw: string | null | undefined, options?: {
   const [src, setSrc] = useState<string | null>(() => (raw ? resolveAvatarUrl(raw) : null));
   const [loading, setLoading] = useState(false);
   const retries = useRef(0);
+  const objectUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -41,6 +42,41 @@ export default function useAvatarSrc(raw: string | null | undefined, options?: {
         if (candidate) {
           const resolved = resolveAvatarUrl(candidate);
           if (mounted) setSrc(resolved);
+          // If the resolved URL fails to load in the client due to protection,
+          // attempt to download a blob via the same-origin proxy and create an
+          // Object URL to be used as the image source. This bypasses CORS for
+          // images protected by cookies or signed backends.
+          try {
+            // Quick test: can the browser actually load the resolved URL?
+            const imgTest = new Image();
+            const testOK = await new Promise<boolean>((resolve) => {
+              try {
+                imgTest.onload = () => resolve(true);
+                imgTest.onerror = () => resolve(false);
+                imgTest.src = resolved || '';
+              } catch (e) { resolve(false); }
+            });
+            if (!testOK && mounted) {
+              // Fetch the proxy and use blob
+              try {
+                const p = await fetch('/api/profiles/mine/avatar', { credentials: 'include' });
+                if (p.ok) {
+                  const blob = await p.blob();
+                  const objectUrl = URL.createObjectURL(blob);
+                  // Revoke previous object URL if any to prevent leaks
+                  if (objectUrlRef.current) {
+                    try { URL.revokeObjectURL(objectUrlRef.current); } catch (e) {}
+                  }
+                  objectUrlRef.current = objectUrl;
+                  if (mounted) setSrc(objectUrl);
+                }
+              } catch (e) {
+                /* ignore */
+              }
+            }
+          } catch (e) {
+            // ignore blob steps
+          }
         }
       } finally {
         if (mounted) setLoading(false);
@@ -73,6 +109,10 @@ export default function useAvatarSrc(raw: string | null | undefined, options?: {
     return () => {
       mounted = false;
       if (timer) window.clearTimeout(timer);
+      if (objectUrlRef.current) {
+        try { URL.revokeObjectURL(objectUrlRef.current); } catch (e) {}
+        objectUrlRef.current = null;
+      }
     };
   }, [raw, options?.profilePath]);
 
