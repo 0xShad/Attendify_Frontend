@@ -30,6 +30,11 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Attendify Admin",
   },
+  icons: {
+    icon: '/logo_blue.png',
+    shortcut: '/logo_blue.png',
+    apple: '/logo_blue.png',
+  },
 };
 
 export default function RootLayout({
