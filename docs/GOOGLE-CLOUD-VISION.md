@@ -295,9 +295,37 @@ if (!isFrontal) {
    - Add Key → Create new key → JSON
    - Save as `google_api.json`
 
-4. **Place Credentials**:
-   - Create `keys/` directory in project root
-   - Move `google_api.json` to `keys/google_api.json`
+4. **Place Credentials (Local development)**:
+  - Create `keys/` directory in project root
+  - Move `google_api.json` to `keys/google_api.json`
+
+5. **Place Credentials (Production - Recommended)**:
+  - Do not store credentials in source control.
+  - Use **Google Secret Manager** to store the `google_api.json` JSON securely and reference the secret in your Cloud Run deployment using `--set-secrets` (see CI/CD config and cloudbuild.yaml).
+  - Steps (high-level):
+    1. Minify the JSON and add it as a secret in Secret Manager (see commands below).
+    2. Grant `roles/secretmanager.secretAccessor` to the Cloud Run service account.
+    3. Update your Cloud Build trigger to set `_GOOGLE_SECRET_NAME` to the secret id and ensure `cloudbuild.yaml` uses `--set-secrets` to map it.
+
+  - Example commands (PowerShell / CLI):
+  ```powershell
+  # Minify credentials locally
+  $min = Get-Content "keys/google_api.json" -Raw | ConvertFrom-Json | ConvertTo-Json -Compress
+  $min | Out-File -FilePath google_api.min.json -Encoding utf8
+
+  # Create the secret in Secret Manager (one-time)
+  gcloud secrets create attendify-google-api-key --data-file=google_api.min.json --replication-policy=automatic
+
+  # Grant the Cloud Run service account access to read the secret
+  SERVICE_NAME="attendify-frontend-forked"
+  REGION="asia-southeast1"
+  PROJECT_ID="$(gcloud config get-value project)"
+  SA_NAME=$(gcloud run services describe $SERVICE_NAME --region $REGION --format='value(spec.template.spec.serviceAccountName)')
+  SA_EMAIL="$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com"
+  gcloud secrets add-iam-policy-binding attendify-google-api-key --member=serviceAccount:$SA_EMAIL --role=roles/secretmanager.secretAccessor
+
+  # Add substitution _GOOGLE_SECRET_NAME=attendify-google-api-key in your Cloud Build trigger
+  ```
 
 ### File Location
 ```
@@ -312,9 +340,17 @@ project-root/
 ```
 
 ### Environment Variables (Optional)
-Instead of using a key file, you can set:
+You can configure credentials using environment variables (local development or CI). Options:
+
+**Path to a JSON key file (development only)**
 ```bash
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/google_api.json
+GOOGLE_APPLICATION_CREDENTIALS_PATH=keys/google_api.json
+```
+
+**Full minified JSON credentials (use Secret Manager or CI substitutions in production)**
+```bash
+# Not recommended as a plain string in production; prefer Secret Manager
+GOOGLE_APPLICATION_CREDENTIALS_JSON='{"type":"service_account", ... }'
 ```
 
 ## Performance Characteristics

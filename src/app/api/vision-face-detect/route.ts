@@ -7,15 +7,38 @@ interface FaceAnnotationWithLikelihood {
 }
 import { NextRequest, NextResponse } from "next/server";
 import vision from "@google-cloud/vision";
+import fs from "fs";
+import path from "path";
 
-// Initialize client with credentials from environment variables
-const client = new vision.ImageAnnotatorClient(
-  process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON
-    ? {
-        credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON),
-      }
-    : {} // Fallback to default credentials in production
-);
+// Build config for the Vision client depending on available credential sources
+let clientConfig: any = {};
+
+// 1) Credentials JSON in env var (used for Cloud Run / CI)
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  try {
+    clientConfig.credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+  } catch (err) {
+    console.warn('[vision-face-detect] Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON; falling back to other credential sources', err);
+  }
+}
+
+// 2) Explicit path in env var (e.g. local dev or mounted file)
+if (!clientConfig.credentials && process.env.GOOGLE_APPLICATION_CREDENTIALS_PATH) {
+  const filename = path.join(process.cwd(), process.env.GOOGLE_APPLICATION_CREDENTIALS_PATH);
+  if (fs.existsSync(filename)) {
+    clientConfig.keyFilename = filename;
+  }
+}
+
+// 3) Local repo key file (development only) - only if no other credentials found
+if (!clientConfig.credentials && !clientConfig.keyFilename) {
+  const filename = path.join(process.cwd(), "keys/google_api.json");
+  if (fs.existsSync(filename)) {
+    clientConfig.keyFilename = filename;
+  }
+}
+
+const client = new vision.ImageAnnotatorClient(clientConfig);
 
 export async function POST(req: NextRequest) {
   const { imageBase64 } = await req.json();
