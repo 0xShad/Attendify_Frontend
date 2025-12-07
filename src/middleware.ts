@@ -248,11 +248,13 @@ export async function middleware(request: NextRequest) {
                 const profile = await profileRes.json();
                 
                 // Admins don't need organization_id - they can access system immediately
-                const isAdmin = profile.role === "Admin" || profile.Role === "Admin";
+                // Case-insensitive check for Admin role
+                const roleValue = profile.role || profile.Role;
+                const isAdmin = roleValue && String(roleValue).toLowerCase() === "admin";
                 
                 if (isAdmin) {
                   // Admin users bypass onboarding requirements
-                  userRole = profile.role || profile.Role;
+                  userRole = "Admin"; // Normalize to "Admin"
                   console.log(`[MIDDLEWARE] Got Admin profile, bypassing onboarding check. Role: ${userRole}`);
                 } else {
                   // Non-admin users must have organization_id to be considered onboarded
@@ -371,6 +373,12 @@ export async function middleware(request: NextRequest) {
   ) {
     console.log(`[MIDDLEWARE] Protected route redirect: ${pathname} -> /profile/create (no role)`);
     return NextResponse.redirect(new URL("/profile/create", request.url));
+  }
+
+  // Redirect Admins away from profile/create to their dashboard
+  if (pathname === "/profile/create" && isAuthenticated && userRole === "Admin") {
+    console.log(`[MIDDLEWARE] Admin detected on /profile/create, redirecting to admin dashboard`);
+    return NextResponse.redirect(new URL(REDIRECT_URLS.ADMIN_DASHBOARD, request.url));
   }
 
   // Redirect authenticated users from auth routes (including home) based on their role/profile status
