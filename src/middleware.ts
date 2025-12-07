@@ -416,6 +416,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
     
+    // If user hasn't completed onboarding (no role), redirect to profile/create
+    if (!userRole || !["Admin", "Faculty", "Student"].includes(userRole)) {
+      return NextResponse.redirect(new URL("/profile/create", request.url));
+    }
+    
     let redirectUrl: string;
     switch (userRole) {
       case "Admin":
