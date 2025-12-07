@@ -159,7 +159,8 @@ export default function StudentDashboard() {
   React.useEffect(() => {
     try {
       // eslint-disable-next-line no-console
-      console.debug("student dashboard payload:", dashboard);
+      const dump = (() => { try { return JSON.stringify(dashboard, null, 2); } catch (e) { return String(dashboard); }})();
+      console.debug("student dashboard payload (json):", dump);
       // eslint-disable-next-line no-console
       console.debug("computed activeSessions:", activeSessions);
     } catch (e) {
