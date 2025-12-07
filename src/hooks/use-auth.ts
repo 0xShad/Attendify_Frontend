@@ -216,18 +216,19 @@ export function useAuth(): UseAuthReturn {
       // Direct login - response is LoginInitiateTokenResponse
       if ('access_token' in response) {
         console.log('🔐 [HOOK] Token received, login complete!');
-        // Keep loading state true during redirect
-        setState((prev) => ({
-          ...prev,
-          isAuthenticated: true,
-          // isLoading stays true until redirect completes
-        }));
         
         toast.success("Login successful!", {
           description: "Welcome back!",
         });
 
-  router.push(REDIRECT_URLS.STUDENT_DASHBOARD);
+        // Keep loading state true during redirect
+        setState((prev) => ({
+          ...prev,
+          isAuthenticated: true,
+          isLoading: true, // Keep loading during redirect
+        }));
+
+        router.push(REDIRECT_URLS.STUDENT_DASHBOARD);
         return { success: true, requiresOTP: false };
       }
 
@@ -261,19 +262,18 @@ export function useAuth(): UseAuthReturn {
     try {
       const response = await authAPI.loginVerify(otpData);
       
-      // Keep loading state true during redirect
-      setState((prev) => ({
-        ...prev,
-        isAuthenticated: true,
-        // isLoading stays true until redirect completes
-      }));
-      
       toast.success("Login successful!", {
         description: "Welcome back!",
       });
 
-  router.push(REDIRECT_URLS.STUDENT_DASHBOARD);
-      // Loading will be set to false by the useEffect in the dashboard or by unmount
+      // Push redirect and keep loading state true during transition
+      setState((prev) => ({
+        ...prev,
+        isAuthenticated: true,
+        isLoading: true, // Keep loading during redirect
+      }));
+
+      router.push(REDIRECT_URLS.STUDENT_DASHBOARD);
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "OTP verification failed";
