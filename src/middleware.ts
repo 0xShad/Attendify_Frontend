@@ -230,9 +230,9 @@ export async function middleware(request: NextRequest) {
             profileFetchError = true;
           } else {
             // Try to get profile - using correct backend endpoint structure
-            // Backend endpoint: GET /api/v1/users/profiles/{user_id}
+            // Backend endpoint: GET /api/v1/profiles/{user_id}
             // NEXT_PUBLIC_BACKEND_API_URL should be: https://...run.app/api/v1
-            let profileUrl = `${backendBaseUrl}/users/profiles/${userId}`;
+            let profileUrl = `${backendBaseUrl}/profiles/${userId}`;
             console.log(`[MIDDLEWARE] Calling backend profile endpoint: ${profileUrl}`);
             
             try {
@@ -246,10 +246,10 @@ export async function middleware(request: NextRequest) {
 
               console.log(`[MIDDLEWARE] Profile fetch status: ${profileRes.status}`);
 
-              // If 404, try alternative endpoint /users/profiles/id/{profile_id}
+              // If 404, try alternative endpoint /profiles/id/{profile_id}
               if (profileRes.status === 404) {
-                console.log(`[MIDDLEWARE] Profile not found via /users/profiles/${userId}, trying /users/profiles/id/${userId}`);
-                profileUrl = `${backendBaseUrl}/users/profiles/id/${userId}`;
+                console.log(`[MIDDLEWARE] Profile not found via /profiles/${userId}, trying /profiles/id/${userId}`);
+                profileUrl = `${backendBaseUrl}/profiles/id/${userId}`;
                 
                 try {
                   const altProfileRes = await fetch(profileUrl, {
