@@ -246,10 +246,10 @@ export async function middleware(request: NextRequest) {
 
               console.log(`[MIDDLEWARE] Profile fetch status: ${profileRes.status}`);
 
-              // If 404, try alternative endpoint /profiles/{id} where id = user_id
+              // If 404, try alternative endpoint /users/profiles/id/{profile_id}
               if (profileRes.status === 404) {
-                console.log(`[MIDDLEWARE] Profile not found via /user/${userId}, trying /profiles/${userId}`);
-                profileUrl = `${backendBaseUrl}/v1/profiles/${userId}`;
+                console.log(`[MIDDLEWARE] Profile not found via /users/profiles/${userId}, trying /users/profiles/id/${userId}`);
+                profileUrl = `${backendBaseUrl}/v1/users/profiles/id/${userId}`;
                 
                 try {
                   const altProfileRes = await fetch(profileUrl, {
