@@ -11,7 +11,11 @@ export async function checkAuth(force = false): Promise<boolean> {
   }
 
   try {
-    const res = await fetch('/api/v1/users/me', { credentials: 'include' });
+    // Use the Next.js proxy endpoint for current user profiles when checking auth.
+    // Previously this used /api/v1/users/me (backend) which results in 404 when
+    // the proxy routes are used. Use /api/profiles/mine which proxies to the
+    // backend /profiles/mine endpoint and respects server-side cookies.
+    const res = await fetch('/api/profiles/mine', { credentials: 'include' });
     const ok = res.ok;
     cache = { isLoggedIn: ok, expiresAt: Date.now() + CACHE_TTL_MS };
     return ok;
