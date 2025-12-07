@@ -421,6 +421,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/profile/create", request.url));
   }
 
+  // Special handling for home route: redirect to /profile/create if authenticated but no role
+  if (pathname === "/" && isAuthenticated && (!userRole || !["Admin", "Faculty", "Student"].includes(userRole))) {
+    return NextResponse.redirect(new URL("/profile/create", request.url));
+  }
+
   // Redirect authenticated users from auth routes to their dashboard by role
   if (isAuthRoute(pathname) && isAuthenticated) {
     // If profile fetch failed, don't redirect - let them stay on auth page with error
