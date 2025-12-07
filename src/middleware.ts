@@ -73,11 +73,15 @@ async function verifyTokenAndGetUser(
   // Check cache first
   const cachedEntry = getTokenEntry(accessToken);
   if (cachedEntry) {
+    console.log(`[MIDDLEWARE] Using cached token validation: isValid=${cachedEntry.isValid}, userId=${cachedEntry.userId}`);
     return { isValid: cachedEntry.isValid, userId: cachedEntry.userId };
   }
+  
+  console.log(`[MIDDLEWARE] No cache entry found, validating token...`);
 
   // Quick client-side expiration check
   if (isTokenExpired(accessToken)) {
+    console.log(`[MIDDLEWARE] Token is expired (client-side check)`);
     setTokenEntry(accessToken, {
       isValid: false,
       expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
@@ -85,26 +89,38 @@ async function verifyTokenAndGetUser(
     });
     return { isValid: false };
   }
+  
+  console.log(`[MIDDLEWARE] Token not expired, proceeding with backend validation...`);
 
-  // Validate with backend via local proxy
+  // Validate with backend directly (Edge middleware can't reliably fetch internal routes)
   try {
-    // Use the request origin to construct the URL (handles localhost:3000, deployed apps, etc.)
-    const baseUrl = request.nextUrl.origin || "http://localhost:3000";
-    const apiUrl = `${baseUrl}/api/session/me`;
-    console.log(`[MIDDLEWARE] Calling token validation API: ${apiUrl}`);
+    const backendUserUrl = process.env.NEXT_PUBLIC_USER_API_URL;
+    
+    if (!backendUserUrl) {
+      console.error(`[MIDDLEWARE] NEXT_PUBLIC_USER_API_URL not configured`);
+      setTokenEntry(accessToken, {
+        isValid: false,
+        expiresAt: Date.now() + VALIDATION_CONFIG.FAILURE_CACHE_TTL_MS,
+        userId: undefined,
+      });
+      return { isValid: false };
+    }
+    
+    const apiUrl = `${backendUserUrl}/me`;
+    console.log(`[MIDDLEWARE] Calling backend directly: ${apiUrl}`);
     
     const response = await fetch(apiUrl, {
       headers: {
-        Cookie: `access_token=${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
     });
     
-    console.log(`[MIDDLEWARE] Token validation API response status: ${response.status}`);
+    console.log(`[MIDDLEWARE] Backend response status: ${response.status}`);
     
     if (!response.ok) {
       const errorBody = await response.text().catch(() => 'Unable to read response');
-      console.error(`[MIDDLEWARE] Token validation failed: ${response.status}`, errorBody);
+      console.error(`[MIDDLEWARE] Backend validation failed: ${response.status}`, errorBody);
       setTokenEntry(accessToken, {
         isValid: false,
         expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
@@ -177,10 +193,11 @@ export async function middleware(request: NextRequest) {
   let profileFetchError = false;
 
   if (accessToken) {
+    console.log(`[MIDDLEWARE] Starting token verification for token: ${accessToken.substring(0, 20)}...`);
     const result = await verifyTokenAndGetUser(accessToken, request);
     isAuthenticated = result.isValid;
     userId = result.userId;
-    console.log(`[MIDDLEWARE] Token validation: isAuthenticated=${isAuthenticated}, userId=${userId}`);
+    console.log(`[MIDDLEWARE] Token validation complete: isAuthenticated=${isAuthenticated}, userId=${userId}`);
     // Detect token change per-user to reset onboarding attempt state on login
     try {
       if (isAuthenticated && userId) {
@@ -205,77 +222,87 @@ export async function middleware(request: NextRequest) {
           console.log(`[MIDDLEWARE] Found cached role: ${userRole}`);
         } else {
           console.log(`[MIDDLEWARE] No cached role, fetching from backend`);
-          // Prefer fetching the canonical profile endpoint which returns full profile (200) or 404 if missing.
-          const baseUrl = request.nextUrl.origin || "http://localhost:3000";
-          const profileUrl = `${baseUrl}/api/session/profile/${userId}`;
-          console.log(`[MIDDLEWARE] Calling profile endpoint: ${profileUrl}`);
+          // Fetch profile directly from backend (Edge middleware can't reliably fetch internal routes)
+          const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
           
-          try {
-            const profileRes = await fetch(profileUrl, {
-              headers: { Cookie: `access_token=${accessToken}` },
-              signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
-            });
+          if (!backendBaseUrl) {
+            console.error(`[MIDDLEWARE] NEXT_PUBLIC_BACKEND_API_URL not configured`);
+            profileFetchError = true;
+          } else {
+            // Try to get profile by user_id
+            const profileUrl = `${backendBaseUrl}/v1/profiles/user/${userId}`;
+            console.log(`[MIDDLEWARE] Calling backend profile endpoint: ${profileUrl}`);
+            
+            try {
+              const profileRes = await fetch(profileUrl, {
+                headers: { 
+                  Authorization: `Bearer ${accessToken}`,
+                  "Content-Type": "application/json"
+                },
+                signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
+              });
 
-            console.log(`[MIDDLEWARE] Profile fetch status: ${profileRes.status}`);
+              console.log(`[MIDDLEWARE] Profile fetch status: ${profileRes.status}`);
 
-            if (profileRes.ok) {
-              const profile = await profileRes.json();
-              
-              // Admins don't need organization_id - they can access system immediately
-              const isAdmin = profile.role === "Admin" || profile.Role === "Admin";
-              
-              if (isAdmin) {
-                // Admin users bypass onboarding requirements
-                userRole = profile.role || profile.Role;
-                console.log(`[MIDDLEWARE] Got Admin profile, bypassing onboarding check. Role: ${userRole}`);
-              } else {
-                // Non-admin users must have organization_id to be considered onboarded
-                const hasOrganization = profile.organization_id != null;
+              if (profileRes.ok) {
+                const profile = await profileRes.json();
                 
-                if (hasOrganization) {
-                  // User is fully onboarded with organization
+                // Admins don't need organization_id - they can access system immediately
+                const isAdmin = profile.role === "Admin" || profile.Role === "Admin";
+                
+                if (isAdmin) {
+                  // Admin users bypass onboarding requirements
                   userRole = profile.role || profile.Role;
-                  console.log(`[MIDDLEWARE] Got profile with role: ${userRole}, organization_id: ${profile.organization_id}, onboarded: true`);
+                  console.log(`[MIDDLEWARE] Got Admin profile, bypassing onboarding check. Role: ${userRole}`);
                 } else {
-                  // User has profile but not onboarded (no organization)
-                  userRole = undefined;
-                  console.log(`[MIDDLEWARE] Profile exists but NOT onboarded (no organization_id), role: ${profile.role}, organization_id: ${profile.organization_id}`);
+                  // Non-admin users must have organization_id to be considered onboarded
+                  const hasOrganization = profile.organization_id != null;
+                  
+                  if (hasOrganization) {
+                    // User is fully onboarded with organization
+                    userRole = profile.role || profile.Role;
+                    console.log(`[MIDDLEWARE] Got profile with role: ${userRole}, organization_id: ${profile.organization_id}, onboarded: true`);
+                  } else {
+                    // User has profile but not onboarded (no organization)
+                    userRole = undefined;
+                    console.log(`[MIDDLEWARE] Profile exists but NOT onboarded (no organization_id), role: ${profile.role}, organization_id: ${profile.organization_id}`);
+                  }
                 }
+                
+                // Cache role and enrichment fields (best-effort)
+                try {
+                  setTokenEntry(accessToken, {
+                    isValid: true,
+                    userId,
+                    role: userRole,
+                    profileId: profile.id ?? undefined,
+                    email: typeof profile.email !== 'undefined' ? profile.email : null,
+                    username: typeof profile.username !== 'undefined' ? profile.username : null,
+                    full_name:
+                      typeof profile.full_name !== 'undefined'
+                        ? profile.full_name
+                        : (profile.firstname || profile.lastname) ? `${profile.firstname || ''} ${profile.lastname || ''}`.trim() : null,
+                    expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
+                  });
+                } catch (e) {
+                  // ignore cache write errors
+                }
+              } else if (profileRes.status === 404) {
+                // No local profile — user hasn't completed onboarding yet
+                userRole = undefined;
+                console.log(`[MIDDLEWARE] Profile not found (404), userRole set to undefined`);
+              } else {
+                console.error("Profile fetch failed with status:", profileRes.status);
+                profileFetchError = true;
               }
-              
-              // Cache role and enrichment fields (best-effort)
-              try {
-                setTokenEntry(accessToken, {
-                  isValid: true,
-                  userId,
-                  role: userRole,
-                  profileId: profile.id ?? undefined,
-                  email: typeof profile.email !== 'undefined' ? profile.email : null,
-                  username: typeof profile.username !== 'undefined' ? profile.username : null,
-                  full_name:
-                    typeof profile.full_name !== 'undefined'
-                      ? profile.full_name
-                      : (profile.firstname || profile.lastname) ? `${profile.firstname || ''} ${profile.lastname || ''}`.trim() : null,
-                  expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
-                });
-              } catch (e) {
-                // ignore cache write errors
-              }
-            } else if (profileRes.status === 404) {
-              // No local profile — user hasn't completed onboarding yet
-              userRole = undefined;
-              console.log(`[MIDDLEWARE] Profile not found (404), userRole set to undefined`);
-            } else {
-              console.error("Profile fetch failed with status:", profileRes.status);
+            } catch (err) {
+              console.error("[MIDDLEWARE] Profile fetch request failed:", err);
               profileFetchError = true;
             }
-          } catch (err) {
-            console.error("Profile fetch request failed:", err);
-            profileFetchError = true;
           }
         }
       } catch (err) {
-        console.error("Profile/onboard request failed:", err);
+        console.error("[MIDDLEWARE] Profile/onboard request failed:", err);
         profileFetchError = true;
       }
     }

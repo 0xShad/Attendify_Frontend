@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { COOKIE_CONFIG, getCookieOptions } from '@/config/auth';
+import { clearTokenCache } from '@/lib/server/tokenCache';
 
 /**
  * POST /api/auth/set-tokens
@@ -50,6 +51,14 @@ export async function POST(request: NextRequest) {
         }
       );
       console.log('🍪 [SET-TOKENS] Refresh token cookie set:', COOKIE_CONFIG.REFRESH_TOKEN.name);
+    }
+
+    // Clear token cache to force fresh validation
+    try {
+      clearTokenCache();
+      console.log('🍪 [SET-TOKENS] Token cache cleared');
+    } catch (e) {
+      console.error('🍪 [SET-TOKENS] Failed to clear cache:', e);
     }
 
     console.log('🍪 [SET-TOKENS] SUCCESS: Tokens set successfully');

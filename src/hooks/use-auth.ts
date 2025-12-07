@@ -228,10 +228,11 @@ export function useAuth(): UseAuthReturn {
           isLoading: true, // Keep loading during redirect
         }));
 
-        // Add delay and then reload to let middleware handle routing
+        // Add delay and then redirect to profile/create
+        // Middleware will redirect to dashboard if profile exists, or let user onboard if not
         setTimeout(() => {
-          console.log('🔐 [HOOK] Reloading page for middleware routing');
-          window.location.href = '/';
+          console.log('🔐 [HOOK] Redirecting to /profile/create for middleware routing');
+          window.location.href = '/profile/create';
         }, 800);
         
         return { success: true, requiresOTP: false };
@@ -283,10 +284,10 @@ export function useAuth(): UseAuthReturn {
       // Add delay to ensure tokens are set in cookies
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      console.log('🔐 [HOOK] Reloading page to apply middleware checks');
-      // Reload the page to trigger middleware auth checks
-      // This allows middleware to properly redirect based on user's profile status
-      window.location.href = '/';
+      console.log('🔐 [HOOK] Redirecting to /profile/create for middleware routing');
+      // Redirect to profile/create to trigger middleware auth checks
+      // Middleware will redirect to dashboard if profile exists, or let user onboard if not
+      window.location.href = '/profile/create';
       
       return true;
     } catch (error) {

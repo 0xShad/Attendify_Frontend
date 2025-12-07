@@ -163,8 +163,9 @@ export default function ProfileCreatePage() {
         throw new Error(errBody?.detail || resp.statusText || `HTTP ${resp.status}`);
       }
 
-      // on success, backend returns updated profile; navigate to student dashboard
-      router.push(REDIRECT_URLS.STUDENT_DASHBOARD);
+      // On success, reload the page to trigger middleware routing
+      // Middleware will check the updated profile and redirect to the correct dashboard based on role
+      window.location.href = '/';
     } catch (err) {
       console.error('Failed to create/update profile', err);
     } finally {
