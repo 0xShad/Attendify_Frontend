@@ -1,0 +1,55 @@
+steps:
+  # Build the Docker image with build arguments
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/attendify-frontend:${COMMIT_SHA}'
+      - '-t'
+      - '${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/attendify-frontend:latest'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_AUTH_API_URL=${_NEXT_PUBLIC_AUTH_API_URL}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_USER_API_URL=${_NEXT_PUBLIC_USER_API_URL}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_BACKEND_API_URL=${_NEXT_PUBLIC_BACKEND_API_URL}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_APP_URL=${_NEXT_PUBLIC_APP_URL}'
+      - '.'
+
+  # Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/attendify-frontend:${COMMIT_SHA}'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - run
+      - '--filename=.'
+      - '--image=${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/attendify-frontend:${COMMIT_SHA}'
+      - '--location=${_DEPLOY_REGION}'
+      - '--cluster=${_SERVICE_NAME}'
+
+# Store images in Artifact Registry
+images:
+  - '${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/attendify-frontend:${COMMIT_SHA}'
+  - '${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/attendify-frontend:latest'
+
+# Substitutions (these will be combined with the ones you add in Cloud Build UI)
+substitutions:
+  _AR_HOSTNAME: 'asia-southeast1-docker.pkg.dev'
+  _AR_PROJECT_ID: ${PROJECT_ID}
+  _AR_REPOSITORY: 'cloud-run-source-deploy'
+  _DEPLOY_REGION: 'asia-southeast1'
+  _SERVICE_NAME: 'attendify-frontend-forked'
+  # These will be overridden by the UI variables you add
+  _NEXT_PUBLIC_AUTH_API_URL: 'https://attendify-auth-140740306164.asia-southeast1.run.app/api/v1/auth'
+  _NEXT_PUBLIC_USER_API_URL: 'https://attendify-auth-140740306164.asia-southeast1.run.app/api/v1/users'
+  _NEXT_PUBLIC_BACKEND_API_URL: 'https://attendify-backend-140740306164.asia-southeast1.run.app/api/v1'
+  _NEXT_PUBLIC_APP_URL: 'https://attendify-frontend-forked-140740306164.asia-southeast1.run.app'
+
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
