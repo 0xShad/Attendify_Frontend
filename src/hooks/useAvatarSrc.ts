@@ -56,9 +56,16 @@ export default function useAvatarSrc(raw: string | null | undefined, options?: {
         await tryRefresh();
         // verify again
         const verified = await verify();
-        if (!verified && retries.current < 2 && options?.profilePath) {
-          // schedule a retry after a small delay
-          timer = window.setTimeout(tryRefresh, 2000);
+        if (!verified) {
+          // If the resolved URL still fails (likely due to cookie-protected resource),
+          // use the same-origin avatar proxy which will forward cookies and return the raw image.
+          if (options?.profilePath && mounted) {
+            setSrc('/api/profiles/mine/avatar');
+          }
+          if (retries.current < 2 && options?.profilePath) {
+            // schedule a retry after a small delay
+            timer = window.setTimeout(tryRefresh, 2000);
+          }
         }
       }
     })();

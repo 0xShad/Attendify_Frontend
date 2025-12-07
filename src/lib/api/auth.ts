@@ -163,6 +163,8 @@ export interface User {
   username: string;
   firstName?: string;
   lastName?: string;
+  avatarUrl?: string | null;
+  avatar_url?: string | null;
   studentNumber?: string;
   contactNumber?: string;
   dateOfBirth: string;
@@ -632,6 +634,26 @@ class AuthAPI {
       }
 
       const user = await response.json();
+      // If profile-based avatar is missing from users/me, try to fetch the profile
+      // and enrich with avatar_url (using the token if available).
+      if (!(user?.avatar || user?.avatar_url || user?.avatarUrl)) {
+        try {
+          const profileResp = await fetch('/api/profiles/mine', {
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          });
+          if (profileResp.ok) {
+            const profile = await profileResp.json();
+            const avatarCandidate = profile?.avatar_url ?? profile?.avatar ?? null;
+            if (avatarCandidate) {
+              (user as any).avatar = avatarCandidate;
+              (user as any).avatar_url = avatarCandidate;
+              (user as any).avatarUrl = avatarCandidate;
+            }
+          }
+        } catch (e) {
+          // ignore profile fetch errors
+        }
+      }
       return user;
     }
 
@@ -652,6 +674,8 @@ class AuthAPI {
           username: profile.username ?? '',
           firstName: profile.firstname ?? profile.first_name ?? undefined,
           lastName: profile.lastname ?? profile.last_name ?? undefined,
+          avatarUrl: profile.avatar_url ?? profile.avatar ?? undefined,
+          avatar_url: profile.avatar_url ?? profile.avatar ?? undefined,
           studentNumber: profile.academic_data?.student_id ?? undefined,
           contactNumber: undefined,
           dateOfBirth: profile.date_of_birth ?? profile.dob ?? '',

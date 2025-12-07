@@ -65,6 +65,7 @@ export function NavUser({
                   } catch (err) {
                     // ignore
                   }
+                  try { setAvatarSrc('/api/profiles/mine/avatar'); } catch (e) {}
                 }} />
                 <AvatarFallback className="rounded-lg">CN</AvatarFallback>
               </Avatar>
@@ -99,6 +100,7 @@ export function NavUser({
                       } catch (err) {
                         // ignore
                       }
+                      try { setAvatarSrc('/api/profiles/mine/avatar'); } catch (e) {}
                     }}
                   />
                   <AvatarFallback className="rounded-lg">CN</AvatarFallback>

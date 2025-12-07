@@ -214,6 +214,13 @@ function SidebarUserMenu({
   const raw = enrichment?.avatar_url ?? (user as any)?.avatarUrl ?? (user as any)?.avatar_url ?? null;
   const { src: avatarSrc, setSrc: setAvatarSrc } = useAvatarSrc(raw, { profilePath: '/api/profiles/mine' });
 
+  // Debug log for avatar sources (safe fields only)
+  useEffect(() => {
+    try {
+      console.debug('Avatar debug:', { raw, avatarSrc });
+    } catch (e) {}
+  }, [raw, avatarSrc]);
+
   const displayName =
     (user && ((user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : (user.username || user.email))) ||
     enrichment?.full_name ||
@@ -264,6 +271,8 @@ function SidebarUserMenu({
                     } catch (err) {
                       // ignore
                     }
+                    // As a final fallback, try proxying the avatar via same-origin route
+                    try { setAvatarSrc('/api/profiles/mine/avatar'); } catch (e) {}
                   }} />
                 ) : (
                   <>
@@ -293,7 +302,7 @@ function SidebarUserMenu({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   {avatarSrc ? (
-                    <AvatarImage src={avatarSrc} />
+                    <AvatarImage src={avatarSrc} onError={async () => { try { setAvatarSrc('/api/profiles/mine/avatar'); } catch (e) {} }} />
                   ) : (
                     <>
                       <AvatarImage src="/avatars/student.jpg" />
