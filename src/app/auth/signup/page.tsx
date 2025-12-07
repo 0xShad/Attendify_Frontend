@@ -200,9 +200,9 @@ export default function SignUpPage() {
 
   const validateEmail = (email: string): string => {
     if (!email) return "Email is required";
-    const emailRegex = /^[^\s@]+@iskolarngbayan\.pup\.edu\.ph$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email))
-      return "Email must be a valid @iskolarngbayan.pup.edu.ph address";
+      return "Please enter a valid email address";
     return "";
   };
 
@@ -818,7 +818,7 @@ export default function SignUpPage() {
                       <Input
                         id="email"
                         type="email"
-                        placeholder="yourname@iskolarngbayan.pup.edu.ph"
+                        placeholder="your.email@example.com"
                         className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.email
                             ? "border-destructive focus:border-destructive focus:ring-destructive"
