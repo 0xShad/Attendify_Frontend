@@ -90,46 +90,38 @@ export interface ListSchoolsParams {
 export async function listSchools(
   params: ListSchoolsParams = {}
 ): Promise<School[]> {
-  // If the caller provided no params, call the endpoint without query parameters
-  // (some backends reject requests with query params on this endpoint).
-  const hasAnyParam = Object.keys(params).some((k) => (params as any)[k] !== undefined);
-  let response: Response;
-  if (!hasAnyParam) {
-    // Prefer same-origin proxy so cookies / http-only tokens are forwarded by the server
-    response = await import('./fetchClient').then(m => m.fetchRawWithAuth('/api/organizations', { method: 'GET' }));
-  } else {
-    const { 
-      skip = 0, 
-      limit = 100, 
-      type,
-      min_programs,
-      max_programs,
-      min_courses,
-      max_courses,
-      min_students,
-      max_students,
-      min_faculty,
-      max_faculty
-    } = params;
+  const { 
+    skip = 0, 
+    limit = 100, 
+    type,
+    min_programs,
+    max_programs,
+    min_courses,
+    max_courses,
+    min_students,
+    max_students,
+    min_faculty,
+    max_faculty
+  } = params;
 
-    const url = new URL(SCHOOLS_ENDPOINTS.LIST);
-    url.searchParams.append('skip', skip.toString());
-    url.searchParams.append('limit', limit.toString());
+  // Build query parameters
+  const queryParams = new URLSearchParams();
+  queryParams.append('skip', skip.toString());
+  queryParams.append('limit', limit.toString());
 
-    if (type) url.searchParams.append('type', type);
-    if (min_programs !== undefined) url.searchParams.append('min_programs', min_programs.toString());
-    if (max_programs !== undefined) url.searchParams.append('max_programs', max_programs.toString());
-    if (min_courses !== undefined) url.searchParams.append('min_courses', min_courses.toString());
-    if (max_courses !== undefined) url.searchParams.append('max_courses', max_courses.toString());
-    if (min_students !== undefined) url.searchParams.append('min_students', min_students.toString());
-    if (max_students !== undefined) url.searchParams.append('max_students', max_students.toString());
-    if (min_faculty !== undefined) url.searchParams.append('min_faculty', min_faculty.toString());
-    if (max_faculty !== undefined) url.searchParams.append('max_faculty', max_faculty.toString());
+  if (type) queryParams.append('type', type);
+  if (min_programs !== undefined) queryParams.append('min_programs', min_programs.toString());
+  if (max_programs !== undefined) queryParams.append('max_programs', max_programs.toString());
+  if (min_courses !== undefined) queryParams.append('min_courses', min_courses.toString());
+  if (max_courses !== undefined) queryParams.append('max_courses', max_courses.toString());
+  if (min_students !== undefined) queryParams.append('min_students', min_students.toString());
+  if (max_students !== undefined) queryParams.append('max_students', max_students.toString());
+  if (min_faculty !== undefined) queryParams.append('min_faculty', min_faculty.toString());
+  if (max_faculty !== undefined) queryParams.append('max_faculty', max_faculty.toString());
 
-    // Forward via same-origin proxy to ensure auth is handled server-side
-    const proxyUrl = '/api/organizations?' + url.searchParams.toString();
-    response = await import('./fetchClient').then(m => m.fetchRawWithAuth(proxyUrl, { method: 'GET' }));
-  }
+  // Forward via same-origin proxy to ensure auth is handled server-side
+  const proxyUrl = '/api/organizations?' + queryParams.toString();
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(proxyUrl, { method: 'GET' }));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -162,7 +154,7 @@ export async function getSchool(id: number): Promise<School> {
  * Backend returns: (school_data, None) on success or (None, "error message") on failure
  */
 export async function createSchool(data: SchoolCreate): Promise<School> {
-  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(SCHOOLS_ENDPOINTS.CREATE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }));
+  const response = await import('./fetchClient').then(m => m.fetchRawWithAuth(SCHOOLS_ENDPOINTS.CREATE(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

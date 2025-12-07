@@ -94,10 +94,10 @@ async function verifyTokenAndGetUser(
 
   // Validate with backend directly (Edge middleware can't reliably fetch internal routes)
   try {
-    const backendUserUrl = process.env.NEXT_PUBLIC_USER_API_URL;
+    const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
     
-    if (!backendUserUrl) {
-      console.error(`[MIDDLEWARE] NEXT_PUBLIC_USER_API_URL not configured`);
+    if (!backendBaseUrl) {
+      console.error(`[MIDDLEWARE] NEXT_PUBLIC_BACKEND_API_URL not configured`);
       setTokenEntry(accessToken, {
         isValid: false,
         expiresAt: Date.now() + VALIDATION_CONFIG.FAILURE_CACHE_TTL_MS,
@@ -106,7 +106,7 @@ async function verifyTokenAndGetUser(
       return { isValid: false };
     }
     
-    const apiUrl = `${backendUserUrl}/me`;
+    const apiUrl = `${backendBaseUrl}/users/me`;
     console.log(`[MIDDLEWARE] Calling backend directly: ${apiUrl}`);
     
     const response = await fetch(apiUrl, {
@@ -231,8 +231,8 @@ export async function middleware(request: NextRequest) {
           } else {
             // Try to get profile - using correct backend endpoint structure
             // Backend endpoint: GET /api/v1/users/profiles/{user_id}
-            // NEXT_PUBLIC_BACKEND_API_URL should be: https://...run.app/api
-            let profileUrl = `${backendBaseUrl}/v1/users/profiles/${userId}`;
+            // NEXT_PUBLIC_BACKEND_API_URL should be: https://...run.app/api/v1
+            let profileUrl = `${backendBaseUrl}/users/profiles/${userId}`;
             console.log(`[MIDDLEWARE] Calling backend profile endpoint: ${profileUrl}`);
             
             try {
@@ -249,7 +249,7 @@ export async function middleware(request: NextRequest) {
               // If 404, try alternative endpoint /users/profiles/id/{profile_id}
               if (profileRes.status === 404) {
                 console.log(`[MIDDLEWARE] Profile not found via /users/profiles/${userId}, trying /users/profiles/id/${userId}`);
-                profileUrl = `${backendBaseUrl}/v1/users/profiles/id/${userId}`;
+                profileUrl = `${backendBaseUrl}/users/profiles/id/${userId}`;
                 
                 try {
                   const altProfileRes = await fetch(profileUrl, {
