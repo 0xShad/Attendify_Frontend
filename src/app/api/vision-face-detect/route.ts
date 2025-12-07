@@ -7,13 +7,15 @@ interface FaceAnnotationWithLikelihood {
 }
 import { NextRequest, NextResponse } from "next/server";
 import vision from "@google-cloud/vision";
-import path from "path";
 
-const keyPath = path.join(process.cwd(), "keys/google_api.json");
-
-const client = new vision.ImageAnnotatorClient({
-  keyFilename: keyPath,
-});
+// Initialize client with credentials from environment variables
+const client = new vision.ImageAnnotatorClient(
+  process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON
+    ? {
+        credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON),
+      }
+    : {} // Fallback to default credentials in production
+);
 
 export async function POST(req: NextRequest) {
   const { imageBase64 } = await req.json();
