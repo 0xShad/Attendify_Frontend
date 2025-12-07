@@ -35,20 +35,28 @@ export async function GET(req: NextRequest) {
     // Cache miss or invalid - call backend to validate
     const backendUserUrl = `${process.env.NEXT_PUBLIC_USER_API_URL}/me`;
     
-    if (!backendUserUrl || backendUserUrl.includes("undefined")) {
-      console.error("NEXT_PUBLIC_USER_API_URL not configured:", backendUserUrl);
+    console.log("[API /session/me] NEXT_PUBLIC_USER_API_URL:", process.env.NEXT_PUBLIC_USER_API_URL);
+    console.log("[API /session/me] Backend URL:", backendUserUrl);
+    
+    if (!process.env.NEXT_PUBLIC_USER_API_URL || backendUserUrl.includes("undefined")) {
+      console.error("[API /session/me] NEXT_PUBLIC_USER_API_URL not configured properly");
       return NextResponse.json(
-        { error: "backend_not_configured" },
+        { error: "backend_not_configured", url: backendUserUrl },
         { status: 500 }
       );
     }
 
+    console.log("[API /session/me] Calling backend with Bearer token");
     const userRes = await fetch(backendUserUrl, {
       headers: { Authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
     });
 
+    console.log(`[API /session/me] Backend response status: ${userRes.status}`);
+
     if (!userRes.ok) {
+      const errorText = await userRes.text().catch(() => 'Unable to read error');
+      console.error(`[API /session/me] Backend error (${userRes.status}):`, errorText);
       // Cache the failed validation
       if (userRes.status === 401) {
         setTokenEntry(token, {
@@ -57,7 +65,7 @@ export async function GET(req: NextRequest) {
         });
       }
       return NextResponse.json(
-        { error: "unauthorized" },
+        { error: "unauthorized", backend_status: userRes.status, backend_error: errorText },
         { status: userRes.status }
       );
     }
@@ -89,9 +97,18 @@ export async function GET(req: NextRequest) {
       ...user,
     });
   } catch (error) {
-    console.error("Error in /api/session/me:", error);
+    console.error("[API /session/me] Exception caught:", error);
+    console.error("[API /session/me] Error type:", error instanceof Error ? error.name : typeof error);
+    console.error("[API /session/me] Error message:", error instanceof Error ? error.message : String(error));
+    if (error instanceof Error && error.stack) {
+      console.error("[API /session/me] Stack trace:", error.stack);
+    }
     return NextResponse.json(
-      { error: "internal_error", details: String(error) },
+      { 
+        error: "internal_error", 
+        details: error instanceof Error ? error.message : String(error),
+        type: error instanceof Error ? error.name : typeof error
+      },
       { status: 500 }
     );
   }

@@ -90,13 +90,21 @@ async function verifyTokenAndGetUser(
   try {
     // Use the request origin to construct the URL (handles localhost:3000, deployed apps, etc.)
     const baseUrl = request.nextUrl.origin || "http://localhost:3000";
-    const response = await fetch(`${baseUrl}/api/session/me`, {
+    const apiUrl = `${baseUrl}/api/session/me`;
+    console.log(`[MIDDLEWARE] Calling token validation API: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
       headers: {
         Cookie: `access_token=${accessToken}`,
       },
       signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
     });
+    
+    console.log(`[MIDDLEWARE] Token validation API response status: ${response.status}`);
+    
     if (!response.ok) {
+      const errorBody = await response.text().catch(() => 'Unable to read response');
+      console.error(`[MIDDLEWARE] Token validation failed: ${response.status}`, errorBody);
       setTokenEntry(accessToken, {
         isValid: false,
         expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
@@ -106,6 +114,7 @@ async function verifyTokenAndGetUser(
     }
     const user = await response.json();
     const userId = user.id || user.user_id;
+    console.log(`[MIDDLEWARE] Token validated successfully, userId: ${userId}`);
     setTokenEntry(accessToken, {
       isValid: true,
       userId,
@@ -113,7 +122,9 @@ async function verifyTokenAndGetUser(
     });
     return { isValid: true, userId };
   } catch (error) {
-    console.error("Token verification failed:", error);
+    console.error(`[MIDDLEWARE] Token verification exception:`, error);
+    console.error(`[MIDDLEWARE] Error name: ${error instanceof Error ? error.name : 'unknown'}`);
+    console.error(`[MIDDLEWARE] Error message: ${error instanceof Error ? error.message : String(error)}`);
     setTokenEntry(accessToken, {
       isValid: false,
       expiresAt: Date.now() + VALIDATION_CONFIG.FAILURE_CACHE_TTL_MS,
