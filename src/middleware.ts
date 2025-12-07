@@ -145,16 +145,21 @@ async function verifyTokenAndGetUser(
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  console.log(`\n[MIDDLEWARE] Processing: ${pathname}`);
+
   // DEV BYPASS: If NEXT_PUBLIC_DEV_AUTH_BYPASS is set to "1" or "true"
   const devBypass = ["1", "true"].includes(
     String(process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS).toLowerCase()
   );
   if (devBypass) {
+    console.log("[MIDDLEWARE] DEV BYPASS enabled, allowing all requests");
     return NextResponse.next();
   }
 
   // Get authentication status from HTTP-only cookie
   const accessToken = request.cookies.get(COOKIE_CONFIG.ACCESS_TOKEN.name)?.value;
+  console.log(`[MIDDLEWARE] Access token present: ${!!accessToken}`);
+  
   let isAuthenticated = false;
   let userId: number | undefined;
   let userRole: string | undefined;
@@ -164,6 +169,7 @@ export async function middleware(request: NextRequest) {
     const result = await verifyTokenAndGetUser(accessToken, request);
     isAuthenticated = result.isValid;
     userId = result.userId;
+    console.log(`[MIDDLEWARE] Token validation: isAuthenticated=${isAuthenticated}, userId=${userId}`);
     // Detect token change per-user to reset onboarding attempt state on login
     try {
       if (isAuthenticated && userId) {
@@ -179,15 +185,19 @@ export async function middleware(request: NextRequest) {
     }
     // If authenticated, fetch profile for role
     if (isAuthenticated && userId) {
+      console.log(`[MIDDLEWARE] Fetching profile for userId=${userId}`);
       try {
         // Check cache first for role/enrichment
         const cached = getTokenEntry(accessToken);
         if (cached && cached.role) {
           userRole = cached.role;
+          console.log(`[MIDDLEWARE] Found cached role: ${userRole}`);
         } else {
+          console.log(`[MIDDLEWARE] No cached role, fetching from backend`);
           // Prefer fetching the canonical profile endpoint which returns full profile (200) or 404 if missing.
           const baseUrl = request.nextUrl.origin || "http://localhost:3000";
           const profileUrl = `${baseUrl}/api/session/profile/${userId}`;
+          console.log(`[MIDDLEWARE] Calling profile endpoint: ${profileUrl}`);
           
           try {
             const profileRes = await fetch(profileUrl, {
@@ -195,10 +205,12 @@ export async function middleware(request: NextRequest) {
               signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
             });
 
+            console.log(`[MIDDLEWARE] Profile fetch status: ${profileRes.status}`);
+
             if (profileRes.ok) {
               const profile = await profileRes.json();
               userRole = profile.role || profile.Role;  // Handle both cases
-              
+              console.log(`[MIDDLEWARE] Got profile with role: ${userRole}`);
               // Cache role and enrichment fields (best-effort)
               try {
                 setTokenEntry(accessToken, {
@@ -220,133 +232,7 @@ export async function middleware(request: NextRequest) {
             } else if (profileRes.status === 404) {
               // No local profile — user hasn't completed onboarding yet
               userRole = undefined;
-              
-              // Fallback to /profiles/onboarded to get reason and possibly attempt create
-              const baseUrl2 = request.nextUrl.origin || "http://localhost:3000";
-              const onboardUrl = `${baseUrl2}/api/session/profile/onboarded`;
-              const onboardRes = await fetch(onboardUrl, {
-                headers: { Cookie: `access_token=${accessToken}` },
-                signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
-              });
-
-            if (onboardRes.ok) {
-              const onboardData = await onboardRes.json();
-              if (onboardData && onboardData.onboarded) {
-                // Cache enrichment fields provided by onboarded endpoint
-                try {
-                  setTokenEntry(accessToken, {
-                    isValid: true,
-                    userId,
-                    profileId: onboardData.profile_id ?? undefined,
-                    email: typeof onboardData.email !== 'undefined' ? onboardData.email : null,
-                    username: typeof onboardData.username !== 'undefined' ? onboardData.username : null,
-                    full_name: typeof onboardData.full_name !== 'undefined' ? onboardData.full_name : null,
-                    expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
-                  });
-                } catch (e) {
-                  // ignore cache write errors
-                }
-
-                // Try to fetch the full profile (best-effort) to obtain role
-                try {
-                  const baseUrl = request.nextUrl.origin || "http://localhost:3000";
-                  const profileRes2 = await fetch(`${baseUrl}/api/session/profile/${userId}`, {
-                    headers: { Cookie: `access_token=${accessToken}` },
-                    signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
-                  });
-                  if (profileRes2.ok) {
-                    const profile = await profileRes2.json();
-                    userRole = profile.role;
-                    try {
-                      setTokenEntry(accessToken, {
-                        isValid: true,
-                        userId,
-                        role: profile.role,
-                        profileId: profile.id ?? undefined,
-                        email: typeof profile.email !== 'undefined' ? profile.email : null,
-                        username: typeof profile.username !== 'undefined' ? profile.username : null,
-                        full_name:
-                          typeof profile.full_name !== 'undefined'
-                            ? profile.full_name
-                            : (profile.firstname || profile.lastname) ? `${profile.firstname || ''} ${profile.lastname || ''}`.trim() : null,
-                        expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
-                      });
-                    } catch (e) {
-                      // ignore cache write errors
-                    }
-                  } else if (profileRes2.status === 404) {
-                    userRole = undefined;
-                  } else {
-                    console.error("Profile fetch failed with status:", profileRes2.status);
-                    profileFetchError = true;
-                  }
-                } catch (e) {
-                  console.error('Profile fetch failed after onboarded:', e);
-                  profileFetchError = true;
-                }
-              } else {
-                // Not onboarded — consider attempting creation (existing flow)
-                const now = Date.now();
-                const attemptTtl = Number(VALIDATION_CONFIG.ONBOARD_ATTEMPT_TTL_MS || 5 * 60 * 1000);
-                const lastAttempt = userId ? (userOnboardAttempt.get(userId) || 0) : 0;
-                if (now - lastAttempt < attemptTtl) {
-                  // recently attempted; skip POST and treat as not onboarded
-                } else {
-                  if (userId) userOnboardAttempt.set(userId, now);
-                  const baseUrl = request.nextUrl.origin || "http://localhost:3000";
-                  const createUrl = `${baseUrl}/api/session/profile/onboarded`;
-                  try {
-                    const createRes = await fetch(createUrl, {
-                      method: 'POST',
-                      headers: {
-                        Cookie: `access_token=${accessToken}`,
-                        'Content-Type': 'application/json',
-                      },
-                      body: '{}',
-                      signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
-                    });
-
-                    if (createRes.ok) {
-                      const profile = await createRes.json();
-                      const hasOrg = profile && profile.organization_id != null;
-                      let qualifiesAsAdmin = false;
-                      try {
-                        if (profile && profile.role) {
-                          const roleStr = String(profile.role).toLowerCase();
-                          if (roleStr === "admin") {
-                            const adminData = profile.admin_data;
-                            if (adminData && adminData.admin_level != null && adminData.permissions && (Array.isArray(adminData.permissions) ? adminData.permissions.length > 0 : Boolean(adminData.permissions))) {
-                              qualifiesAsAdmin = true;
-                            }
-                          }
-                        }
-                      } catch (e) {
-                        // ignore and treat as not qualifying
-                      }
-
-                      if (hasOrg || qualifiesAsAdmin) {
-                        userRole = profile.role;
-                      } else {
-                        userRole = undefined;
-                      }
-                    } else if (createRes.status === 401) {
-                      isAuthenticated = false;
-                    } else {
-                      console.error('Profile creation failed with status:', createRes.status);
-                      profileFetchError = true;
-                    }
-                  } catch (e) {
-                    console.error('Profile creation request failed:', e);
-                    profileFetchError = true;
-                  }
-                }
-              }
-            } else if (onboardRes.status === 401) {
-              isAuthenticated = false;
-            } else {
-              console.error('Onboard check failed with status:', onboardRes.status);
-              profileFetchError = true;
-            }
+              console.log(`[MIDDLEWARE] Profile not found (404), userRole set to undefined`);
             } else {
               console.error("Profile fetch failed with status:", profileRes.status);
               profileFetchError = true;
@@ -424,26 +310,28 @@ export async function middleware(request: NextRequest) {
     (!userRole || !["Admin", "Faculty", "Student"].includes(userRole)) &&
     pathname !== "/profile/create"
   ) {
+    console.log(`[MIDDLEWARE] Protected route redirect: ${pathname} -> /profile/create (no role)`);
     return NextResponse.redirect(new URL("/profile/create", request.url));
   }
 
-  // Special handling for home route: redirect to /profile/create if authenticated but no role
-  if (pathname === "/" && isAuthenticated && (!userRole || !["Admin", "Faculty", "Student"].includes(userRole))) {
-    return NextResponse.redirect(new URL("/profile/create", request.url));
-  }
-
-  // Redirect authenticated users from auth routes to their dashboard by role
+  // Redirect authenticated users from auth routes (including home) based on their role/profile status
   if (isAuthRoute(pathname) && isAuthenticated) {
+    console.log(`[MIDDLEWARE] Auth route check for ${pathname}: userRole=${userRole}, profileFetchError=${profileFetchError}`);
+    
     // If profile fetch failed, don't redirect - let them stay on auth page with error
     if (profileFetchError) {
+      console.log(`[MIDDLEWARE] Profile fetch error, allowing access to ${pathname}`);
       return NextResponse.next();
     }
     
     // If user hasn't completed onboarding (no role), redirect to profile/create
     if (!userRole || !["Admin", "Faculty", "Student"].includes(userRole)) {
+      console.log(`[MIDDLEWARE] AUTH ROUTE REDIRECT: ${pathname} -> /profile/create (no valid role: ${userRole})`);
       return NextResponse.redirect(new URL("/profile/create", request.url));
     }
     
+    // User has a valid role, redirect to their dashboard
+    console.log(`[MIDDLEWARE] User has role ${userRole}, redirecting to dashboard`);
     let redirectUrl: string;
     switch (userRole) {
       case "Admin":
@@ -460,10 +348,12 @@ export async function middleware(request: NextRequest) {
         redirectUrl = "/profile/create";
         break;
     }
+    console.log(`[MIDDLEWARE] Redirecting ${pathname} -> ${redirectUrl}`);
     return NextResponse.redirect(new URL(redirectUrl, request.url));
   }
 
   // Allow the request to proceed
+  console.log(`[MIDDLEWARE] Final state for ${pathname}: isAuthenticated=${isAuthenticated}, userRole=${userRole}, allowing request to proceed`);
   return NextResponse.next();
 }
 
