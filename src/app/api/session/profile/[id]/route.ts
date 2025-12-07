@@ -40,6 +40,8 @@ export async function GET(
 
     // First try: assume id is a profile_id
     let backendUrl = `${backendBaseUrl}/v1/profiles/id/${id}`;
+    console.log(`[PROFILE PROXY] Trying profile_id endpoint: ${backendUrl}`);
+    
     let res = await fetch(backendUrl, {
       method: "GET",
       headers: {
@@ -49,9 +51,13 @@ export async function GET(
       signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
     });
 
+    console.log(`[PROFILE PROXY] Profile ID response: ${res.status}`);
+
     // If 404, try assuming id is a user_id
     if (res.status === 404) {
       backendUrl = `${backendBaseUrl}/v1/profiles/user/${id}`;
+      console.log(`[PROFILE PROXY] Trying user_id endpoint: ${backendUrl}`);
+      
       res = await fetch(backendUrl, {
         method: "GET",
         headers: {
@@ -60,6 +66,8 @@ export async function GET(
         },
         signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
       });
+      
+      console.log(`[PROFILE PROXY] User ID response: ${res.status}`);
     }
 
     const text = await res.text();

@@ -28,10 +28,12 @@ export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8082/api/v1';
+  console.log('[NOTIFICATIONS PROXY] API_BASE:', API_BASE);
+  
   // Preserve query string when forwarding
   const url = new URL(request.url);
   const search = url.search || '';
-  const target = `${API_BASE}/notifications/mine${search}`;
+  const target = `${API_BASE}/v1/notifications/mine${search}`;
 
   const cookie = request.headers.get('cookie') || null;
   const clientAuth = request.headers.get('authorization');
@@ -45,7 +47,7 @@ export async function GET(request: Request) {
   if (cookie) forwardedHeaders['cookie'] = cookie;
 
   try {
-    console.debug('[proxy] GET /notifications/mine ->', target);
+    console.log('[NOTIFICATIONS PROXY] Fetching from:', target);
     console.debug('[proxy] forwarded headers:', maskHeaders(forwardedHeaders));
 
     const res = await fetch(target, { method: 'GET', headers: forwardedHeaders });

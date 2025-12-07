@@ -209,8 +209,29 @@ export async function middleware(request: NextRequest) {
 
             if (profileRes.ok) {
               const profile = await profileRes.json();
-              userRole = profile.role || profile.Role;  // Handle both cases
-              console.log(`[MIDDLEWARE] Got profile with role: ${userRole}`);
+              
+              // Admins don't need organization_id - they can access system immediately
+              const isAdmin = profile.role === "Admin" || profile.Role === "Admin";
+              
+              if (isAdmin) {
+                // Admin users bypass onboarding requirements
+                userRole = profile.role || profile.Role;
+                console.log(`[MIDDLEWARE] Got Admin profile, bypassing onboarding check. Role: ${userRole}`);
+              } else {
+                // Non-admin users must have organization_id to be considered onboarded
+                const hasOrganization = profile.organization_id != null;
+                
+                if (hasOrganization) {
+                  // User is fully onboarded with organization
+                  userRole = profile.role || profile.Role;
+                  console.log(`[MIDDLEWARE] Got profile with role: ${userRole}, organization_id: ${profile.organization_id}, onboarded: true`);
+                } else {
+                  // User has profile but not onboarded (no organization)
+                  userRole = undefined;
+                  console.log(`[MIDDLEWARE] Profile exists but NOT onboarded (no organization_id), role: ${profile.role}, organization_id: ${profile.organization_id}`);
+                }
+              }
+              
               // Cache role and enrichment fields (best-effort)
               try {
                 setTokenEntry(accessToken, {
@@ -315,7 +336,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect authenticated users from auth routes (including home) based on their role/profile status
-  if (isAuthRoute(pathname) && isAuthenticated) {
+  // Exception: /profile/create should be accessible for onboarding regardless of role
+  if (isAuthRoute(pathname) && isAuthenticated && pathname !== "/profile/create") {
     console.log(`[MIDDLEWARE] Auth route check for ${pathname}: userRole=${userRole}, profileFetchError=${profileFetchError}`);
     
     // If profile fetch failed, don't redirect - let them stay on auth page with error
