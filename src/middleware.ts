@@ -216,7 +216,10 @@ export async function middleware(request: NextRequest) {
               // ignore cache write errors
             }
           } else if (profileRes.status === 404) {
-            // No local profile — fallback to /profiles/onboarded to get reason and possibly attempt create
+            // No local profile — user hasn't completed onboarding yet
+            userRole = undefined;
+            
+            // Fallback to /profiles/onboarded to get reason and possibly attempt create
             const baseUrl = request.nextUrl.origin || "http://localhost:3000";
             const onboardUrl = `${baseUrl}/api/session/profile/onboarded`;
             const onboardRes = await fetch(onboardUrl, {
