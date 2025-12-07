@@ -94,10 +94,10 @@ async function verifyTokenAndGetUser(
 
   // Validate with backend directly (Edge middleware can't reliably fetch internal routes)
   try {
-    const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+    const userApiUrl = process.env.NEXT_PUBLIC_USER_API_URL;
     
-    if (!backendBaseUrl) {
-      console.error(`[MIDDLEWARE] NEXT_PUBLIC_BACKEND_API_URL not configured`);
+    if (!userApiUrl) {
+      console.error(`[MIDDLEWARE] NEXT_PUBLIC_USER_API_URL not configured`);
       setTokenEntry(accessToken, {
         isValid: false,
         expiresAt: Date.now() + VALIDATION_CONFIG.FAILURE_CACHE_TTL_MS,
@@ -106,7 +106,7 @@ async function verifyTokenAndGetUser(
       return { isValid: false };
     }
     
-    const apiUrl = `${backendBaseUrl}/users/me`;
+    const apiUrl = `${userApiUrl}/me`;
     console.log(`[MIDDLEWARE] Calling backend directly: ${apiUrl}`);
     
     const response = await fetch(apiUrl, {
