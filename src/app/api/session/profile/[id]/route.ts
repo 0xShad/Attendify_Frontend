@@ -7,6 +7,7 @@ import { VALIDATION_CONFIG } from "@/config/auth";
  * 
  * Proxy endpoint for middleware to fetch user profile.
  * This endpoint forwards requests to the backend profile endpoint.
+ * Supports both profile_id and user_id.
  * 
  * Returns:
  * - 200 with profile data on success
@@ -26,17 +27,20 @@ export async function GET(
       return NextResponse.json({ error: "no_token" }, { status: 401 });
     }
 
-    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/profiles/${id}`;
-
-    if (!backendUrl || backendUrl.includes("undefined")) {
-      console.error("NEXT_PUBLIC_BACKEND_API_URL not configured:", backendUrl);
+    // Try to fetch from backend - support both /id/{profile_id} and /user/{user_id} paths
+    const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+    
+    if (!backendBaseUrl || backendBaseUrl.includes("undefined")) {
+      console.error("NEXT_PUBLIC_BACKEND_API_URL not configured:", backendBaseUrl);
       return NextResponse.json(
         { error: "backend_not_configured" },
         { status: 500 }
       );
     }
 
-    const res = await fetch(backendUrl, {
+    // First try: assume id is a profile_id
+    let backendUrl = `${backendBaseUrl}/v1/profiles/id/${id}`;
+    let res = await fetch(backendUrl, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -44,6 +48,19 @@ export async function GET(
       },
       signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
     });
+
+    // If 404, try assuming id is a user_id
+    if (res.status === 404) {
+      backendUrl = `${backendBaseUrl}/v1/profiles/user/${id}`;
+      res = await fetch(backendUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
+      });
+    }
 
     const text = await res.text();
     const contentType = res.headers.get("content-type") || "application/json";

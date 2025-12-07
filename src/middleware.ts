@@ -188,44 +188,46 @@ export async function middleware(request: NextRequest) {
           // Prefer fetching the canonical profile endpoint which returns full profile (200) or 404 if missing.
           const baseUrl = request.nextUrl.origin || "http://localhost:3000";
           const profileUrl = `${baseUrl}/api/session/profile/${userId}`;
-          const profileRes = await fetch(profileUrl, {
-            headers: { Cookie: `access_token=${accessToken}` },
-            signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
-          });
-
-          if (profileRes.ok) {
-            const profile = await profileRes.json();
-            userRole = profile.role;
-
-            // Cache role and enrichment fields (best-effort)
-            try {
-              setTokenEntry(accessToken, {
-                isValid: true,
-                userId,
-                role: profile.role,
-                profileId: profile.id ?? undefined,
-                email: typeof profile.email !== 'undefined' ? profile.email : null,
-                username: typeof profile.username !== 'undefined' ? profile.username : null,
-                full_name:
-                  typeof profile.full_name !== 'undefined'
-                    ? profile.full_name
-                    : (profile.firstname || profile.lastname) ? `${profile.firstname || ''} ${profile.lastname || ''}`.trim() : null,
-                expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
-              });
-            } catch (e) {
-              // ignore cache write errors
-            }
-          } else if (profileRes.status === 404) {
-            // No local profile — user hasn't completed onboarding yet
-            userRole = undefined;
-            
-            // Fallback to /profiles/onboarded to get reason and possibly attempt create
-            const baseUrl = request.nextUrl.origin || "http://localhost:3000";
-            const onboardUrl = `${baseUrl}/api/session/profile/onboarded`;
-            const onboardRes = await fetch(onboardUrl, {
+          
+          try {
+            const profileRes = await fetch(profileUrl, {
               headers: { Cookie: `access_token=${accessToken}` },
               signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
             });
+
+            if (profileRes.ok) {
+              const profile = await profileRes.json();
+              userRole = profile.role || profile.Role;  // Handle both cases
+              
+              // Cache role and enrichment fields (best-effort)
+              try {
+                setTokenEntry(accessToken, {
+                  isValid: true,
+                  userId,
+                  role: userRole,
+                  profileId: profile.id ?? undefined,
+                  email: typeof profile.email !== 'undefined' ? profile.email : null,
+                  username: typeof profile.username !== 'undefined' ? profile.username : null,
+                  full_name:
+                    typeof profile.full_name !== 'undefined'
+                      ? profile.full_name
+                      : (profile.firstname || profile.lastname) ? `${profile.firstname || ''} ${profile.lastname || ''}`.trim() : null,
+                  expiresAt: Date.now() + VALIDATION_CONFIG.CACHE_TTL_MS,
+                });
+              } catch (e) {
+                // ignore cache write errors
+              }
+            } else if (profileRes.status === 404) {
+              // No local profile — user hasn't completed onboarding yet
+              userRole = undefined;
+              
+              // Fallback to /profiles/onboarded to get reason and possibly attempt create
+              const baseUrl2 = request.nextUrl.origin || "http://localhost:3000";
+              const onboardUrl = `${baseUrl2}/api/session/profile/onboarded`;
+              const onboardRes = await fetch(onboardUrl, {
+                headers: { Cookie: `access_token=${accessToken}` },
+                signal: AbortSignal.timeout(VALIDATION_CONFIG.REQUEST_TIMEOUT_MS),
+              });
 
             if (onboardRes.ok) {
               const onboardData = await onboardRes.json();
@@ -345,8 +347,12 @@ export async function middleware(request: NextRequest) {
               console.error('Onboard check failed with status:', onboardRes.status);
               profileFetchError = true;
             }
-          } else {
-            console.error("Profile fetch failed with status:", profileRes.status);
+            } else {
+              console.error("Profile fetch failed with status:", profileRes.status);
+              profileFetchError = true;
+            }
+          } catch (err) {
+            console.error("Profile fetch request failed:", err);
             profileFetchError = true;
           }
         }
