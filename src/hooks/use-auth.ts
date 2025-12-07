@@ -62,6 +62,13 @@ export function useAuth(): UseAuthReturn {
         if (authenticated) {
           try {
             const user = await authAPI.getCurrentUser();
+            console.debug('🔐 [HOOK] getCurrentUser result:', {
+              id: user?.id,
+              firstName: user?.firstName,
+              lastName: user?.lastName,
+              email: user?.email,
+              username: user?.username,
+            });
             setState({
               user,
               isLoading: false,

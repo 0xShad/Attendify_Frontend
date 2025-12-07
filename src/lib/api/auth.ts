@@ -608,31 +608,69 @@ class AuthAPI {
    * Get current authenticated user
    */
   async getCurrentUser(): Promise<User> {
-    // Use full URL for /users/me endpoint
-    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+    // Try to obtain the current user via available auth mechanisms:
+    // 1. If a local token is stored in localStorage, prefer GET to /users/me using Bearer token.
+    // 2. Otherwise, fall back to the same-origin profile proxy `/api/profiles/mine` which
+    //    forwards HTTP-only cookie auth to the backend. The profile response fields will be
+    //    normalized into the `User` shape expected by callers.
+    const token = typeof window !== "undefined" ? (localStorage.getItem("access_token") || localStorage.getItem('accessToken')) : null;
+    if (token) {
+      const response = await fetch(getUserEndpoints().ME, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new ApiError(
+          response.status,
+          error.detail || error.message || "Failed to get user data"
+        );
+      }
+
+      const user = await response.json();
+      return user;
+    }
+
+    // No local token; use same-origin proxy which respects HTTP-only cookies
+    if (typeof window !== "undefined") {
+      try {
+        const resp = await fetch('/api/profiles/mine', { credentials: 'include' });
+        if (!resp.ok) {
+          const parsed = await resp.json().catch(() => ({}));
+          throw new ApiError(resp.status, parsed?.detail || parsed?.message || `HTTP ${resp.status}`);
+        }
+        const profile = await resp.json();
+
+        // Map backend profile fields to the User interface shape expected by callers
+        const mapped: User = {
+          id: String(profile.user_id ?? profile.id ?? ''),
+          email: profile.email ?? '',
+          username: profile.username ?? '',
+          firstName: profile.firstname ?? profile.first_name ?? undefined,
+          lastName: profile.lastname ?? profile.last_name ?? undefined,
+          studentNumber: profile.academic_data?.student_id ?? undefined,
+          contactNumber: undefined,
+          dateOfBirth: profile.date_of_birth ?? profile.dob ?? '',
+          isVerified: Boolean(profile.is_email_verified ?? false),
+          role: (profile.role as any) ?? 'student',
+          createdAt: profile.created_at ?? '',
+          updatedAt: profile.updated_at ?? '',
+        } as User;
+
+        return mapped;
+      } catch (err) {
+        // Propagate as ApiError if possible
+        console.warn('Failed to fetch /api/profiles/mine fallback for current user:', err);
+        if ((err as any)?.status) throw err;
+        throw new ApiError(500, (err as Error)?.message || 'Failed to obtain current user');
+      }
+    }
     
-    if (!token) {
-      throw new ApiError(401, "No authentication token");
-    }
-
-    const response = await fetch(getUserEndpoints().ME, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new ApiError(
-        response.status,
-        error.detail || error.message || "Failed to get user data"
-      );
-    }
-
-    const user = await response.json();
-    return user;
+    throw new ApiError(401, "No authentication token");
   }
 
   // ==================== Token Management ====================
