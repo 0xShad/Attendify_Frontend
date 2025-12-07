@@ -484,17 +484,28 @@ class AuthAPI {
       username_or_email: otpData.username_or_email 
     });
 
-    const response = await this.client.post<LoginVerifyResponse>(
-      AUTH_ENDPOINTS.LOGIN_VERIFY,
-      otpData
-    );
+    try {
+      const response = await this.client.post<LoginVerifyResponse>(
+        AUTH_ENDPOINTS.LOGIN_VERIFY,
+        otpData
+      );
 
-    console.log('🔐 [API] Login verify response:', response);
+      console.log('🔐 [API] Login verify response:', response);
 
-    // Store token after successful OTP verification
-    await this.setTokens(response.access_token, response.access_token);
+      // Store token after successful OTP verification
+      try {
+        await this.setTokens(response.access_token, response.access_token);
+        console.log('🔐 [API] Tokens stored successfully');
+      } catch (tokenError) {
+        console.error('🔐 [API] Error storing tokens:', tokenError);
+        // Continue anyway - tokens might already be set or will be handled by middleware
+      }
 
-    return response;
+      return response;
+    } catch (error) {
+      console.error('🔐 [API] Login verify error:', error);
+      throw error;
+    }
   }
 
   // ==================== OTHER AUTH OPERATIONS ====================
@@ -626,13 +637,27 @@ class AuthAPI {
 
   private async setTokens(accessToken: string, refreshToken: string): Promise<void> {
     // Send tokens to our API route which will set HTTP-only cookies
-    await fetch('/api/auth/set-tokens', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ accessToken, refreshToken }),
-    });
+    try {
+      const response = await fetch('/api/auth/set-tokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ accessToken, refreshToken }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('🔐 [TOKEN] Failed to set tokens:', response.status, errorText);
+        throw new Error(`Failed to set tokens: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('🔐 [TOKEN] Tokens set response:', data);
+    } catch (error) {
+      console.error('🔐 [TOKEN] Error setting tokens:', error);
+      throw error;
+    }
   }
 
   private async setAccessToken(accessToken: string): Promise<void> {
