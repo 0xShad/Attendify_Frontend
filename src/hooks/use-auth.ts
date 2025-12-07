@@ -228,7 +228,12 @@ export function useAuth(): UseAuthReturn {
           isLoading: true, // Keep loading during redirect
         }));
 
-        router.push(REDIRECT_URLS.STUDENT_DASHBOARD);
+        // Add delay and then reload to let middleware handle routing
+        setTimeout(() => {
+          console.log('🔐 [HOOK] Reloading page for middleware routing');
+          window.location.href = '/';
+        }, 800);
+        
         return { success: true, requiresOTP: false };
       }
 
@@ -262,20 +267,30 @@ export function useAuth(): UseAuthReturn {
     try {
       const response = await authAPI.loginVerify(otpData);
       
+      console.log('🔐 [HOOK] Login verify succeeded, tokens stored');
+      
       toast.success("Login successful!", {
-        description: "Welcome back!",
+        description: "Redirecting...",
       });
 
-      // Push redirect and keep loading state true during transition
+      // Update state to authenticated
       setState((prev) => ({
         ...prev,
         isAuthenticated: true,
         isLoading: true, // Keep loading during redirect
       }));
 
-      router.push(REDIRECT_URLS.STUDENT_DASHBOARD);
+      // Add delay to ensure tokens are set in cookies
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      console.log('🔐 [HOOK] Reloading page to apply middleware checks');
+      // Reload the page to trigger middleware auth checks
+      // This allows middleware to properly redirect based on user's profile status
+      window.location.href = '/';
+      
       return true;
     } catch (error) {
+      console.error('🔐 [HOOK] Login verify failed:', error);
       const errorMessage = error instanceof Error ? error.message : "OTP verification failed";
       setState((prev) => ({
         ...prev,
@@ -289,7 +304,7 @@ export function useAuth(): UseAuthReturn {
 
       return false;
     }
-  }, [router]);
+  }, []);
 
   // ==================== OTHER OPERATIONS ====================
 
