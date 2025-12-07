@@ -13,9 +13,11 @@ export default function resolveAvatarUrl(u?: string | null): string | null {
   // Absolute (http/https)
   if (/^https?:\/\//i.test(v)) return v;
   // Google Cloud Storage URI (gs://bucket/path)
-  const gsMatch = v.match(/^gs:\/\/(?<bucket>[^\/]+)\/(?<path>.+)$/i);
-  if (gsMatch && gsMatch.groups) {
-    const { bucket, path } = gsMatch.groups as { bucket: string; path: string };
+  // Use positional capture groups to remain compatible with older TS/JS targets.
+  const gsMatch = v.match(/^gs:\/\/([^\/]+)\/(.+)$/i);
+  if (gsMatch) {
+    const bucket = gsMatch[1];
+    const path = gsMatch[2];
     // Convert to public storage URL using googleapis URL (storage.googleapis.com)
     return `https://storage.googleapis.com/${bucket}/${encodeURI(path)}`;
   }

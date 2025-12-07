@@ -47,9 +47,10 @@ export default function RootLayout({
     <html lang="en">
       <head>
         {/* Explicit favicon links to cover cases where browsers prefer link tags over metadata */}
-        <link rel="icon" href="/logo_blue.png" sizes="32x32" type="image/png" />
-        <link rel="shortcut icon" href="/logo_blue.png" />
-        <link rel="apple-touch-icon" href="/logo_blue.png" />
+        <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+        <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon-180.png" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {/* Use next/script with strategy beforeInteractive so env is available as early as possible */}

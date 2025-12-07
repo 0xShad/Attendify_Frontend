@@ -1,4 +1,11 @@
 steps:
+  # Generate favicon files from logo (if not present). Requires Node or ImageMagick in the build image.
+  - name: 'node:18'
+    entrypoint: 'bash'
+    args:
+      - '-lc'
+      - 'node ./scripts/generate-favicon.js || echo "favicon generation failed"'
+
   # Build the Docker image with build arguments
   - name: 'gcr.io/cloud-builders/docker'
     args:
