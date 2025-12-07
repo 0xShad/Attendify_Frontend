@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
   try {
     const { accessToken, refreshToken } = await request.json();
 
-    if (!accessToken || !refreshToken) {
+    if (!accessToken) {
       return NextResponse.json(
-        { success: false, message: 'Missing tokens' },
+        { success: false, message: 'Missing accessToken' },
         { status: 400 }
       );
     }
@@ -32,14 +32,17 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    cookieStore.set(
-      COOKIE_CONFIG.REFRESH_TOKEN.name,
-      refreshToken,
-      {
-        ...cookieOptions,
-        maxAge: COOKIE_CONFIG.REFRESH_TOKEN.maxAge,
-      }
-    );
+    // Set refresh token if provided
+    if (refreshToken) {
+      cookieStore.set(
+        COOKIE_CONFIG.REFRESH_TOKEN.name,
+        refreshToken,
+        {
+          ...cookieOptions,
+          maxAge: COOKIE_CONFIG.REFRESH_TOKEN.maxAge,
+        }
+      );
+    }
 
     return NextResponse.json({
       success: true,
