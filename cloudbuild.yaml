@@ -24,13 +24,19 @@ steps:
       - '${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/attendify-frontend:${COMMIT_SHA}'
 
   # Deploy to Cloud Run
-  - name: 'gcr.io/cloud-builders/gke-deploy'
+  - name: 'gcr.io/cloud-builders/run'
     args:
-      - run
-      - '--filename=.'
-      - '--image=${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/attendify-frontend:${COMMIT_SHA}'
-      - '--location=${_DEPLOY_REGION}'
-      - '--cluster=${_SERVICE_NAME}'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image'
+      - '${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/attendify-frontend:${COMMIT_SHA}'
+      - '--region'
+      - '${_DEPLOY_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'NEXT_PUBLIC_AUTH_API_URL=${_NEXT_PUBLIC_AUTH_API_URL},NEXT_PUBLIC_USER_API_URL=${_NEXT_PUBLIC_USER_API_URL},NEXT_PUBLIC_BACKEND_API_URL=${_NEXT_PUBLIC_BACKEND_API_URL},NEXT_PUBLIC_APP_URL=${_NEXT_PUBLIC_APP_URL},NODE_ENV=production'
 
 # Store images in Artifact Registry
 images:
