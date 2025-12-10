@@ -227,6 +227,14 @@ function SidebarUserMenu({
     "Guest";
   const displayUsername = (user && (enrichment?.username || user.username)) || enrichment?.email || "";
 
+  const getInitials = (name?: string | null) => {
+    if (!name) return "";
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
   useEffect(() => {
     let mounted = true;
     async function fetchEnrichment() {
@@ -278,12 +286,9 @@ function SidebarUserMenu({
                     try { setAvatarSrc('/api/profiles/mine/avatar'); } catch (e) {}
                   }} />
                 ) : (
-                  <>
-                    <AvatarImage src="/avatars/student.jpg" />
-                    <AvatarFallback className="rounded-lg bg-purple-500 text-white">
-                      <User className="w-4 h-4" />
-                    </AvatarFallback>
-                  </>
+                  <AvatarFallback className="rounded-lg bg-purple-500 text-white flex items-center justify-center text-sm font-medium">
+                    {getInitials(displayName)}
+                  </AvatarFallback>
                 )}
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -307,12 +312,9 @@ function SidebarUserMenu({
                   {avatarSrc ? (
                     <AvatarImage src={avatarSrc} onError={async () => { try { setAvatarSrc('/api/profiles/mine/avatar'); } catch (e) {} }} />
                   ) : (
-                    <>
-                      <AvatarImage src="/avatars/student.jpg" />
-                      <AvatarFallback className="rounded-lg bg-purple-500 text-white">
-                        <User className="w-4 h-4" />
-                      </AvatarFallback>
-                    </>
+                    <AvatarFallback className="rounded-lg bg-purple-500 text-white flex items-center justify-center text-sm font-medium">
+                      {getInitials(displayName)}
+                    </AvatarFallback>
                   )}
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
