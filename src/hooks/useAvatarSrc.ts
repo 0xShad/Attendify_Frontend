@@ -62,6 +62,13 @@ export default function useAvatarSrc(raw: string | null | undefined, options?: {
                 const p = await fetch('/api/profiles/mine/avatar', { credentials: 'include' });
                 if (p.ok) {
                   const blob = await p.blob();
+                  // If the proxy returned a JSON error body (with 200-OK), the blob's type
+                  // may be `application/json` — in that case, treat as a failed load.
+                  try { console.debug('Proxy avatar blob type', { blobType: blob.type, size: blob.size }); } catch (e) {}
+                  if (!blob.type || !blob.type.startsWith('image/')) {
+                    try { console.warn('Proxy returned non-image blob for avatar', { blobType: blob.type }); } catch (e) {}
+                    return;
+                  }
                   const objectUrl = URL.createObjectURL(blob);
                   // Revoke previous object URL if any to prevent leaks
                   if (objectUrlRef.current) {

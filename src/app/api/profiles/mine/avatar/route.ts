@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
+import { ALLOWED_IMAGE_DOMAINS } from '@/config/images';
 
 export const runtime = 'nodejs';
 
@@ -39,6 +40,19 @@ export async function GET(request: Request) {
 
     // Resolve to absolute URL if needed
     const src = resolveAvatarUrl(avatar) || avatar;
+    try { console.debug('Resolved avatar src', { raw: avatar, resolved: src }); } catch (e) {}
+
+    // Basic SSRF whitelist: only allow known hosts (backend and allowed image domains)
+    try {
+      const parsed = new URL(src);
+      const allowedHosts = new Set<string>([new URL(API_BASE).host, ...ALLOWED_IMAGE_DOMAINS]);
+      if (!allowedHosts.has(parsed.host) && parsed.protocol !== 'data:') {
+        console.warn('Blocked avatar proxy for non-whitelisted host', parsed.host);
+        return new NextResponse(JSON.stringify({ detail: 'Not allowed' }), { status: 403 });
+      }
+    } catch (e) {
+      // If src is not a valid URL, continue and let fetch fail
+    }
     try { console.debug('Proxying avatar for profile', { hasCookie: !!cookie, hasAuth: !!clientAuth, resolvedSrc: src }); } catch (e) {}
 
     // Try to fetch the avatar resource and stream back to the client. Forward cookies/auth if available.
@@ -52,12 +66,25 @@ export async function GET(request: Request) {
         try { console.error('Avatar fetch failed', { status: avatarResp.status, body: errorText }); } catch (e) {}
         return new NextResponse(JSON.stringify({ detail: 'Failed to fetch avatar', backend: errorText }), { status: avatarResp.status });
       }
-      const buf = await avatarResp.arrayBuffer();
+      // Ensure this is an image-like content type; otherwise treat as an error
+      if (!contentType.startsWith('image/') && contentType !== 'application/octet-stream') {
+        const text = await avatarResp.text().catch(() => '');
+        console.error('Avatar resource returned non-image content-type', { contentType, bodySample: text.substring(0, 200) });
+        return new NextResponse(JSON.stringify({ detail: 'Invalid avatar content type' }), { status: 502 });
+      }
+
+      // Stream the response body directly to the client to avoid buffering large files
       const headers = { 'content-type': contentType } as Record<string, string>;
       if (sizeHeader) headers['content-length'] = String(sizeHeader);
-      // Allow caching for public avatars
-      headers['cache-control'] = 'public, max-age=3600';
-      return new NextResponse(Buffer.from(buf), { status: 200, headers });
+      headers['cache-control'] = avatarResp.headers.get('cache-control') || 'public, max-age=3600';
+      // Vary the response if request carried authorization/cookie so caches behave
+      const varyParts: string[] = [];
+      if (forwardedHeaders['authorization']) varyParts.push('Authorization');
+      if (forwardedHeaders['cookie']) varyParts.push('Cookie');
+      if (varyParts.length) headers['vary'] = varyParts.join(', ');
+
+      try { console.debug('Returning avatar stream', { size: sizeHeader, contentType }); } catch (e) {}
+      return new NextResponse(avatarResp.body, { status: 200, headers });
     } catch (err) {
       console.error('Failed to fetch avatar resource:', err);
       return new NextResponse(JSON.stringify({ detail: 'Failed to fetch avatar resource' }), { status: 502 });
