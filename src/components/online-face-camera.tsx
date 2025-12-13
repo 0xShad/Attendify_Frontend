@@ -121,6 +121,15 @@ export default function OnlineFaceCamera({
                 setLivenessResult({ success: validationResult.passed, message: validationResult.passed ? 'Validation passed.' : (validationResult.message || 'Validation failed.') });
                 setLivenessPassed(!!validationResult.passed);
                 if (validationResult.passed) {
+                  if (validationResult.faces && validationResult.faces.length > 0) {
+                    if (validationResult.faces.length === 1) {
+                      setPendingDetection({ success: true, message: 'Face detected via liveness test', faces: validationResult.faces });
+                      if (validationResult.processedImage) setPendingBoxed(validationResult.processedImage);
+                    } else {
+                      setPendingDetection({ success: false, message: 'Multiple faces detected. Please ensure only your face is visible and try again.', faces: validationResult.faces });
+                      setPendingBoxed(null);
+                    }
+                  }
                   if (skipFaceDetect) {
                     setPendingDetection({ success: true, message: 'Face detection skipped', faces: [{ detectionConfidence: 1 }] });
                     setPendingBoxed(validationResult.processedImage || dataUrl);
@@ -129,13 +138,23 @@ export default function OnlineFaceCamera({
                   onCapture(imageToReturn);
                 }
 
-                if (validationResult.passed && !skipFaceDetect) {
+                if (validationResult.passed && !skipFaceDetect && (!validationResult.faces || validationResult.faces.length === 0)) {
                   // run face-detect as before
                   const base64 = dataUrl.replace(/^data:image\/(png|jpeg);base64,/, '');
                   const r2 = await fetch('/api/vision-face-detect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: base64 }) });
                   const res2 = await r2.json();
+                  if (!r2.ok) {
+                    // If disabled, treat as skipped face-detect and proceed as if detection passed
+                    if (r2.status === 503 && res2 && res2.enabled === false) {
+                      setPendingDetection({ success: true, message: 'Face detection disabled on server - skipping check', faces: [{ detectionConfidence: 1 }] });
+                      setPendingBoxed(validationResult.processedImage || dataUrl);
+                    } else {
+                      setPendingDetection({ success: false, message: res2?.error || `Face detection error (${r2.status})` });
+                      setPendingBoxed(null);
+                    }
+                  }
                   const faces = res2.faces;
-                  if (faces && faces.length === 1) {
+                  if (r2.ok && faces && faces.length === 1) {
                     setPendingDetection({ success: true, message: 'Face detected!', faces });
                     const img = new window.Image();
                     img.onload = () => {
@@ -155,10 +174,10 @@ export default function OnlineFaceCamera({
                       }
                     };
                     img.src = dataUrl;
-                  } else if (faces && faces.length > 1) {
+                  } else if (r2.ok && faces && faces.length > 1) {
                     setPendingDetection({ success: false, message: 'Multiple faces detected. Please ensure only your face is visible and try again.' });
                     setPendingBoxed(null);
-                  } else {
+                  } else if (r2.ok) {
                     setPendingDetection({ success: false, message: 'No face detected. Please try again.' });
                     setPendingBoxed(null);
                   }

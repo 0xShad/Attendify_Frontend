@@ -101,6 +101,14 @@ Content-Type: application/json
 }
 ```
 
+**Vision Integration Disabled (503)**
+```json
+{
+  "error": "Google Cloud Vision integration disabled on this server",
+  "enabled": false
+}
+```
+
 ## Validation Rules
 
 The API performs strict validation checks:

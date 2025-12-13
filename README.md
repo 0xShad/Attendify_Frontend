@@ -27,6 +27,10 @@ Then edit `.env.local`:
 ```env
 NEXT_PUBLIC_AUTH_API_URL=http://localhost:8000/api/v1/auth
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+
+You can optionally disable Google Cloud Vision if you don't want to use that integration (for example, to avoid charges while developing). Add to `.env.local`:
+
+GOOGLE_VISION_ENABLED=false
 ```
 
 ### 3. Run the Development Server

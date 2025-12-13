@@ -138,6 +138,38 @@ export default function FaceCamera({
                 setLivenessResult({ success: validationResult.passed, message: validationResult.passed ? "Validation passed." : (validationResult.message || "Validation failed.") });
                 setLivenessPassed(!!validationResult.passed);
                 if (validationResult.passed) {
+                  // If validation result returned faces (local detection), use them and skip Cloud Vision
+                  if (validationResult.faces && validationResult.faces.length > 0) {
+                    if (validationResult.faces.length === 1) {
+                      setPendingDetection({ success: true, message: 'Face detected via liveness test', faces: validationResult.faces });
+                    } else {
+                      setPendingDetection({ success: false, message: 'Multiple faces detected. Please ensure only your face is visible and try again.', faces: validationResult.faces });
+                    }
+                    // Draw local boxed image if a processedImage was returned
+                    if (validationResult.processedImage) {
+                      setPendingBoxed(validationResult.processedImage);
+                    } else {
+                      // fallback: draw simple box from first face
+                      const first = validationResult.faces[0];
+                      if (first && first.boundingPoly && first.boundingPoly.vertices) {
+                        const img = new window.Image();
+                        img.onload = () => {
+                          const tempCanvas = document.createElement("canvas");
+                          tempCanvas.width = width; tempCanvas.height = height;
+                          const tempCtx = tempCanvas.getContext("2d");
+                          if (tempCtx) {
+                            tempCtx.drawImage(img, 0, 0, width, height);
+                            const v = first.boundingPoly.vertices;
+                            const x = v[0]?.x || 0; const y = v[0]?.y || 0;
+                            const w = (v[1]?.x || 0) - x; const h = (v[2]?.y || 0) - y;
+                            tempCtx.save(); tempCtx.strokeStyle = '#22c55e'; tempCtx.lineWidth = 3; tempCtx.strokeRect(x, y, w, h); tempCtx.restore();
+                            setPendingBoxed(tempCanvas.toDataURL('image/png'));
+                          }
+                        };
+                        img.src = dataUrl;
+                      }
+                    }
+                  }
                   // If caller requested skipping the face-detect step, treat it as a successful detection
                   if (skipFaceDetect) {
                     setPendingDetection({ success: true, message: 'Face detection skipped', faces: [{ detectionConfidence: 1 }] });
@@ -157,7 +189,7 @@ export default function FaceCamera({
                   // setPendingDetection(null);
                 }
                 // Optionally, you can also send to face detection API if validation passed
-                if (validationResult.passed && !skipFaceDetect) {
+                if (validationResult.passed && !skipFaceDetect && (!validationResult.faces || validationResult.faces.length === 0)) {
                   const base64 = dataUrl.replace(/^data:image\/(png|jpeg);base64,/, "");
                   
                   const response2 = await fetch("/api/vision-face-detect", {
@@ -166,9 +198,21 @@ export default function FaceCamera({
                     body: JSON.stringify({ imageBase64: base64 }),
                   });
                   const result2 = await response2.json();
-                  
-                  const faces = result2.faces;
-                  if (faces && faces.length === 1) {
+                  // If the Vision endpoint is disabled, we get a 503 with enabled: false
+                  if (!response2.ok) {
+                    if (response2.status === 503 && result2 && result2.enabled === false) {
+                      // Consider this as a skipped detection (not a failed one)
+                      setPendingDetection({ success: true, message: 'Face detection disabled on server - skipping check', faces: [{ detectionConfidence: 1 }] });
+                      setPendingBoxed(validationResult.processedImage || dataUrl);
+                    } else {
+                      // Non-recoverable error - show message
+                      setPendingDetection({ success: false, message: result2?.error || `Face detection error (${response2.status})` });
+                      setPendingBoxed(null);
+                    }
+                  }
+                  if (response2.ok) {
+                    const faces = result2.faces;
+                    if (faces && faces.length === 1) {
                     setPendingDetection({ success: true, message: `Face detected!`, faces });
                     const img = new window.Image();
                     img.onload = () => {
@@ -196,12 +240,13 @@ export default function FaceCamera({
                       }
                     };
                     img.src = dataUrl;
-                  } else if (faces && faces.length > 1) {
+                    } else if (faces && faces.length > 1) {
                     setPendingDetection({ success: false, message: "Multiple faces detected. Please ensure only your face is visible and try again." });
                     setPendingBoxed(null);
-                  } else {
+                    } else {
                     setPendingDetection({ success: false, message: "No face detected. Please try again." });
                     setPendingBoxed(null);
+                    }
                   }
                 }
               } catch (err) {
@@ -290,13 +335,6 @@ export default function FaceCamera({
                     <svg className="h-5 w-5 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     <span className="font-semibold">Face detected!</span>
                   </div>
-                  <ul className="mt-1 text-xs text-left">
-                    {(pendingDetection || faceDetection)!.faces.map((face: any, idx: number) => (
-                      <li key={idx} className="mb-1">
-                        <span className="font-semibold">Detection confidence:</span> <span className="font-mono">{face.detectionConfidence ? (face.detectionConfidence * 100).toFixed(1) : "-"}%</span>
-                      </li>
-                    ))}
-                  </ul>
                 </>
               ) : (
                 <>

@@ -235,3 +235,50 @@ export async function detectEyesOpen(imageBuffer: Buffer): Promise<boolean> {
 }
 
 export default detectEyesOpen;
+
+/**
+ * Detect faces in an image using BlazeFace and return simplified boxes and landmarks
+ * @param imageBuffer Buffer containing image data
+ * @returns Promise<Array<{ boundingPoly: { vertices: { x: number; y: number }[] }, landmarks: number[][], probability?: number }>>
+ */
+export async function detectFaces(imageBuffer: Buffer) {
+  try {
+    const { data, info } = await sharp(imageBuffer)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const { width, height, channels } = info;
+    // Convert raw data to rgb uint8 array
+    const rgbData = new Uint8Array(width * height * 3);
+    for (let i = 0, j = 0; i < data.length; i += channels, j += 3) {
+      rgbData[j] = data[i];
+      rgbData[j + 1] = data[i + 1];
+      rgbData[j + 2] = data[i + 2];
+    }
+    const imageTensor = tf.tensor3d(rgbData, [height, width, 3]);
+    const faceModel = await getModel();
+    const predictions = await faceModel.estimateFaces(imageTensor, false);
+    imageTensor.dispose();
+    if (!predictions || predictions.length === 0) return [];
+    // Map to simplified structure
+    const faces = predictions.map((p: any) => {
+      const tl = (p.topLeft && Array.isArray(p.topLeft)) ? p.topLeft : [p.topLeft[0], p.topLeft[1]];
+      const br = (p.bottomRight && Array.isArray(p.bottomRight)) ? p.bottomRight : [p.bottomRight[0], p.bottomRight[1]];
+      const vertices = [
+        { x: Math.max(0, Math.round(tl[0])), y: Math.max(0, Math.round(tl[1])) },
+        { x: Math.min(width - 1, Math.round(br[0])), y: Math.max(0, Math.round(tl[1])) },
+        { x: Math.min(width - 1, Math.round(br[0])), y: Math.min(height - 1, Math.round(br[1])) },
+        { x: Math.max(0, Math.round(tl[0])), y: Math.min(height - 1, Math.round(br[1])) },
+      ];
+      return {
+        boundingPoly: { vertices },
+        landmarks: p.landmarks || [],
+        probability: (p.probability && Array.isArray(p.probability)) ? p.probability[0] : (p.probability || 0),
+      };
+    });
+    return faces;
+  } catch (err) {
+    console.error('[FaceDetect] detectFaces error', err);
+    return [];
+  }
+}

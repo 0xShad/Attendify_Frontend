@@ -12,6 +12,7 @@ export { analyzeReflection } from './reflection-analysis';
 export { analyzeColorSpectrum } from './color-spectrum-analysis';
 export { estimateFaceDepth } from './depth-estimation';
 export { detectEyesOpen } from './eye-detection';
+export { detectFaces } from './eye-detection';
 
 /**
  * Liveness test thresholds

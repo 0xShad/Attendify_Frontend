@@ -9,6 +9,12 @@ import {
   detectEyesOpen,
   LIVENESS_THRESHOLDS,
 } from '@/lib/liveness-tests';
+import { detectFaces } from '@/lib/liveness-tests';
+
+const ENABLE_GOOGLE_VISION = (() => {
+  const env = process.env.GOOGLE_VISION_ENABLED ?? process.env.USE_GOOGLE_VISION ?? "true";
+  return !(env === "0" || env.toLowerCase() === "false");
+})();
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,14 +36,17 @@ export async function POST(req: NextRequest) {
     const base64 = image.replace(/^data:image\/(png|jpeg);base64,/, '');
     const buffer = Buffer.from(base64, 'base64');
 
-    // Run anti-spoofing checks
-    const blur = await calculateBlur(buffer);
-    const texture = await analyzeTexture(buffer);
-    const reflection = await analyzeReflection(buffer);
-    const colorSpectrum = await analyzeColorSpectrum(buffer);
-    const depth = await estimateFaceDepth(buffer);
-    // Eye detection using TensorFlow.js
-    const eyesOpen = await detectEyesOpen(buffer);
+    // Run anti-spoofing checks in parallel (local blazeface face detection runs only if Google Vision is disabled)
+    const facesPromise = ENABLE_GOOGLE_VISION ? Promise.resolve([]) : detectFaces(buffer);
+    const [blur, texture, reflection, colorSpectrum, depth, eyesOpen, faces] = await Promise.all([
+      calculateBlur(buffer),
+      analyzeTexture(buffer),
+      analyzeReflection(buffer),
+      analyzeColorSpectrum(buffer),
+      estimateFaceDepth(buffer),
+      detectEyesOpen(buffer),
+      facesPromise,
+    ]);
 
     // Debug: log computed values
     console.log('[LivenessAPI] Computed values:', {
@@ -90,17 +99,30 @@ export async function POST(req: NextRequest) {
     console.log(`  ✓ Eyes Open: ${eyesOpen} = ${eyesOpenPassed ? '✅ PASS' : '❌ FAIL'}${glassesSuspected ? ' (glasses suspected - fallback accepted)' : ''}`);
 
     const passed = blurPassed && texturePassed && reflectionPassed && colorSpectrumPassed && depthPassed && eyesOpenPassed;
-    const results = {
+    const results: any = {
       blur,
       texture,
       reflection,
       colorSpectrum,
       depth,
       eyesOpen,
+      faces,
       glassesSuspected,
       passed,
     };
     console.log(`[LivenessAPI] Overall Decision: ${passed ? '✅ PASSED' : '❌ FAILED'}`);
+    // If Google Vision is disabled, enforce single-face requirement using local detector
+    if (!ENABLE_GOOGLE_VISION) {
+      if (!faces || faces.length === 0) {
+        console.log('[LivenessAPI] No face detected by local detector (vision disabled)');
+        return NextResponse.json({ success: false, message: 'No face detected', faces: [] }, { status: 200 });
+      }
+      if (faces.length > 1) {
+        console.log('[LivenessAPI] Multiple faces detected by local detector (vision disabled)');
+        return NextResponse.json({ success: false, message: 'Multiple faces detected', faces }, { status: 200 });
+      }
+    }
+
     if (passed) {
       console.log('[LivenessAPI] Liveness/anti-spoofing PASSED', { glassesSuspected });
       return NextResponse.json({ success: true, ...results });
