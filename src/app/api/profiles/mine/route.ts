@@ -14,7 +14,7 @@ export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8082/api/v1';
-  const target = `${API_BASE}/profiles/mine`;
+  const target = `${API_BASE}/profiles/mine/`;
 
   const cookie = request.headers.get('cookie') || null;
   const clientAuth = request.headers.get('authorization');
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8082/api/v1';
-  const target = `${API_BASE}/profiles/mine`;
+  const target = `${API_BASE}/profiles/mine/`;
 
   const cookie = request.headers.get('cookie') || null;
   const clientAuth = request.headers.get('authorization');
