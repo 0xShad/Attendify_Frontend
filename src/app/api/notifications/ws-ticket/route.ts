@@ -78,7 +78,7 @@ export async function POST(request: Request) {
             const parsed = new URL(base.startsWith('http') ? base : `http://${base}`);
             const proto = parsed.protocol === 'https:' ? 'wss' : 'ws';
             const host = parsed.host;
-            ws_url = `${proto}://${host}/api/v1/notifications/ws?ticket=${encodeURIComponent(ticket)}`;
+            ws_url = `${proto}://${host}/api/v1/notifications/ws/?ticket=${encodeURIComponent(ticket)}`;
           } catch (err) {
             // ignore construction errors and leave ws_url null
             ws_url = null;
