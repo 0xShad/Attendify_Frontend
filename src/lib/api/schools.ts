@@ -5,17 +5,35 @@
 
 // ==================== API Configuration ====================
 const getApiBaseUrl = () => {
+  let baseUrl = "";
+  
+  // 1. Check for runtime environment variables (injected)
   if (typeof window !== "undefined" && (window as any).__ENV__?.NEXT_PUBLIC_BACKEND_API_URL) {
-    return (window as any).__ENV__.NEXT_PUBLIC_BACKEND_API_URL;
+    baseUrl = (window as any).__ENV__.NEXT_PUBLIC_BACKEND_API_URL;
+  } 
+  // 2. Fallback to build-time environment variables
+  else {
+    baseUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || "https://api.attendify.world/api/v1";
   }
-  return process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8082/api/v1";
+
+  // REVISION: Clean up the base URL
+  // This ensures that if the URL is "https://.../api/v1/", we strip the last slash
+  // so we don't get "api/v1//organizations"
+  return baseUrl.replace(/\/$/, "");
 };
 
 const SCHOOLS_ENDPOINTS = {
+  // Adding the trailing slash here is CRITICAL because your 
+  // Python routes use @router.get("/")
   LIST: () => `${getApiBaseUrl()}/organizations/`,
+  
+  // No trailing slash after IDs
   DETAIL: (id: number) => `${getApiBaseUrl()}/organizations/${id}`,
+  
   CREATE: () => `${getApiBaseUrl()}/organizations/`,
+  
   UPDATE: (id: number) => `${getApiBaseUrl()}/organizations/${id}`,
+  
   DELETE: (id: number) => `${getApiBaseUrl()}/organizations/${id}`,
 };
 
