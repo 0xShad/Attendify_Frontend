@@ -15,7 +15,7 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8082/api/v1';
-  const target = `${API_BASE}/notifications/ws-ticket`;
+  const target = `${API_BASE}/notifications/ws-ticket/`;
 
   const cookie = request.headers.get('cookie') || null;
   const clientAuth = request.headers.get('authorization');
