@@ -5,7 +5,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { MoreVertical, Eye, UserCheck, Trash2, Clock, Calendar, MapPin } from "lucide-react";
+import { MoreVertical, Eye, UserCheck, Clock, Calendar, MapPin } from "lucide-react";
 import TakeAttendance from "./TakeAttendance";
 import StartSessionDialog from "./StartSessionDialog";
 import { useRouter } from "next/navigation";
@@ -18,13 +18,11 @@ export default function ClassCard({
   classItem,
   onViewDetails,
   onViewAttendanceHistory,
-  onDropClass,
   onAttendanceRecorded,
 }: {
   classItem: EnrolledClass | ClassWithSchedules;
   onViewDetails?: (c: EnrolledClass | ClassWithSchedules) => void;
   onViewAttendanceHistory?: (c: EnrolledClass | ClassWithSchedules) => void;
-  onDropClass?: (id: string | number) => void;
   onAttendanceRecorded?: (record?: any) => void;
 }) {
   const [takeOpen, setTakeOpen] = React.useState(false);
@@ -409,11 +407,6 @@ export default function ClassCard({
                 <DropdownMenuItem onClick={() => onViewAttendanceHistory && onViewAttendanceHistory(classItem)}>
                   <UserCheck className="w-4 h-4 mr-2" />
                   Attendance History
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600" onClick={() => onDropClass && onDropClass(classItem.id)}>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Drop Class
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

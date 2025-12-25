@@ -16,7 +16,6 @@ import {
   Megaphone,
   MoreVertical,
   BookOpen,
-  Trash2,
   CheckCircle,
 } from "lucide-react";
 import {
@@ -232,15 +231,7 @@ export default function ClassManagement() {
     setAttendanceHistoryOpen(true);
   };
 
-  const handleDropClass = (classId: string) => {
-    console.log(`Dropping class: ${classId}`);
-    toast({
-      title: "Drop Request Sent",
-      description:
-        "Your request to drop the class has been submitted for review.",
-      variant: "default",
-    });
-  };
+
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -281,7 +272,7 @@ export default function ClassManagement() {
               onStartAttendance={handleStartAttendance}
               onViewDetails={handleViewDetails}
               onViewAttendanceHistory={handleViewAttendanceHistory}
-              onDropClass={handleDropClass}
+
               onAttendanceRecorded={() => { try { reload && reload(); } catch (e) { /* ignore */ } }}
             />
           </div>

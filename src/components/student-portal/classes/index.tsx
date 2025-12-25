@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, MoreVertical, Eye, UserCheck, Trash2, Clock, Calendar, BookOpen as BookOpenIcon } from "lucide-react";
+import { Loader2, Plus, MoreVertical, Eye, UserCheck, Clock, Calendar, BookOpen as BookOpenIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -23,7 +23,6 @@ export default function StudentClasses({
   onStartAttendance,
   onViewDetails,
   onViewAttendanceHistory,
-  onDropClass,
   onAttendanceRecorded,
 }: {
   children?: React.ReactNode;
@@ -32,7 +31,6 @@ export default function StudentClasses({
   onStartAttendance?: (session: any, mode: "face" | "online") => void;
   onViewDetails?: (cls: EnrolledClass | ClassWithSchedules) => void;
   onViewAttendanceHistory?: (cls: EnrolledClass | ClassWithSchedules) => void;
-  onDropClass?: (id: string | number) => void;
   onAttendanceRecorded?: (record?: any) => void;
 }) {
   const [joinClassOpen, setJoinClassOpen] = useState(false);
@@ -59,7 +57,6 @@ export default function StudentClasses({
             classItem={classItem}
             onViewDetails={(c) => onViewDetails && onViewDetails(c)}
             onViewAttendanceHistory={(c) => onViewAttendanceHistory && onViewAttendanceHistory(c)}
-            onDropClass={(id) => onDropClass && onDropClass(id)}
             onAttendanceRecorded={(rec) => onAttendanceRecorded && onAttendanceRecorded(rec)}
           />
         ))}
