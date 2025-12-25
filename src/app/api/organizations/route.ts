@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const params = incoming.searchParams;
 
   // Build allowed backend URL and forward only a whitelist of query params
-  const allowed = new URL(`${API_BASE}/organizations`);
+  const allowed = new URL(`${API_BASE}/organizations/`);
 
   const skipRaw = params.get('skip');
   const limitRaw = params.get('limit');
