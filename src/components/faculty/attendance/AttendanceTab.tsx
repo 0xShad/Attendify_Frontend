@@ -13,7 +13,7 @@ export default function AttendanceTab() {
   return (
     <div className="space-y-4 md:space-y-6">
       <Tabs defaultValue="active" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
           <TabsTrigger value="active">Recent Attendance</TabsTrigger>
           <TabsTrigger value="history">My Attendance History</TabsTrigger>  
           <TabsTrigger value="requested">Requested Excuses</TabsTrigger>
