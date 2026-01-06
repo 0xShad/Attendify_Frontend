@@ -24,6 +24,7 @@ export default function TakeAttendanceF2F({ open, onOpenChange, classItem, sessi
   const [submitting, setSubmitting] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [cameraWidth, setCameraWidth] = React.useState<number>(560);
+  const cameraHeight = React.useMemo(() => Math.round(cameraWidth * (420 / 560)), [cameraWidth]);
 
   // adapt camera size to available width (responsive)
   React.useEffect(() => {
@@ -155,14 +156,16 @@ export default function TakeAttendanceF2F({ open, onOpenChange, classItem, sessi
             <div className="text-xs text-muted-foreground">Session: {sessionInfo?.active_session_id ?? sessionInfo?.session_id ?? '—'}</div>
           </div>
 
-          <div className="mt-4 flex justify-center w-full">
-            <F2FFaceCamera
-              onRecognized={handleRecognized}
-              bypassFilters={true}
-              width={cameraWidth}
-              height={Math.round(cameraWidth * (420 / 560))}
-              className="mx-auto w-full"
-            />
+          <div ref={containerRef} className="mt-4 w-full" style={{ maxWidth: `${cameraWidth}px` }}>
+            <div className="mx-auto w-full" style={{ aspectRatio: '560 / 420' }}>
+              <F2FFaceCamera
+                onRecognized={handleRecognized}
+                bypassFilters={true}
+                width={cameraWidth}
+                height={cameraHeight}
+                className="w-full h-auto"
+              />
+            </div>
           </div>
         </div>
         <DialogFooter />

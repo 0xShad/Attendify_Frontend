@@ -91,9 +91,9 @@ export default function AttendanceHistory() {
             logs.map((record) => (
               <div
                 key={String(record.id)}
-                className="flex items-center justify-between p-3 border rounded-lg"
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 border rounded-lg gap-2"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
                   <div
                     className={`w-3 h-3 rounded-full ${
                       record.status === 'present'
@@ -105,7 +105,7 @@ export default function AttendanceHistory() {
                         : 'bg-blue-500'
                     }`}
                   />
-                  <div className="text-sm">
+                  <div className="text-sm min-w-0">
                     <div className="font-medium">{record.class_code ?? `Class ${record.class_id}`}</div>
                     {record.course_name ? (
                       <div className="font-medium text-muted-foreground">{record.course_name}</div>
@@ -116,7 +116,7 @@ export default function AttendanceHistory() {
                     </div>
                   </div>
                 </div>
-                <div className="text-right text-sm">
+                <div className="text-right text-sm w-full sm:w-auto">
                   <div className="font-medium">{renderStatus(record.status)}</div>
                   <div className="text-xs text-muted-foreground">{new Date(record.timestamp).toLocaleTimeString()}</div>
                 </div>

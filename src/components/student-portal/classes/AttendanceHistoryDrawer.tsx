@@ -59,31 +59,51 @@ export default function AttendanceHistoryDrawer({
               </div>
 
               <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="font-medium">Date</TableHead>
-                      <TableHead className="font-medium">Status</TableHead>
-                      <TableHead className="font-medium">Type</TableHead>
-                      <TableHead className="font-medium">Duration</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {attendanceHistory.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell className="font-medium">{(new Date(record.sessionDate)).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Badge variant={record.status === "Present" ? "default" : record.status === "Late" ? "secondary" : record.status === "Excused" ? "outline" : "destructive"} className="text-xs">{record.status}</Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-600">{record.sessionType}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{record.duration} min</TableCell>
+                {/* Desktop table: visible on sm+ */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="font-medium">Date</TableHead>
+                        <TableHead className="font-medium">Status</TableHead>
+                        <TableHead className="font-medium">Type</TableHead>
+                        <TableHead className="font-medium">Duration</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {attendanceHistory.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell className="font-medium">{(new Date(record.sessionDate)).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <Badge variant={record.status === "Present" ? "default" : record.status === "Late" ? "secondary" : record.status === "Excused" ? "outline" : "destructive"} className="text-xs">{record.status}</Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-600">{record.sessionType}</TableCell>
+                          <TableCell className="text-sm text-gray-600">{record.duration} min</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile list: visible on xs screens */}
+                <div className="sm:hidden divide-y">
+                  {attendanceHistory.map((record) => (
+                    <div key={record.id} className="p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium">{(new Date(record.sessionDate)).toLocaleDateString()}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{record.sessionType} • {record.duration} min</div>
+                        </div>
+                        <div className="shrink-0">
+                          <Badge variant={record.status === "Present" ? "default" : record.status === "Late" ? "secondary" : record.status === "Excused" ? "outline" : "destructive"} className="text-xs">{record.status}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
                   <div className="text-lg font-bold text-green-600">{attendanceHistory.filter((r) => r.status === "Present").length}</div>
                   <div className="text-xs text-green-600">Present</div>

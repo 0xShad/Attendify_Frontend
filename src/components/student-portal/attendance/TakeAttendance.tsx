@@ -478,7 +478,9 @@ export default function AttendanceTake({ open, onOpenChange, classItem, sessionI
                   if (modes.includes('face_to_face') || modes.includes('f2f')) {
                     return (
                       <div className="w-full">
-                        <F2FFaceCamera active={open} onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} bypassFilters={false} />
+                        <div className="mx-auto w-full" style={{ maxWidth: 420, aspectRatio: '420 / 320' }}>
+                          <F2FFaceCamera active={open} onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} bypassFilters={false} className="w-full h-auto" />
+                        </div>
                         <div className="text-xs text-muted-foreground mt-2">Face-to-face mode: camera will automatically scan and record attendance when a face is recognized.</div>
                       </div>
                     );

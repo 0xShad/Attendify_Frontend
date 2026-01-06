@@ -650,7 +650,7 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
         {/* Student Sidebar */}
         <Sidebar
           variant="sidebar"
-          className="border-r border-border bg-stone-50/60 supports-backdrop-filter:backdrop-blur-md shadow-lg flex flex-col min-h-screen relative z-50"
+          className="hidden md:flex border-r border-border bg-stone-50/60 supports-backdrop-filter:backdrop-blur-md shadow-lg flex-col min-h-screen relative z-50"
         >
           {/* Sidebar Header */}
           <SidebarHeader className="px-4 py-6 border-b">
@@ -703,9 +703,12 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
             <div className="flex h-16 items-center justify-between px-6">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="md:hidden" />
-                <div className="flex items-center gap-2 md:hidden">
-                  <Image src="/logo_blue.png" alt="Attendify Logo" width={24} height={24} className="shrink-0" />
-                  <span className="font-semibold">Attendify</span>
+                <div className="flex flex-col md:hidden">
+                  <div className="flex items-center gap-2">
+                    <Image src="/logo_blue.png" alt="Attendify Logo" width={24} height={24} className="shrink-0" />
+                    <span className="font-semibold">Attendify</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5 capitalize">{activeTab}</div>
                 </div>
 
                 <div className="hidden md:flex md:items-center md:gap-4">

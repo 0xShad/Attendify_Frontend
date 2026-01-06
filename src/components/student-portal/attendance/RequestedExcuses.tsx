@@ -138,7 +138,66 @@ export default function RequestedExcuses() {
         </div>
       </div>
 
-      <div className="overflow-auto rounded shadow-sm border">
+      {/* Mobile: stacked cards */}
+      <div className="sm:hidden space-y-3">
+        {loading ? (
+          <div className="p-6 text-center text-sm">Loading…</div>
+        ) : error ? (
+          <div className="p-6 text-center text-sm text-red-600">{error}</div>
+        ) : items.length === 0 ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">
+            <div className="mb-2 text-lg">No excusal requests yet</div>
+            <div className="text-xs">Use the filters above to narrow results.</div>
+          </div>
+        ) : (
+          items.map((it) => (
+            <div key={String(it.id)} className="p-3 border rounded-lg shadow-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1">
+                  <div className="text-sm font-medium">{it.class_code ?? `Class ${it.class_id}`}</div>
+                  {it.course_name ? <div className="text-xs text-muted-foreground">{it.course_name}</div> : null}
+                  <div className="text-xs text-muted-foreground mt-2">Submitted: {fmtDate(it.submitted_at)}</div>
+                  <div className="text-xs text-muted-foreground">Requested: {it.requested_date ?? '-'}</div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-sm font-medium">{String(it.excusal_type ?? '').charAt(0).toUpperCase() + String(it.excusal_type ?? '').slice(1)}</div>
+                  <div className="mt-2">{
+                    (() => {
+                      const raw = String(it.status ?? '').toLowerCase();
+                      const label = raw.length ? (raw.charAt(0).toUpperCase() + raw.slice(1)) : raw;
+                      const className =
+                        raw === 'approved'
+                          ? 'border-green-200 text-green-700 bg-green-50'
+                          : raw === 'pending'
+                          ? 'border-yellow-200 text-yellow-800 bg-yellow-50'
+                          : raw === 'denied' || raw === 'declined'
+                          ? 'border-red-200 text-red-700 bg-red-50'
+                          : raw === 'cancelled' || raw === 'canceled'
+                          ? 'border-gray-200 text-gray-700 bg-gray-50'
+                          : 'border-gray-200 text-gray-700 bg-gray-50';
+
+                      return <Badge className={className}>{label}</Badge>;
+                    })()
+                  }</div>
+                </div>
+              </div>
+
+              <div className="mt-3 text-sm text-foreground/90">{it.reason ?? '-'}</div>
+
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <div className="text-xs text-muted-foreground">Reviewed: {it.reviewed_at ? fmtDate(it.reviewed_at) : 'Not reviewed'}</div>
+                <div className="flex items-center gap-2">
+                  <Button title="View details" variant="ghost" size="sm" onClick={() => { setViewItem(it); setViewOpen(true); }} aria-label={`View request ${it.id}`}><Eye size={16} /></Button>
+                  <Button title="Cancel request" variant="ghost" size="sm" onClick={() => { setCancelItem(it); setCancelOpen(true); }} aria-label={`Cancel request ${it.id}`}><X size={16} /></Button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop / larger screens: table */}
+      <div className="hidden sm:block overflow-auto rounded shadow-sm border">
         <table className="min-w-full table-fixed text-sm">
           <thead className="bg-muted text-muted-foreground">
             <tr>

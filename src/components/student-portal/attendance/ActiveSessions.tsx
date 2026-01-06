@@ -138,9 +138,9 @@ export default function ActiveSessions({
             return (
               <Card key={cls.id} className={`${sessionActive ? "border-green-200 bg-green-50/30" : "border-gray-200"}`}>
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex-1">
-                      <CardTitle className="text-lg flex items-center gap-2">
+                      <CardTitle className="text-lg flex flex-wrap items-center gap-2">
                         {cls.course_name ?? cls.class_code ?? cls.course_code ?? cls.name}
                         {sessionActive ? (
                           <Badge className="bg-green-100 text-green-700 border-green-200">
@@ -157,12 +157,12 @@ export default function ActiveSessions({
                         {cls.assigned_faculty_name ?? cls.instructor ?? "Instructor"} • {date}
                       </CardDescription>
                     </div>
-                    <Badge variant="outline" className="shrink-0">{sessionActive ? "Live" : (scheduled ? "Scheduled" : "—")}</Badge>
+                    <Badge variant="outline" className="shrink-0 mt-0 sm:mt-0">{sessionActive ? "Live" : (scheduled ? "Scheduled" : "—")}</Badge>
                   </div>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-muted-foreground" />
                       <span>{startTime} - {endTime}</span>
@@ -193,7 +193,7 @@ export default function ActiveSessions({
                         Face to Face attendance should be taken on your professor&apos;s or class secretary&apos;s device.
                       </div>
                     ) : (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2 w-full">
                       <Button onClick={async () => {
                         const classId = cls.id ?? cls.class_id ?? null;
                         if (!classId) {
@@ -277,7 +277,7 @@ export default function ActiveSessions({
                         } finally {
                           setCheckingSession(null);
                         }
-                      }} className="flex-1" disabled={checkingSession === String(cls.id)}>
+                      }} className="w-full sm:flex-1" disabled={checkingSession === String(cls.id)}>
                         <Camera className="w-4 h-4 mr-2" />
                         Attendance
                       </Button>
