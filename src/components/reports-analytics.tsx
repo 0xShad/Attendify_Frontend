@@ -480,7 +480,7 @@ export function ReportsAnalytics({
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
+        <TabsList className="w-full flex gap-2 overflow-x-auto md:grid md:grid-cols-4 md:gap-2">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="attendance">Attendance Trends</TabsTrigger>
           <TabsTrigger value="classes">Class Performance</TabsTrigger>

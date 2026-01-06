@@ -145,7 +145,7 @@ export default function StudentAttendance() {
       {/* Location/camera permission messaging removed — coordinates are no longer used */}
 
       <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v)} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
+        <TabsList className="w-full flex gap-2 overflow-x-auto md:grid md:grid-cols-4 md:gap-2">
           <TabsTrigger value="active">Active Sessions</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="requested">Requested Excuses</TabsTrigger>
