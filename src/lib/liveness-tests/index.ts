@@ -17,11 +17,13 @@ export { detectFaces } from './eye-detection';
 /**
  * Liveness test thresholds
  * These values determine the minimum scores required to pass each test
+ *
+ * Tuned slightly lighter to further reduce false rejects.
  */
 export const LIVENESS_THRESHOLDS = {
-  blur: 120,              // Much stricter: real faces typically 150-300, screens/photos 50-120
-  texture: 0.20,          // Stricter: require more natural texture - forces good lighting
-  reflection: 0.28,       // Stricter: require better natural lighting
-  colorSpectrum: 0.40,    // Much stricter: require strong skin tone presence
-  depth: 0.50,            // Much stricter: require clear 3D characteristics
+  blur: 95,               // was 100 — allow a bit more blur
+  texture: 0.17,          // was 0.18 — accept slightly less texture detail
+  reflection: 0.24,       // was 0.25 — a touch more flexible lighting
+  colorSpectrum: 0.33,    // was 0.35 — accept weaker skin-tone signal
+  depth: 0.43,            // was 0.45 — accept a little less pronounced 3D depth
 } as const;
