@@ -21,9 +21,9 @@ export { detectFaces } from './eye-detection';
  * Tuned slightly lighter to further reduce false rejects.
  */
 export const LIVENESS_THRESHOLDS = {
-  blur: 95,               // was 100 — allow a bit more blur
-  texture: 0.17,          // was 0.18 — accept slightly less texture detail
-  reflection: 0.24,       // was 0.25 — a touch more flexible lighting
-  colorSpectrum: 0.33,    // was 0.35 — accept weaker skin-tone signal
-  depth: 0.43,            // was 0.45 — accept a little less pronounced 3D depth
+  blur: 90,               // was 95 — allow more blur
+  texture: 0.14,          // was 0.17 — accept less texture detail
+  reflection: 0.22,       // was 0.24 — more flexible lighting
+  colorSpectrum: 0.30,    // was 0.33 — accept weaker skin-tone signal
+  depth: 0.40,            // was 0.43 — accept less pronounced 3D depth
 } as const;
