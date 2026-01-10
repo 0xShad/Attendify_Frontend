@@ -75,51 +75,51 @@ export default function SchoolProgramStep({
     return () => { mounted = false; };
   }, [form?.school]);
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <Label htmlFor="school" className="font-semibold">School</Label>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="school" className="text-sm font-medium text-foreground">School / Institution</Label>
         {schoolsLoading ? (
           <div className="mt-2 text-sm text-muted-foreground">Loading schools...</div>
         ) : schoolsError ? (
-          <div className="mt-2 text-sm text-red-600">{schoolsError}</div>
+          <div className="mt-2 text-sm text-destructive">{schoolsError}</div>
         ) : schools.length === 0 ? (
-          <div className="mt-2 text-sm text-red-600">No schools found.</div>
+          <div className="mt-2 text-sm text-destructive">No schools found.</div>
         ) : (
           <Select value={form.school} onValueChange={(val) => { handleSelectSchool(val); setSchoolSearch(""); }}>
-            <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200">
+            <SelectTrigger className="w-full bg-background/50 border-border focus:border-primary focus:ring-primary">
               <SelectValue placeholder="Select your school" />
             </SelectTrigger>
-            <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
+            <SelectContent className="max-h-60 max-w-[400px] overflow-y-auto">
               <div className="px-2 py-1">
                 <input
                   type="text"
                   value={schoolSearch}
                   onChange={e => setSchoolSearch(e.target.value)}
                   placeholder="Search school..."
-                  className="w-full px-2 py-1 rounded border border-gray-200 text-sm mb-1"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm mb-1 focus:outline-none focus:ring-1 focus:ring-primary"
                   autoFocus
                 />
               </div>
               {schools
                 .filter(s => s.name.toLowerCase().includes(schoolSearch.toLowerCase()))
                 .map(school => (
-                  <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>
+                  <SelectItem key={school.id} value={String(school.id)} className="truncate">{school.name}</SelectItem>
                 ))}
             </SelectContent>
           </Select>
         )}
       </div>
-      <div>
-        <Label htmlFor="program" className="font-semibold">Program / Department</Label>
+      <div className="space-y-2">
+        <Label htmlFor="program" className="text-sm font-medium text-foreground">Program / Department</Label>
         <Select
           value={form.program}
           onValueChange={onProgramChange}
           disabled={!form.school}
         >
-          <SelectTrigger className="mt-2 w-full rounded-xl shadow-sm border-blue-200" disabled={!form.school}>
+          <SelectTrigger className="w-full bg-background/50 border-border focus:border-primary focus:ring-primary" disabled={!form.school}>
             <SelectValue placeholder={form.school ? "Select your program/department" : "Select a school first"} />
           </SelectTrigger>
-          <SelectContent className="max-h-60 overflow-y-auto rounded-xl shadow-lg">
+          <SelectContent className="max-h-60 overflow-y-auto">
             {programsLoading ? (
               <div className="p-3 text-sm text-muted-foreground">Loading programs…</div>
             ) : programOptions && programOptions.length > 0 ? (
@@ -142,11 +142,11 @@ export default function SchoolProgramStep({
           </SelectContent>
         </Select>
       </div>
-      <div className="flex justify-between">
-        <Button type="button" variant="outline" onClick={onBack} className="rounded-xl px-8 py-2 text-base font-semibold">
+      <div className="flex justify-between pt-4">
+        <Button type="button" variant="outline" onClick={onBack} className="px-8 font-medium">
           Back
         </Button>
-        <Button type="button" onClick={onNext} disabled={!form.school || !form.program} className="rounded-xl px-8 py-2 text-base font-semibold bg-blue-600 hover:bg-blue-700">
+        <Button type="button" onClick={onNext} disabled={!form.school || !form.program} className="px-8 font-medium">
           Next
         </Button>
       </div>

@@ -177,64 +177,81 @@ export default function ProfileCreatePage() {
   const stepProgress = [33, 66, 100][step];
 
   return (
-  <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-700 via-slate-200 to-slate-500 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 p-4">
-    <Card className="w-full max-w-lg p-0 overflow-hidden shadow-2xl border-0 rounded-3xl bg-linear-to-br from-blue-600/70 via-blue-500/15 to-indigo-600/10 dark:from-blue-900/40 dark:via-indigo-900/30 backdrop-blur-md">
-      <div className="bg-linear-to-r from-blue-600 to-slate-600 px-8 py-6 text-white">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-3xl font-extrabold tracking-tight">Create Your Profile</h1>
+  <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-accent/30 relative overflow-hidden p-4">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Main Animated Blue Blobs */}
+        <div className="absolute top-1/4 -left-24 md:-left-12 lg:left-0 w-72 md:w-80 lg:w-96 h-72 md:h-80 lg:h-96 bg-blue-500/20 rounded-full blur-3xl animate-blob"></div>
+        <div className="absolute bottom-1/4 -right-24 md:-right-12 lg:right-0 w-64 md:w-72 lg:w-80 h-64 md:h-72 lg:h-80 bg-primary/30 rounded-full blur-2xl animate-blob animation-delay-2000"></div>
+        <div className="absolute top-2/3 -left-20 md:left-1/4 w-56 md:w-64 lg:w-72 h-56 md:h-64 lg:h-72 bg-blue-400/15 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+
+        {/* Floating Geometric Shapes */}
+        <div className="absolute top-1/4 right-4 md:right-1/4 w-24 md:w-32 h-24 md:h-32 bg-primary/10 rounded-full blur-xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 left-4 md:left-1/4 w-16 md:w-24 h-16 md:h-24 bg-primary/15 rounded-full blur-lg animate-pulse delay-700"></div>
+
+        {/* Grid Pattern */}
+        <div className="absolute inset-0 opacity-[0.02]">
+          <div
+            className="h-full w-full"
+            style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, rgb(var(--primary)) 1px, transparent 0)`,
+              backgroundSize: "40px 40px",
+            }}
+          ></div>
+        </div>
+      </div>
+
+    <Card className="w-full max-w-2xl relative z-10 shadow-xl border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 px-6 py-6 border-b border-border/50">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Create Your Profile</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {step === 0 && "Let us know who you are!"}
+              {step === 1 && "Tell us your school and program."}
+              {step === 2 && "Submit a face photo to complete your profile."}
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => router.push('/auth/logout')}
-            className="ml-4 bg-red-800 hover:bg-red-700 text-white font-semibold px-4 py-1.5 rounded-xl text-sm shadow transition-all"
+            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold px-4 py-2 rounded-lg text-sm shadow-sm transition-colors"
           >
             Logout
           </button>
         </div>
-        <p className="text-sm opacity-90 mb-2">
-          {step === 0 && "Let us know who you are!"}
-          {step === 1 && "Tell us your school and program."}
-          {step === 2 && "Submit a face photo to complete your profile."}
-        </p>
-        <Progress value={stepProgress} className="h-2 bg-white/80" />
+        <Progress value={stepProgress} className="h-2 bg-muted" />
       </div>
-      <form onSubmit={handleSubmit} className="space-y-8 px-8 py-8 bg-white/90 dark:bg-neutral-950/90 rounded-b-3xl">
+      <form onSubmit={handleSubmit} className="space-y-6 px-6 py-6">
           {/* Stepper UI */}
-          <Tabs value={String(step)} className="mb-8">
-            <TabsList className="w-full flex justify-between bg-transparent shadow-none p-0 gap-2">
+          <Tabs value={String(step)} className="w-full">
+            <TabsList className="w-full grid grid-cols-3 bg-muted/50 p-1 h-auto gap-1">
               <TabsTrigger
                 value="0"
                 disabled={step !== 0}
-                className={`flex-1 rounded-xl flex flex-col items-center py-2 px-1 transition-all duration-200 ${step === 0 ? 'bg-slate-100 text-black shadow-lg scale-105' : 'bg-slate-100 dark:bg-neutral-900 text-slate-500 dark:text-neutral-400 opacity-80'}`}
+                className="flex items-center justify-center gap-2 py-2.5 px-3 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <UserIcon className="mb-1 mx-auto" size={22} />
-                <span className="font-bold text-sm tracking-wide">About You</span>
-                <span className="text-xs font-normal opacity-70">Basic info</span>
+                <UserIcon size={18} />
+                <span className="font-semibold text-sm">About</span>
               </TabsTrigger>
               <TabsTrigger
                 value="1"
                 disabled={step !== 1}
-                className={`flex-1 rounded-xl flex flex-col items-center py-2 px-1 transition-all duration-200 ${step === 1 ? 'bg-slate-100 text-black shadow-lg scale-105' : 'bg-slate-100 dark:bg-neutral-900 text-slate-500 dark:text-neutral-400 opacity-80'}`}
+                className="flex items-center justify-center gap-2 py-2.5 px-3 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <SchoolIcon className="mb-1 mx-auto" size={22} />
-                <span className="font-bold text-sm tracking-wide">School & Program</span>
-                <span className="text-xs font-normal opacity-70">Academic details</span>
+                <SchoolIcon size={18} />
+                <span className="font-semibold text-sm">School</span>
               </TabsTrigger>
               <TabsTrigger
                 value="2"
                 disabled={step !== 2}
-                className={`flex-1 rounded-xl flex flex-col items-center py-2 px-1 transition-all duration-200 ${step === 2 ? 'bg-slate-100 text-black shadow-lg scale-105' : 'bg-slate-100 dark:bg-neutral-900 text-slate-500 dark:text-neutral-400 opacity-80'}`}
+                className="flex items-center justify-center gap-2 py-2.5 px-3 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <SmileIcon className="mb-1 mx-auto" size={22} />
-                <span className="font-bold text-sm tracking-wide">Face Submission</span>
-                <span className="text-xs font-normal opacity-70">Photo upload</span>
+                <SmileIcon size={18} />
+                <span className="font-semibold text-sm">Face</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
-
-          {/* Divider line between stepper and content */}
-          <div className="w-full flex items-center justify-center mb-6">
-              <div className="w-full h-1 rounded-full bg-linear-to-br from-blue-600/70 via-blue-500/55 to-indigo-600/40 dark:from-blue-900/40 dark:via-indigo-900/30" />
-          </div>
 
           {/* Step 1: Avatar/Bio */}
           {step === 0 && (
