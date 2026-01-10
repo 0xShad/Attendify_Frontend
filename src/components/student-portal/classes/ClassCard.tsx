@@ -382,7 +382,7 @@ export default function ClassCard({
               ) : classItem.is_active ? (
                 <Badge className="bg-green-50 text-green-700">Active</Badge>
               ) : (
-                <Badge className="bg-muted/10">Inactive</Badge>
+                <Badge className="bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Inactive</Badge>
               )}
             </div>
 
