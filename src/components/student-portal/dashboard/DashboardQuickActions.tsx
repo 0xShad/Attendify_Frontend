@@ -12,7 +12,7 @@ export default function DashboardQuickActions() {
         <CardTitle className="text-lg">Quick Actions</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <Link href="/student/classes/join" className="block">
+        <Link href="/student/classes" className="block">
           <Button className="w-full justify-start" variant="outline">
             <Plus className="w-4 h-4 mr-2" />
             Join New Class
