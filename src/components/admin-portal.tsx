@@ -57,7 +57,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthContext } from "@/contexts/AuthContext";
-import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
+import resolveAvatarUrl from "@/lib/utils/resolveAvatarUrl";
 import { useToast } from "@/hooks/use-toast";
 import { checkAuth } from "@/lib/clientAuth";
 import { UsersManagement } from "@/components/users";
@@ -89,7 +89,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
-import NotificationBell from '@/components/NotificationBell';
+import NotificationBell from "@/components/NotificationBell";
 
 interface User {
   id: string;
@@ -132,7 +132,11 @@ function SidebarUserMenu({
   const [enrichmentTried, setEnrichmentTried] = useState(false);
 
   const avatarSrc = useMemo(() => {
-    const raw = enrichment?.avatar_url || (user as any)?.avatarUrl || (user as any)?.avatar_url || null;
+    const raw =
+      enrichment?.avatar_url ||
+      (user as any)?.avatarUrl ||
+      (user as any)?.avatar_url ||
+      null;
     try {
       return resolveAvatarUrl(raw);
     } catch (e) {
@@ -140,9 +144,20 @@ function SidebarUserMenu({
     }
   }, [enrichment, user]);
 
-  const displayName = (enrichment?.full_name || user?.firstName || user?.username || enrichment?.username || user?.email) || 'Admin User';
-  const displayUsername = enrichment?.username ?? user?.username ?? enrichment?.email ?? user?.email ?? 'admin@attendify.com';
-  const initial = String(displayName).charAt(0).toUpperCase() || 'A';
+  const displayName =
+    enrichment?.full_name ||
+    user?.firstName ||
+    user?.username ||
+    enrichment?.username ||
+    user?.email ||
+    "Admin User";
+  const displayUsername =
+    enrichment?.username ??
+    user?.username ??
+    enrichment?.email ??
+    user?.email ??
+    "admin@attendify.com";
+  const initial = String(displayName).charAt(0).toUpperCase() || "A";
 
   useEffect(() => {
     let mounted = true;
@@ -163,7 +178,9 @@ function SidebarUserMenu({
       while (mounted && attempt < maxAttempts) {
         attempt += 1;
         try {
-          const res = await fetch('/api/session/enrichment', { credentials: 'same-origin' });
+          const res = await fetch("/api/session/enrichment", {
+            credentials: "same-origin",
+          });
           if (!mounted) return;
           if (!res.ok) {
             if (res.status === 401 && attempt < maxAttempts) {
@@ -255,7 +272,7 @@ function SidebarUserMenu({
                 try {
                   logout?.();
                 } catch (err) {
-                  router.push('/auth/logout');
+                  router.push("/auth/logout");
                 }
               }}
             >
@@ -277,14 +294,46 @@ export function AdminPortal() {
 
   // Navigation - Always start with dashboard to avoid hydration mismatch
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "schools" | "programs" | "classes" | "courses" | "users" | "reports" | "logs" | "holidays"
+    | "dashboard"
+    | "schools"
+    | "programs"
+    | "classes"
+    | "courses"
+    | "users"
+    | "reports"
+    | "logs"
+    | "holidays"
   >("dashboard");
 
   // Restore from localStorage after mount (client-side only)
   React.useEffect(() => {
     const saved = localStorage.getItem("admin-active-tab");
-    if (saved && ["dashboard", "schools", "programs", "courses", "classes", "users", "reports", "logs", "holidays"].includes(saved)) {
-      setActiveTab(saved as "dashboard" | "schools" | "programs" | "courses" | "classes" | "users" | "reports" | "logs" | "holidays");
+    if (
+      saved &&
+      [
+        "dashboard",
+        "schools",
+        "programs",
+        "courses",
+        "classes",
+        "users",
+        "reports",
+        "logs",
+        "holidays",
+      ].includes(saved)
+    ) {
+      setActiveTab(
+        saved as
+          | "dashboard"
+          | "schools"
+          | "programs"
+          | "courses"
+          | "classes"
+          | "users"
+          | "reports"
+          | "logs"
+          | "holidays"
+      );
     }
   }, []);
 
@@ -549,7 +598,7 @@ export function AdminPortal() {
   const confirmDeleteUser = async () => {
     const ok = await checkAuth();
     if (!ok) {
-      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      const redirectTo = encodeURIComponent(window.location.pathname || "/");
       router.push(`/auth/login?redirect=${redirectTo}`);
       return;
     }
@@ -565,22 +614,24 @@ export function AdminPortal() {
     }
   };
 
-  function handleNav(tabId: typeof navigationItems[number]['id']) {
-      // Optimistically switch tabs so UI remains responsive.
-      // Run auth check in the background and redirect to login if session expired.
-      setActiveTab(tabId as any);
+  function handleNav(tabId: (typeof navigationItems)[number]["id"]) {
+    // Optimistically switch tabs so UI remains responsive.
+    // Run auth check in the background and redirect to login if session expired.
+    setActiveTab(tabId as any);
 
-      checkAuth()
-        .then((ok) => {
-          if (!ok) {
-            const redirectTo = encodeURIComponent(window.location.pathname || '/');
-            router.push(`/auth/login?redirect=${redirectTo}`);
-          }
-        })
-        .catch(() => {
-          // Swallow errors from the auth check - don't block UI.
-        });
-    }
+    checkAuth()
+      .then((ok) => {
+        if (!ok) {
+          const redirectTo = encodeURIComponent(
+            window.location.pathname || "/"
+          );
+          router.push(`/auth/login?redirect=${redirectTo}`);
+        }
+      })
+      .catch(() => {
+        // Swallow errors from the auth check - don't block UI.
+      });
+  }
 
   React.useEffect(() => {
     loadDashboard();

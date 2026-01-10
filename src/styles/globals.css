@@ -263,6 +263,32 @@
   .fab:active {
     transform: scale(0.95);
   }
+
+  /* Mobile keyboard viewport handling */
+  @supports (height: 100dvh) {
+    .drawer-content-mobile {
+      max-height: 85dvh;
+    }
+  }
+
+  /* Prevent content shift when mobile keyboard appears */
+  .keyboard-safe {
+    position: relative;
+    will-change: transform;
+  }
+
+  /* Mobile drawer keyboard fixes */
+  [data-vaul-drawer-direction="bottom"] {
+    touch-action: none;
+  }
+
+  /* Ensure drawer content stays within visual viewport on mobile */
+  @media (max-width: 768px) {
+    [data-vaul-drawer][data-vaul-drawer-visible="true"] {
+      position: fixed !important;
+      max-height: var(--visual-viewport-height, 85vh) !important;
+    }
+  }
 } /* Prevent zoom on iOS inputs */
 @media screen and (-webkit-min-device-pixel-ratio: 0) {
   select,

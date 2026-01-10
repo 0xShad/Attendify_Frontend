@@ -519,7 +519,7 @@ export default function ClassCard({
     <>
       <Card key={classItem.id} className="hover:shadow-md transition-shadow">
         <CardHeader className="pb-2">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">
@@ -537,30 +537,31 @@ export default function ClassCard({
               <CardDescription className="mt-1 text-sm line-clamp-3 sm:line-clamp-2">
                 {classItem.description ?? ""}
               </CardDescription>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="text-sm font-medium text-muted-foreground">
+                  {studentsText}
+                </div>
+                <div>
+                  {classItem.session_active ? (
+                    <Badge className="bg-red-50 text-red-600">Session Live</Badge>
+                  ) : classItem.is_active ? (
+                    <Badge className="bg-green-50 text-green-700">Active</Badge>
+                  ) : (
+                    <Badge className="bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                      Inactive
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 sm:flex-col sm:items-end">
-              <div className="hidden sm:block text-sm font-medium">
-                {studentsText}
-              </div>
-              <div>
-                {classItem.session_active ? (
-                  <Badge className="bg-red-50 text-red-600">Session Live</Badge>
-                ) : classItem.is_active ? (
-                  <Badge className="bg-green-50 text-green-700">Active</Badge>
-                ) : (
-                  <Badge className="bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                    Inactive
-                  </Badge>
-                )}
-              </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="shrink-0">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
                   {classItem.is_secretary ? (
                     <DropdownMenuItem
                       onClick={() => {
@@ -589,7 +590,6 @@ export default function ClassCard({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
           </div>
         </CardHeader>
 

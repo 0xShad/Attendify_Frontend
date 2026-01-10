@@ -51,7 +51,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,13 +90,13 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
-import useAvatarSrc from '@/hooks/useAvatarSrc';
+import resolveAvatarUrl from "@/lib/utils/resolveAvatarUrl";
+import useAvatarSrc from "@/hooks/useAvatarSrc";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { checkAuth } from "@/lib/clientAuth";
-import NotificationBell from '@/components/NotificationBell';
+import NotificationBell from "@/components/NotificationBell";
 import {
   Sidebar,
   SidebarContent,
@@ -110,9 +117,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import SidebarNav from '@/components/student-portal/SidebarNav';
-import TopHeader from '@/components/student-portal/TopHeader';
-import StudentClasses from '@/components/student-portal/classes';
+import SidebarNav from "@/components/student-portal/SidebarNav";
+import TopHeader from "@/components/student-portal/TopHeader";
+import StudentClasses from "@/components/student-portal/classes";
 import {
   Bar,
   BarChart,
@@ -211,21 +218,33 @@ function SidebarUserMenu({
     avatar_url?: string | null;
   } | null>(null);
 
-  const raw = enrichment?.avatar_url ?? (user as any)?.avatarUrl ?? (user as any)?.avatar_url ?? null;
-  const { src: avatarSrc, setSrc: setAvatarSrc } = useAvatarSrc(raw, { profilePath: '/api/profiles/mine' });
+  const raw =
+    enrichment?.avatar_url ??
+    (user as any)?.avatarUrl ??
+    (user as any)?.avatar_url ??
+    null;
+  const { src: avatarSrc, setSrc: setAvatarSrc } = useAvatarSrc(raw, {
+    profilePath: "/api/profiles/mine",
+  });
 
   // Debug log for avatar sources (safe fields only)
   useEffect(() => {
     try {
-      console.debug('Avatar debug:', { raw, avatarSrc });
+      console.debug("Avatar debug:", { raw, avatarSrc });
     } catch (e) {}
   }, [raw, avatarSrc]);
 
   const displayName =
-    (user && ((user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : (user.username || user.email))) ||
+    (user &&
+      (user.firstName && user.lastName
+        ? `${user.firstName} ${user.lastName}`
+        : user.username || user.email)) ||
     enrichment?.full_name ||
     "Guest";
-  const displayUsername = (user && (enrichment?.username || user.username)) || enrichment?.email || "";
+  const displayUsername =
+    (user && (enrichment?.username || user.username)) ||
+    enrichment?.email ||
+    "";
 
   const getInitials = (name?: string | null) => {
     if (!name) return "";
@@ -239,7 +258,9 @@ function SidebarUserMenu({
     let mounted = true;
     async function fetchEnrichment() {
       try {
-        const res = await fetch('/api/session/enrichment', { credentials: 'same-origin' });
+        const res = await fetch("/api/session/enrichment", {
+          credentials: "same-origin",
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (!mounted) return;
@@ -250,11 +271,16 @@ function SidebarUserMenu({
     }
 
     // Only fetch if user info is missing
-    if (!user || !(user.firstName && user.lastName) && !(user.email || user.username)) {
+    if (
+      !user ||
+      (!(user.firstName && user.lastName) && !(user.email || user.username))
+    ) {
       fetchEnrichment();
     }
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [user]);
 
   return (
@@ -268,23 +294,34 @@ function SidebarUserMenu({
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 {avatarSrc ? (
-                  <AvatarImage src={avatarSrc} onError={async (e) => {
-                    // Try to refresh signed url by re-fetching profile
-                    try {
-                      const resp = await fetch('/api/profiles/mine', { credentials: 'include' });
-                      if (!resp.ok) return;
-                      const data = await resp.json();
-                      const newUrl = data?.avatar_url ?? data?.avatar ?? null;
-                      if (newUrl) setAvatarSrc(resolveAvatarUrl(newUrl));
-                    } catch (err) {
-                      // ignore
-                    }
-                    try {
-                      console.debug('Avatar image onError, tried src:', avatarSrc, 'falling back to /api/profiles/mine/avatar');
-                    } catch (e) {}
-                    // As a final fallback, try proxying the avatar via same-origin route
-                    try { setAvatarSrc('/api/profiles/mine/avatar'); } catch (e) {}
-                  }} />
+                  <AvatarImage
+                    src={avatarSrc}
+                    onError={async (e) => {
+                      // Try to refresh signed url by re-fetching profile
+                      try {
+                        const resp = await fetch("/api/profiles/mine", {
+                          credentials: "include",
+                        });
+                        if (!resp.ok) return;
+                        const data = await resp.json();
+                        const newUrl = data?.avatar_url ?? data?.avatar ?? null;
+                        if (newUrl) setAvatarSrc(resolveAvatarUrl(newUrl));
+                      } catch (err) {
+                        // ignore
+                      }
+                      try {
+                        console.debug(
+                          "Avatar image onError, tried src:",
+                          avatarSrc,
+                          "falling back to /api/profiles/mine/avatar"
+                        );
+                      } catch (e) {}
+                      // As a final fallback, try proxying the avatar via same-origin route
+                      try {
+                        setAvatarSrc("/api/profiles/mine/avatar");
+                      } catch (e) {}
+                    }}
+                  />
                 ) : (
                   <AvatarFallback className="rounded-lg bg-purple-500 text-white flex items-center justify-center text-sm font-medium">
                     {getInitials(displayName)}
@@ -310,7 +347,14 @@ function SidebarUserMenu({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   {avatarSrc ? (
-                    <AvatarImage src={avatarSrc} onError={async () => { try { setAvatarSrc('/api/profiles/mine/avatar'); } catch (e) {} }} />
+                    <AvatarImage
+                      src={avatarSrc}
+                      onError={async () => {
+                        try {
+                          setAvatarSrc("/api/profiles/mine/avatar");
+                        } catch (e) {}
+                      }}
+                    />
                   ) : (
                     <AvatarFallback className="rounded-lg bg-purple-500 text-white flex items-center justify-center text-sm font-medium">
                       {getInitials(displayName)}
@@ -337,7 +381,11 @@ function SidebarUserMenu({
   );
 }
 
-export default function StudentPortal({ children }: { children: React.ReactNode }) {
+export default function StudentPortal({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { toast } = useToast();
   const pathname = usePathname();
   const router = useRouter();
@@ -542,18 +590,24 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
         const ok = await checkAuth();
         if (!mounted) return;
         if (!ok) {
-          const redirectTo = encodeURIComponent(window.location.pathname || '/');
+          const redirectTo = encodeURIComponent(
+            window.location.pathname || "/"
+          );
           router.push(`/auth/login?redirect=${redirectTo}`);
         }
       } catch (err) {
         // On network/auth check error, redirect to login as a safe fallback.
         if (mounted) {
-          const redirectTo = encodeURIComponent(window.location.pathname || '/');
+          const redirectTo = encodeURIComponent(
+            window.location.pathname || "/"
+          );
           router.push(`/auth/login?redirect=${redirectTo}`);
         }
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
   // Handlers
@@ -566,12 +620,12 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
     try {
       const ok = await checkAuth();
       if (!ok) {
-        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        const redirectTo = encodeURIComponent(window.location.pathname || "/");
         router.push(`/auth/login?redirect=${redirectTo}`);
         return;
       }
     } catch (err) {
-      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      const redirectTo = encodeURIComponent(window.location.pathname || "/");
       router.push(`/auth/login?redirect=${redirectTo}`);
       return;
     }
@@ -600,12 +654,12 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
     try {
       const ok = await checkAuth();
       if (!ok) {
-        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        const redirectTo = encodeURIComponent(window.location.pathname || "/");
         router.push(`/auth/login?redirect=${redirectTo}`);
         return;
       }
     } catch (err) {
-      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      const redirectTo = encodeURIComponent(window.location.pathname || "/");
       router.push(`/auth/login?redirect=${redirectTo}`);
       return;
     }
@@ -630,7 +684,8 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
       case "invalid":
         toast({
           title: "Recognition Failed ✗",
-          description: "Face not recognized. Please try again or contact support.",
+          description:
+            "Face not recognized. Please try again or contact support.",
           variant: "destructive",
         });
         break;
@@ -652,11 +707,16 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
           variant="sidebar"
           className="hidden md:flex border-r border-border bg-stone-50/60 supports-backdrop-filter:backdrop-blur-md shadow-lg flex-col sticky top-0 h-screen z-50"
         >
-
           {/* Sidebar Header */}
           <SidebarHeader className="px-4 py-6 border-b">
             <div className="flex items-center gap-3">
-                    <Image src="/logo_blue.png" alt="Attendify Logo" width={24} height={24} className="shrink-0" />
+              <Image
+                src="/logo_blue.png"
+                alt="Attendify Logo"
+                width={24}
+                height={24}
+                className="shrink-0"
+              />
               <div className="group-data-[collapsible=icon]:hidden">
                 <span className="font-bold text-lg block">Attendify</span>
                 <span className="text-xs text-muted-foreground">
@@ -672,19 +732,19 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
               <SidebarGroupContent>
                 <SidebarMenu className="space-y-2">
                   {navigationItems.map((item) => (
-                      <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={activeTab === item.id}
-                          className="w-full justify-start"
-                          size="lg"
-                        >
-                          <Link href={item.href}>
-                            <item.icon className="w-5 h-5" />
-                            <span>{item.label}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={activeTab === item.id}
+                        className="w-full justify-start"
+                        size="lg"
+                      >
+                        <Link href={item.href}>
+                          <item.icon className="w-5 h-5" />
+                          <span>{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
               </SidebarGroupContent>
@@ -706,23 +766,42 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
                 <SidebarTrigger className="md:hidden" />
                 <div className="flex flex-col md:hidden">
                   <div className="flex items-center gap-2">
-                    <Image src="/logo_blue.png" alt="Attendify Logo" width={24} height={24} className="shrink-0" />
+                    <Image
+                      src="/logo_blue.png"
+                      alt="Attendify Logo"
+                      width={24}
+                      height={24}
+                      className="shrink-0"
+                    />
                     <span className="font-semibold">Attendify</span>
                   </div>
-                  <div className="text-xs text-muted-foreground mt-0.5 capitalize">{activeTab}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 capitalize">
+                    {activeTab}
+                  </div>
                 </div>
 
                 <div className="hidden md:flex md:items-center md:gap-4">
                   <div className="flex items-center gap-3">
-                    <Image src="/logo_blue.png" alt="Attendify Logo" width={40} height={40} className="shrink-0" />
+                    <Image
+                      src="/logo_blue.png"
+                      alt="Attendify Logo"
+                      width={40}
+                      height={40}
+                      className="shrink-0"
+                    />
                     <div>
-                      <h2 className="text-2xl font-bold capitalize">{activeTab}</h2>
+                      <h2 className="text-2xl font-bold capitalize">
+                        {activeTab}
+                      </h2>
                       <p className="text-sm text-muted-foreground">
                         {activeTab === "dashboard" && "Your academic overview"}
-                        {activeTab === "classes" && "Manage your enrolled classes"}
+                        {activeTab === "classes" &&
+                          "Manage your enrolled classes"}
                         {activeTab === "attendance" && "Record your attendance"}
-                        {activeTab === "profile" && "Update your profile and preferences"}
-                        {activeTab === "announcements" && "View class announcements"}
+                        {activeTab === "profile" &&
+                          "Update your profile and preferences"}
+                        {activeTab === "announcements" &&
+                          "View class announcements"}
                       </p>
                     </div>
                   </div>

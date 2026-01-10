@@ -17,7 +17,7 @@ import {
   IconSpeakerphone,
 } from "@tabler/icons-react";
 import ClassesManagement from "@/components/faculty/classes/ClassesManagement";
-import AttendanceTab from '@/components/faculty/attendance/AttendanceTab';
+import AttendanceTab from "@/components/faculty/attendance/AttendanceTab";
 import { classesAPI } from "@/lib/api";
 import { checkAuth } from "@/lib/clientAuth";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -33,9 +33,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import NotificationBell from '@/components/NotificationBell';
+import NotificationBell from "@/components/NotificationBell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import resolveAvatarUrl from '@/lib/utils/resolveAvatarUrl';
+import resolveAvatarUrl from "@/lib/utils/resolveAvatarUrl";
 import { useToast } from "@/hooks/use-toast";
 import {
   Sidebar,
@@ -51,7 +51,15 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerClose,
+} from "@/components/ui/drawer";
 import FacultyDashboard from "@/components/faculty/dashboard/FacultyDashboard";
 
 // --- Types used by the faculty portal (kept local during modularization) ---
@@ -115,7 +123,11 @@ interface Announcement {
 // Use the shared NotificationBell component
 
 // Minimal Sidebar user menu used in faculty portal
-function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean) => void }) {
+function SidebarUserMenu({
+  setSettingsOpen,
+}: {
+  setSettingsOpen: (open: boolean) => void;
+}) {
   const router = useRouter();
   const { user, logout } = useAuthContext();
   const [enrichment, setEnrichment] = useState<{
@@ -126,7 +138,11 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
   } | null>(null);
 
   const avatarSrc = useMemo(() => {
-    const raw = enrichment?.avatar_url || (user as any)?.avatarUrl || (user as any)?.avatar_url || null;
+    const raw =
+      enrichment?.avatar_url ||
+      (user as any)?.avatarUrl ||
+      (user as any)?.avatar_url ||
+      null;
     try {
       return resolveAvatarUrl(raw);
     } catch (e) {
@@ -158,7 +174,9 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
       while (mounted && attempt < maxAttempts) {
         attempt += 1;
         try {
-          const res = await fetch('/api/session/enrichment', { credentials: 'same-origin' });
+          const res = await fetch("/api/session/enrichment", {
+            credentials: "same-origin",
+          });
           if (!mounted) return;
           if (!res.ok) {
             // If unauthorized, wait and retry; for other errors, bail out.
@@ -191,26 +209,44 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
     };
   }, [user, enrichmentTried]);
 
-  const displayName = (enrichment?.full_name || user?.firstName || user?.username || enrichment?.username || user?.email) || 'User';
-  const initial = String(displayName).charAt(0).toUpperCase() || 'U';
-  const displayUsername = enrichment?.username ?? user?.username ?? enrichment?.email ?? user?.email ?? '';
+  const displayName =
+    enrichment?.full_name ||
+    user?.firstName ||
+    user?.username ||
+    enrichment?.username ||
+    user?.email ||
+    "User";
+  const initial = String(displayName).charAt(0).toUpperCase() || "U";
+  const displayUsername =
+    enrichment?.username ??
+    user?.username ??
+    enrichment?.email ??
+    user?.email ??
+    "";
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            >
               <Avatar className="h-8 w-8 rounded-lg">
                 {avatarSrc ? (
                   <AvatarImage src={avatarSrc} />
                 ) : (
-                  <AvatarFallback className="rounded-lg bg-green-500 text-white">{initial}</AvatarFallback>
+                  <AvatarFallback className="rounded-lg bg-green-500 text-white">
+                    {initial}
+                  </AvatarFallback>
                 )}
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight ml-2">
                 <span className="truncate font-medium">{displayName}</span>
-                <span className="text-muted-foreground truncate text-xs">{displayUsername}</span>
+                <span className="text-muted-foreground truncate text-xs">
+                  {displayUsername}
+                </span>
               </div>
               <IconDots className="ml-auto" />
             </SidebarMenuButton>
@@ -223,12 +259,16 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
                   {avatarSrc ? (
                     <AvatarImage src={avatarSrc} />
                   ) : (
-                    <AvatarFallback className="rounded-lg bg-green-500 text-white">{initial}</AvatarFallback>
+                    <AvatarFallback className="rounded-lg bg-green-500 text-white">
+                      {initial}
+                    </AvatarFallback>
                   )}
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{displayName}</span>
-                  <span className="text-muted-foreground truncate text-xs">{displayUsername}</span>
+                  <span className="text-muted-foreground truncate text-xs">
+                    {displayUsername}
+                  </span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -243,7 +283,7 @@ function SidebarUserMenu({ setSettingsOpen }: { setSettingsOpen: (open: boolean)
                 try {
                   logout?.();
                 } catch (err) {
-                  router.push('/auth/logout');
+                  router.push("/auth/logout");
                 }
               }}
             >
@@ -268,11 +308,14 @@ export function FacultyPortal() {
   // and `localStorage` later in a mount effect to handle hard reloads.
   const [activeTab, setActiveTab] = useState<
     "dashboard" | "classes" | "attendance" | "announcements"
-  >(() => (searchParams?.get("tab") as
-    | "dashboard"
-    | "classes"
-    | "attendance"
-    | "announcements") || "dashboard");
+  >(
+    () =>
+      (searchParams?.get("tab") as
+        | "dashboard"
+        | "classes"
+        | "attendance"
+        | "announcements") || "dashboard"
+  );
 
   // Persist the active tab in the URL so a browser refresh returns to the same tab.
   // Track whether we've reconciled the URL/localStorage into state on mount.
@@ -298,7 +341,9 @@ export function FacultyPortal() {
           const stored = window.localStorage.getItem("faculty_active_tab");
           if (
             stored &&
-            ["dashboard", "classes", "attendance", "announcements"].includes(stored) &&
+            ["dashboard", "classes", "attendance", "announcements"].includes(
+              stored
+            ) &&
             stored !== activeTab
           ) {
             setActiveTab(stored as any);
@@ -331,7 +376,12 @@ export function FacultyPortal() {
       // If we haven't yet reconciled the real tab from URL/localStorage on mount,
       // prefer to honor the present URL param (if any) and avoid persisting.
       if (!initialUrlSyncRef.current) {
-        if (urlTab && ["dashboard", "classes", "attendance", "announcements"].includes(urlTab)) {
+        if (
+          urlTab &&
+          ["dashboard", "classes", "attendance", "announcements"].includes(
+            urlTab
+          )
+        ) {
           if (urlTab !== activeTab) setActiveTab(urlTab as any);
         }
         return;
@@ -342,7 +392,9 @@ export function FacultyPortal() {
 
       params.set("tab", activeTab);
       const search = params.toString();
-      const newUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname;
+      const newUrl = search
+        ? `${window.location.pathname}?${search}`
+        : window.location.pathname;
       // Use Next router replace so `useSearchParams()` and the App Router
       // internals stay in sync with the updated URL.
       try {
@@ -400,8 +452,6 @@ export function FacultyPortal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  
-
   // Persist activeTab to localStorage as a resilient fallback for reloads
   useEffect(() => {
     try {
@@ -436,7 +486,9 @@ export function FacultyPortal() {
 
   const [classes, setClasses] = useState<Class[]>([]);
   const { user } = useAuthContext();
-  const announcementsRef = React.useRef<{ openNewAnnouncement?: () => void } | null>(null);
+  const announcementsRef = React.useRef<{
+    openNewAnnouncement?: () => void;
+  } | null>(null);
 
   // Real data will be loaded from backend by child components; remove demo students state.
 
@@ -445,8 +497,9 @@ export function FacultyPortal() {
     if (!user || !user.id) return;
 
     let mounted = true;
-      const displayName = (user && (user.firstName || user.username || user.email)) || 'User';
-      const initial = String(displayName).charAt(0).toUpperCase() || 'U';
+    const displayName =
+      (user && (user.firstName || user.username || user.email)) || "User";
+    const initial = String(displayName).charAt(0).toUpperCase() || "U";
     (async () => {
       try {
         // Ensure the user session is still valid before calling backend endpoints.
@@ -455,13 +508,17 @@ export function FacultyPortal() {
         try {
           const ok = await checkAuth();
           if (!ok) {
-            const redirectTo = encodeURIComponent(window.location.pathname || '/');
+            const redirectTo = encodeURIComponent(
+              window.location.pathname || "/"
+            );
             router.push(`/auth/login?redirect=${redirectTo}`);
             return;
           }
         } catch (err) {
           // On network/auth check error, redirect to login as a safe fallback.
-          const redirectTo = encodeURIComponent(window.location.pathname || '/');
+          const redirectTo = encodeURIComponent(
+            window.location.pathname || "/"
+          );
           router.push(`/auth/login?redirect=${redirectTo}`);
           return;
         }
@@ -470,16 +527,22 @@ export function FacultyPortal() {
         const backend = await classesAPI.listClassesForFaculty(Number(user.id));
         if (!mounted) return;
         const mapped: Class[] = Array.isArray(backend)
-            ? backend.map((c: any) => {
-              const schedules: any[] = Array.isArray(c.schedules) ? c.schedules : [];
+          ? backend.map((c: any) => {
+              const schedules: any[] = Array.isArray(c.schedules)
+                ? c.schedules
+                : [];
               // Build a human-friendly schedule string
               const scheduleStr = schedules
                 .map((s) => {
                   if (s.type === "normal") {
-                    return `${s.day_of_week} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`.trim();
+                    return `${s.day_of_week} ${
+                      s.start_time?.slice(0, 5) || ""
+                    }-${s.end_time?.slice(0, 5) || ""}`.trim();
                   }
                   if (s.type === "special") {
-                    return `${s.date} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`.trim();
+                    return `${s.date} ${s.start_time?.slice(0, 5) || ""}-${
+                      s.end_time?.slice(0, 5) || ""
+                    }`.trim();
                   }
                   return "";
                 })
@@ -487,14 +550,32 @@ export function FacultyPortal() {
                 .join(", ");
 
               // Determine mode: Online / In-Person / Hybrid
-              const modes = schedules.flatMap((s) => Array.isArray(s.modes) ? s.modes : []);
-              const hasOnline = modes.some((m: string) => m.toLowerCase().includes("online"));
-              const hasF2f = modes.some((m: string) => m.toLowerCase().includes("face") || m.toLowerCase().includes("f2f") || m.toLowerCase().includes("face_to_face"));
-              const mode: Class["mode"] = hasOnline && hasF2f ? "Hybrid" : hasOnline ? "Online" : "In-Person";
+              const modes = schedules.flatMap((s) =>
+                Array.isArray(s.modes) ? s.modes : []
+              );
+              const hasOnline = modes.some((m: string) =>
+                m.toLowerCase().includes("online")
+              );
+              const hasF2f = modes.some(
+                (m: string) =>
+                  m.toLowerCase().includes("face") ||
+                  m.toLowerCase().includes("f2f") ||
+                  m.toLowerCase().includes("face_to_face")
+              );
+              const mode: Class["mode"] =
+                hasOnline && hasF2f
+                  ? "Hybrid"
+                  : hasOnline
+                  ? "Online"
+                  : "In-Person";
 
               return {
                 id: String(c.id),
-                name: c.course_name ?? c.class_code ?? c.course_code ?? `Class ${c.id}`,
+                name:
+                  c.course_name ??
+                  c.class_code ??
+                  c.course_code ??
+                  `Class ${c.id}`,
                 code: c.class_code ?? c.course_code ?? "",
                 schedule: scheduleStr || (c.room ? String(c.room) : ""),
                 mode,
@@ -505,9 +586,15 @@ export function FacultyPortal() {
                 enrolledStudents: c.enrolled_students ?? c.students_count ?? 0,
                 totalSessions: c.total_sessions ?? 0,
                 completedSessions: c.completed_sessions ?? 0,
-                attendanceRate: typeof c.attendance_rate === 'number' ? c.attendance_rate : (c.attendance_rate ? Number(c.attendance_rate) : 0),
+                attendanceRate:
+                  typeof c.attendance_rate === "number"
+                    ? c.attendance_rate
+                    : c.attendance_rate
+                    ? Number(c.attendance_rate)
+                    : 0,
                 status: "Active",
-                location: c.room ?? c.location ?? c.organization_name ?? undefined,
+                location:
+                  c.room ?? c.location ?? c.organization_name ?? undefined,
                 description: c.description ?? undefined,
               } as Class;
             })
@@ -516,13 +603,18 @@ export function FacultyPortal() {
         setClasses(mapped);
       } catch (err: any) {
         console.error("Failed to load classes for faculty:", err);
-        toast({ title: "Failed to load classes", description: String(err?.message ?? err) });
+        toast({
+          title: "Failed to load classes",
+          description: String(err?.message ?? err),
+        });
       } finally {
         setIsLoading(false);
       }
     })();
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [user]);
 
   // Refresh a single class record and update local `classes` state.
@@ -534,20 +626,34 @@ export function FacultyPortal() {
       const scheduleStr = schedules
         .map((s) => {
           if (s.type === "normal") {
-            return `${s.day_of_week} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`.trim();
+            return `${s.day_of_week} ${s.start_time?.slice(0, 5) || ""}-${
+              s.end_time?.slice(0, 5) || ""
+            }`.trim();
           }
           if (s.type === "special") {
-            return `${s.date} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`.trim();
+            return `${s.date} ${s.start_time?.slice(0, 5) || ""}-${
+              s.end_time?.slice(0, 5) || ""
+            }`.trim();
           }
           return "";
         })
         .filter(Boolean)
         .join(", ");
 
-      const modes = schedules.flatMap((s) => Array.isArray(s.modes) ? s.modes : []);
-      const hasOnline = modes.some((m: string) => m.toLowerCase().includes("online"));
-      const hasF2f = modes.some((m: string) => m.toLowerCase().includes("face") || m.toLowerCase().includes("f2f") || m.toLowerCase().includes("face_to_face"));
-      const mode: Class["mode"] = hasOnline && hasF2f ? "Hybrid" : hasOnline ? "Online" : "In-Person";
+      const modes = schedules.flatMap((s) =>
+        Array.isArray(s.modes) ? s.modes : []
+      );
+      const hasOnline = modes.some((m: string) =>
+        m.toLowerCase().includes("online")
+      );
+      const hasF2f = modes.some(
+        (m: string) =>
+          m.toLowerCase().includes("face") ||
+          m.toLowerCase().includes("f2f") ||
+          m.toLowerCase().includes("face_to_face")
+      );
+      const mode: Class["mode"] =
+        hasOnline && hasF2f ? "Hybrid" : hasOnline ? "Online" : "In-Person";
 
       const mapped: Class = {
         id: String(d.id),
@@ -561,7 +667,12 @@ export function FacultyPortal() {
         enrolledStudents: d.enrolled_students ?? d.students_count ?? 0,
         totalSessions: d.total_sessions ?? 0,
         completedSessions: d.completed_sessions ?? 0,
-        attendanceRate: typeof d.attendance_rate === 'number' ? d.attendance_rate : (d.attendance_rate ? Number(d.attendance_rate) : 0),
+        attendanceRate:
+          typeof d.attendance_rate === "number"
+            ? d.attendance_rate
+            : d.attendance_rate
+            ? Number(d.attendance_rate)
+            : 0,
         status: "Active",
         location: d.room ?? d.location ?? d.organization_name ?? undefined,
         description: d.description ?? undefined,
@@ -576,14 +687,12 @@ export function FacultyPortal() {
         return [mapped, ...prev];
       });
     } catch (err) {
-      console.error('Failed to refresh class', err);
+      console.error("Failed to refresh class", err);
     }
   };
 
   // Start with no active sessions; real sessions are loaded from backend.
   const [activeSessions, setActiveSessions] = useState<AttendanceSession[]>([]);
-
-  
 
   // Navigation items
   const navigationItems = [
@@ -638,14 +747,16 @@ export function FacultyPortal() {
   );
 
   // Handlers
-  function handleNav(tabId: typeof navigationItems[number]['id']) {
+  function handleNav(tabId: (typeof navigationItems)[number]["id"]) {
     // Optimistically switch tabs for snappy UI, then verify auth in background
     setActiveTab(tabId as any);
 
     checkAuth()
       .then((ok) => {
         if (!ok) {
-          const redirectTo = encodeURIComponent(window.location.pathname || '/');
+          const redirectTo = encodeURIComponent(
+            window.location.pathname || "/"
+          );
           router.push(`/auth/login?redirect=${redirectTo}`);
         }
       })
@@ -667,12 +778,12 @@ export function FacultyPortal() {
     try {
       const ok = await checkAuth();
       if (!ok) {
-        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        const redirectTo = encodeURIComponent(window.location.pathname || "/");
         router.push(`/auth/login?redirect=${redirectTo}`);
         return;
       }
     } catch (err) {
-      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      const redirectTo = encodeURIComponent(window.location.pathname || "/");
       router.push(`/auth/login?redirect=${redirectTo}`);
       return;
     }
@@ -688,37 +799,67 @@ export function FacultyPortal() {
       const created = await classesAPI.createMyClass(payload);
 
       // Map backend-created class to local `Class` shape (same mapping as list effect)
-      const schedules: any[] = Array.isArray(created.schedules) ? created.schedules : [];
+      const schedules: any[] = Array.isArray(created.schedules)
+        ? created.schedules
+        : [];
       const scheduleStr = schedules
         .map((s) => {
           if (s.type === "normal") {
-            return `${s.day_of_week} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`.trim();
+            return `${s.day_of_week} ${s.start_time?.slice(0, 5) || ""}-${
+              s.end_time?.slice(0, 5) || ""
+            }`.trim();
           }
           if (s.type === "special") {
-            return `${s.date} ${s.start_time?.slice(0,5) || ''}-${s.end_time?.slice(0,5) || ''}`.trim();
+            return `${s.date} ${s.start_time?.slice(0, 5) || ""}-${
+              s.end_time?.slice(0, 5) || ""
+            }`.trim();
           }
           return "";
         })
         .filter(Boolean)
         .join(", ");
 
-      const modes = schedules.flatMap((s) => Array.isArray(s.modes) ? s.modes : []);
-      const hasOnline = modes.some((m: string) => m.toLowerCase().includes("online"));
-      const hasF2f = modes.some((m: string) => m.toLowerCase().includes("face") || m.toLowerCase().includes("f2f") || m.toLowerCase().includes("face_to_face"));
-      const mode: Class["mode"] = hasOnline && hasF2f ? "Hybrid" : hasOnline ? "Online" : "In-Person";
+      const modes = schedules.flatMap((s) =>
+        Array.isArray(s.modes) ? s.modes : []
+      );
+      const hasOnline = modes.some((m: string) =>
+        m.toLowerCase().includes("online")
+      );
+      const hasF2f = modes.some(
+        (m: string) =>
+          m.toLowerCase().includes("face") ||
+          m.toLowerCase().includes("f2f") ||
+          m.toLowerCase().includes("face_to_face")
+      );
+      const mode: Class["mode"] =
+        hasOnline && hasF2f ? "Hybrid" : hasOnline ? "Online" : "In-Person";
 
       const mapped: Class = {
         id: String(created.id),
-        name: created.course_name ?? created.class_code ?? created.course_code ?? `Class ${created.id}`,
+        name:
+          created.course_name ??
+          created.class_code ??
+          created.course_code ??
+          `Class ${created.id}`,
         code: created.class_code ?? created.course_code ?? "",
         schedule: scheduleStr || (created.room ? String(created.room) : ""),
         mode,
-        enrolledStudents: created.enrolled_students ?? created.students_count ?? 0,
+        enrolledStudents:
+          created.enrolled_students ?? created.students_count ?? 0,
         totalSessions: created.total_sessions ?? 0,
         completedSessions: created.completed_sessions ?? 0,
-        attendanceRate: typeof created.attendance_rate === 'number' ? created.attendance_rate : (created.attendance_rate ? Number(created.attendance_rate) : 0),
+        attendanceRate:
+          typeof created.attendance_rate === "number"
+            ? created.attendance_rate
+            : created.attendance_rate
+            ? Number(created.attendance_rate)
+            : 0,
         status: "Active",
-        location: created.room ?? created.location ?? created.organization_name ?? undefined,
+        location:
+          created.room ??
+          created.location ??
+          created.organization_name ??
+          undefined,
         description: created.description ?? undefined,
       } as Class;
 
@@ -735,7 +876,10 @@ export function FacultyPortal() {
       toast({ title: "Success", description: "Class created successfully" });
     } catch (err: any) {
       console.error(err);
-      toast({ title: "Failed to create class", description: String(err?.message ?? err) });
+      toast({
+        title: "Failed to create class",
+        description: String(err?.message ?? err),
+      });
     } finally {
       setAddingClass(false);
     }
@@ -782,8 +926,6 @@ export function FacultyPortal() {
       description: "Attendance session has been ended",
     });
   };
-
-  
 
   // Loading state is driven by real data fetches; remove demo timeout.
 
@@ -889,9 +1031,9 @@ export function FacultyPortal() {
                 </div>
               </div>
 
-                <div className="flex items-center gap-3">
-                  <NotificationBell />
-                </div>
+              <div className="flex items-center gap-3">
+                <NotificationBell />
+              </div>
             </div>
           </header>
 
@@ -914,22 +1056,25 @@ export function FacultyPortal() {
                 onOpenNewAnnouncement={() => {
                   // Navigate to announcements first, then open the announcement drawer after a short delay
                   setActiveTab("announcements");
-                  setTimeout(() => announcementsRef.current?.openNewAnnouncement?.(), 500);
+                  setTimeout(
+                    () => announcementsRef.current?.openNewAnnouncement?.(),
+                    500
+                  );
                 }}
                 onOpenClasses={() => setActiveTab("classes")}
               />
             )}
 
             {activeTab === "classes" && (
-              <ClassesManagement onClassChanged={refreshClassInState} addClassOpen={addClassOpen} setAddClassOpen={setAddClassOpen} />
+              <ClassesManagement
+                onClassChanged={refreshClassInState}
+                addClassOpen={addClassOpen}
+                setAddClassOpen={setAddClassOpen}
+              />
             )}
 
             {/* Attendance Management */}
-            {activeTab === "attendance" && (
-              <AttendanceTab />
-            )}
-
-            
+            {activeTab === "attendance" && <AttendanceTab />}
 
             {/* Announcements */}
             {activeTab === "announcements" && (
@@ -937,22 +1082,29 @@ export function FacultyPortal() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
                     <h3 className="text-lg font-medium">Announcements</h3>
-                    <p className="text-sm text-muted-foreground">Communicate with your students across all classes</p>
+                    <p className="text-sm text-muted-foreground">
+                      Communicate with your students across all classes
+                    </p>
                   </div>
-                  <Button onClick={() => announcementsRef.current?.openNewAnnouncement?.()}>
+                  <Button
+                    onClick={() =>
+                      announcementsRef.current?.openNewAnnouncement?.()
+                    }
+                  >
                     <IconPlus className="w-4 h-4 mr-2" />
                     New Announcement
                   </Button>
                 </div>
 
                 {/* Announcements Manager (handles list, create, view, edit) */}
-                <AnnouncementsManager ref={announcementsRef} classes={classes} />
+                <AnnouncementsManager
+                  ref={announcementsRef}
+                  classes={classes}
+                />
               </div>
             )}
           </div>
         </SidebarInset>
-
-        
 
         {/* Settings Drawer */}
         <Drawer open={settingsOpen} onOpenChange={setSettingsOpen}>
@@ -1094,11 +1246,6 @@ export function FacultyPortal() {
           </DrawerContent>
         </Drawer>
 
-        
-
-        
-
-        
         {/* Manual attendance drawer removed. Attendance edits handled inline or via dedicated flow. */}
       </div>
     </SidebarProvider>

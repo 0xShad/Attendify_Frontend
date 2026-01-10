@@ -72,11 +72,11 @@ export default function ClassFilterDrawer({
 }: Props) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
-        <DrawerHeader className="px-4 pt-4">
+      <DrawerContent className="max-h-[90vh] mx-auto w-full max-w-2xl flex flex-col">
+        <DrawerHeader className="px-4 pt-4 shrink-0">
           <DrawerTitle>Filter Classes</DrawerTitle>
         </DrawerHeader>
-        <div className="px-4 pb-4 space-y-6">
+        <div className="px-4 pb-4 space-y-6 overflow-y-auto flex-1 min-h-0">
           <div className="space-y-2">
             <Label htmlFor="courseId" className="text-sm font-medium">Course</Label>
             <Select value={courseId ? String(courseId) : "__any"} onValueChange={(v) => setCourseId(v === "__any" ? null : v)}>
@@ -177,8 +177,10 @@ export default function ClassFilterDrawer({
             <input id="activeNow" type="checkbox" checked={activeNow} onChange={(e) => setActiveNow(e.target.checked)} className="w-4 h-4" />
             <Label htmlFor="activeNow" className="text-sm">Active Now</Label>
           </div>
+        </div>
 
-          <div className="flex gap-2 pt-4">
+        <DrawerFooter className="px-4 pb-4 shrink-0 border-t">
+          <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={() => {
               setCourseId(null); setAcademicYear(null); setSemester(null); setMode(null); setDayOfWeek([]); setFacultyId(null); setActiveNow(false);
             }}>
@@ -186,7 +188,7 @@ export default function ClassFilterDrawer({
             </Button>
             <Button className="flex-1" onClick={() => { onApply && onApply(); onOpenChange(false); }}>Apply Filters</Button>
           </div>
-        </div>
+        </DrawerFooter>
       </DrawerContent>
     </Drawer>
   );

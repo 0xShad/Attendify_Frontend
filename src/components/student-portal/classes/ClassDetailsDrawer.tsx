@@ -137,25 +137,25 @@ export default function ClassDetailsDrawer({
 
   return (
     <Drawer open={open} onOpenChange={(v) => onOpenChange?.(v)}>
-      <DrawerContent className="max-h-[90vh]">
-        <DrawerHeader className="text-left">
+      <DrawerContent className="max-h-[90vh] mx-auto w-full max-w-2xl flex flex-col">
+        <DrawerHeader className="text-left px-4 shrink-0">
           <DrawerTitle className="flex items-center gap-2">
             {data?.name ?? "Class Details"}
             {loading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
           </DrawerTitle>
         </DrawerHeader>
 
-        <div className="px-4 pb-4 space-y-4 overflow-y-auto">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-            <div className="flex items-start gap-3 md:col-span-9">
-              <Avatar className="w-12 h-12">
+        <div className="px-4 pb-4 space-y-4 overflow-y-auto flex-1 min-h-0">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="flex items-start gap-3">
+              <Avatar className="w-12 h-12 shrink-0">
                 <AvatarFallback className="text-base font-semibold">{(data?.name || "U").split(" ").map((n: string) => n[0]).slice(0,2).join("")}</AvatarFallback>
               </Avatar>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="text-sm text-muted-foreground">{data?.code ?? "—"}</div>
-                <div className="font-semibold text-lg truncate">{data?.name ?? "Untitled Class"}</div>
-                <div className="text-sm text-muted-foreground mt-1 truncate">
-                  {data?.program ? `${data.program} • ` : ""}{data?.organization ? data.organization : ""}
+                <div className="font-semibold text-lg">{data?.name ?? "Untitled Class"}</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {data?.program ? `${data.program}` : ""}{data?.organization && data?.program ? " • " : ""}{data?.organization ? data.organization : ""}
                 </div>
                 <div className="flex flex-col gap-1 mt-2 text-sm">
                   <div><span className="font-medium">Instructor:</span> <span className="text-muted-foreground">{data?.assigned_faculty_name ?? data?.instructor ?? "—"}</span></div>
@@ -165,22 +165,22 @@ export default function ClassDetailsDrawer({
                 </div>
               </div>
             </div>
-            <div className="flex flex-col items-end text-right md:col-span-3 space-y-2">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div>
-                <div className="text-sm text-muted-foreground">Academic year</div>
-                <div className="font-medium">{data?.academic_year ?? "—"}</div>
+                <div className="text-xs text-muted-foreground">Academic year</div>
+                <div className="font-medium text-sm">{data?.academic_year ?? "—"}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Semester</div>
-                <div className="font-medium">{data?.semester ?? "—"}</div>
+                <div className="text-xs text-muted-foreground">Semester</div>
+                <div className="font-medium text-sm">{data?.semester ?? "—"}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Students</div>
-                <div className="font-medium">{data?.students_count ?? data?.raw?.students_count ?? "—"}</div>
+                <div className="text-xs text-muted-foreground">Students</div>
+                <div className="font-medium text-sm">{data?.students_count ?? data?.raw?.students_count ?? "—"}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Attendance</div>
-                <div className={`font-medium ${Number(data?.attendanceRate) >= 90 ? "text-green-600" : Number(data?.attendanceRate) >= 75 ? "text-yellow-600" : "text-red-600"}`}>
+                <div className="text-xs text-muted-foreground">Attendance</div>
+                <div className={`font-medium text-sm ${Number(data?.attendanceRate) >= 90 ? "text-green-600" : Number(data?.attendanceRate) >= 75 ? "text-yellow-600" : "text-red-600"}`}>
                   {data?.attendanceRate != null ? `${Number(data.attendanceRate).toFixed(2)}%` : "—"}
                 </div>
               </div>

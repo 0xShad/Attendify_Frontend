@@ -36,11 +36,11 @@ export default function AttendanceHistoryDrawer({
 }: Props) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
-        <DrawerHeader className="px-4 pt-4">
+      <DrawerContent className="max-h-[90vh] mx-auto w-full max-w-2xl flex flex-col">
+        <DrawerHeader className="px-4 pt-4 shrink-0">
           <DrawerTitle>Attendance History - {selectedAttendanceClass?.name}</DrawerTitle>
         </DrawerHeader>
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 overflow-y-auto flex-1 min-h-0">
           {selectedAttendanceClass && (
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-3 space-y-2">
@@ -124,7 +124,7 @@ export default function AttendanceHistoryDrawer({
             </div>
           )}
         </div>
-        <DrawerFooter className="px-4 pb-4">
+        <DrawerFooter className="px-4 pb-4 shrink-0 border-t">
           <DrawerClose asChild>
             <Button variant="outline" className="w-full">Close</Button>
           </DrawerClose>
