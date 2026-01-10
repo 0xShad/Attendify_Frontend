@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -14,15 +13,15 @@ import AboutYouStep from "./steps/AboutYouStep";
 import SchoolProgramStep from "./steps/SchoolProgramStep";
 import FaceSubmissionStep from "./steps/FaceSubmissionStep";
 
-
-
 import { programsAPI } from "@/lib/api/programs";
-import { REDIRECT_URLS } from '@/config/auth';
+import { REDIRECT_URLS } from "@/config/auth";
 
 export default function ProfileCreatePage() {
   // Search state for dropdowns
   const [schoolSearch, setSchoolSearch] = useState("");
-  const [schools, setSchools] = useState<Array<{ id: number; name: string }>>([]);
+  const [schools, setSchools] = useState<Array<{ id: number; name: string }>>(
+    []
+  );
   const [schoolsLoading, setSchoolsLoading] = useState(true);
   const [schoolsError, setSchoolsError] = useState<string | null>(null);
   const router = useRouter();
@@ -37,20 +36,26 @@ export default function ProfileCreatePage() {
         const opts = await programsAPI.getOrganizationOptions();
         if (!mounted) return;
         // Map to minimal shape expected by the step
-        const mapped = Array.isArray(opts) ? opts.map((o: any) => ({ id: Number(o.id), name: String(o.name) })) : [];
+        const mapped = Array.isArray(opts)
+          ? opts.map((o: any) => ({ id: Number(o.id), name: String(o.name) }))
+          : [];
         setSchools(mapped);
       } catch (err: any) {
-        console.debug('Failed to load organization options', err);
+        console.debug("Failed to load organization options", err);
         if (!mounted) return;
         // Prefer readable error message
-        const msg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+        const msg =
+          err?.message ||
+          (typeof err === "object" ? JSON.stringify(err) : String(err));
         setSchoolsError(msg);
         setSchools([]);
       } finally {
         if (mounted) setSchoolsLoading(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
   const [form, setForm] = useState({
     bio: "",
@@ -65,19 +70,23 @@ export default function ProfileCreatePage() {
 
   function expandFieldAbbreviation(field: string) {
     const map: Record<string, string> = {
-      "IT": "Information Technology",
-      "CS": "Computer Science",
-      "Eng": "Engineering",
-      "Acctg": "Accountancy",
-      "Mgmt": "Management",
-      "Econ": "Economics",
+      IT: "Information Technology",
+      CS: "Computer Science",
+      Eng: "Engineering",
+      Acctg: "Accountancy",
+      Mgmt: "Management",
+      Econ: "Economics",
       // Add more as needed
     };
     const trimmed = field.trim();
     return map[trimmed] || trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
   }
 
-  function formatProgram(degreeType: string = "", field: string = "", major: string = "") {
+  function formatProgram(
+    degreeType: string = "",
+    field: string = "",
+    major: string = ""
+  ) {
     let deg = degreeType?.trim();
     if (!deg) return "";
     if (deg === "Other") deg = form.customDegreeType?.trim() || "";
@@ -87,11 +96,14 @@ export default function ProfileCreatePage() {
     return str;
   }
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string>("/default_profile_image.png");
+  const [avatarPreview, setAvatarPreview] = useState<string>(
+    "/default_profile_image.png"
+  );
   const [loading, setLoading] = useState(false);
 
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -107,10 +119,8 @@ export default function ProfileCreatePage() {
   };
 
   const handleSelectSchool = (value: string) => {
-    setForm(f => ({ ...f, school: value }));
+    setForm((f) => ({ ...f, school: value }));
   };
-
-  
 
   const handleNext = () => setStep((s) => Math.min(s + 1, 2));
   const handleBack = () => setStep((s) => Math.max(s - 1, 0));
@@ -125,49 +135,58 @@ export default function ProfileCreatePage() {
       // organization (school) id
       if (form.school) {
         const orgId = Number(form.school);
-        if (Number.isFinite(orgId)) formData.append('organization_id', String(orgId));
+        if (Number.isFinite(orgId))
+          formData.append("organization_id", String(orgId));
       }
 
       // program: prefer numeric program_id if user picked one, else send program_code
       if (form.program) {
         const pid = Number(form.program);
         if (Number.isFinite(pid)) {
-          formData.append('program_id', String(pid));
+          formData.append("program_id", String(pid));
         } else {
-          formData.append('program_code', String(form.program));
+          formData.append("program_code", String(form.program));
         }
       }
 
-      if (form.bio) formData.append('bio', String(form.bio));
+      if (form.bio) formData.append("bio", String(form.bio));
 
       // Attach avatar file if user uploaded one
       if (avatarFile) {
-        formData.append('avatar_file', avatarFile, avatarFile.name);
+        formData.append("avatar_file", avatarFile, avatarFile.name);
       }
 
       // If face_image is a data URL, convert to Blob and attach as face_file
-      if (form.face_image && typeof form.face_image === 'string' && form.face_image.startsWith('data:')) {
+      if (
+        form.face_image &&
+        typeof form.face_image === "string" &&
+        form.face_image.startsWith("data:")
+      ) {
         const res = await fetch(form.face_image);
         const blob = await res.blob();
-        formData.append('face_file', blob, 'face.png');
+        formData.append("face_file", blob, "face.png");
       }
 
-      const resp = await fetch('/api/profiles/mine', {
-        method: 'PATCH',
+      const resp = await fetch("/api/profiles/mine", {
+        method: "PATCH",
         body: formData,
-        credentials: 'include',
+        credentials: "include",
       });
 
       if (!resp.ok) {
-        const errBody = await resp.json().catch(() => ({ detail: resp.statusText }));
-        throw new Error(errBody?.detail || resp.statusText || `HTTP ${resp.status}`);
+        const errBody = await resp
+          .json()
+          .catch(() => ({ detail: resp.statusText }));
+        throw new Error(
+          errBody?.detail || resp.statusText || `HTTP ${resp.status}`
+        );
       }
 
       // On success, reload the page to trigger middleware routing
       // Middleware will check the updated profile and redirect to the correct dashboard based on role
-      window.location.href = '/';
+      window.location.href = "/";
     } catch (err) {
-      console.error('Failed to create/update profile', err);
+      console.error("Failed to create/update profile", err);
     } finally {
       setLoading(false);
     }
@@ -177,7 +196,7 @@ export default function ProfileCreatePage() {
   const stepProgress = [33, 66, 100][step];
 
   return (
-  <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-accent/30 relative overflow-hidden p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-accent/30 relative overflow-hidden p-4">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Main Animated Blue Blobs */}
@@ -201,28 +220,30 @@ export default function ProfileCreatePage() {
         </div>
       </div>
 
-    <Card className="w-full max-w-2xl relative z-10 shadow-xl border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
-      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 px-6 py-6 border-b border-border/50">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Create Your Profile</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {step === 0 && "Let us know who you are!"}
-              {step === 1 && "Tell us your school and program."}
-              {step === 2 && "Submit a face photo to complete your profile."}
-            </p>
+      <Card className="w-full max-w-2xl relative z-10 shadow-xl border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 px-6 py-6 border-b border-border/50">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                Create Your Profile
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {step === 0 && "Let us know who you are!"}
+                {step === 1 && "Tell us your school and program."}
+                {step === 2 && "Submit a face photo to complete your profile."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/auth/logout")}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold px-4 py-2 rounded-lg text-sm shadow-sm transition-colors"
+            >
+              Logout
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => router.push('/auth/logout')}
-            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold px-4 py-2 rounded-lg text-sm shadow-sm transition-colors"
-          >
-            Logout
-          </button>
+          <Progress value={stepProgress} className="h-2 bg-muted" />
         </div>
-        <Progress value={stepProgress} className="h-2 bg-muted" />
-      </div>
-      <form onSubmit={handleSubmit} className="space-y-6 px-6 py-6">
+        <form onSubmit={handleSubmit} className="space-y-6 px-6 py-6">
           {/* Stepper UI */}
           <Tabs value={String(step)} className="w-full">
             <TabsList className="w-full grid grid-cols-3 bg-muted/50 p-1 h-auto gap-1">
@@ -276,7 +297,9 @@ export default function ProfileCreatePage() {
               schoolSearch={schoolSearch}
               setSchoolSearch={setSchoolSearch}
               handleSelectSchool={handleSelectSchool}
-              onProgramChange={val => setForm(f => ({ ...f, program: val }))}
+              onProgramChange={(val) =>
+                setForm((f) => ({ ...f, program: val }))
+              }
               onBack={handleBack}
               onNext={handleNext}
             />
@@ -291,8 +314,8 @@ export default function ProfileCreatePage() {
               onSubmit={handleSubmit}
             />
           )}
-      </form>
-    </Card>
-  </div>
+        </form>
+      </Card>
+    </div>
   );
 }

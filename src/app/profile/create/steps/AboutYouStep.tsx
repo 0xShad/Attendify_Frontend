@@ -11,7 +11,9 @@ interface AboutYouStepProps {
   avatarFile: File | null;
   avatarPreview: string;
   loading: boolean;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
   onAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onNext: () => void;
 }
@@ -30,11 +32,21 @@ export default function AboutYouStep({
       <div className="flex flex-col items-center gap-4 py-4">
         <Avatar className="w-28 h-28 shadow-md ring-2 ring-primary/20">
           <AvatarImage src={avatarPreview} alt="Avatar" />
-          <AvatarFallback className="bg-muted text-muted-foreground text-2xl">?</AvatarFallback>
+          <AvatarFallback className="bg-muted text-muted-foreground text-2xl">
+            ?
+          </AvatarFallback>
         </Avatar>
         <div className="w-full flex flex-col items-center gap-2">
-          <Label htmlFor="avatar_file" className="text-sm font-medium text-foreground">Avatar Image (Optional)</Label>
-          <label htmlFor="avatar_file" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm cursor-pointer transition-colors">
+          <Label
+            htmlFor="avatar_file"
+            className="text-sm font-medium text-foreground"
+          >
+            Avatar Image (Optional)
+          </Label>
+          <label
+            htmlFor="avatar_file"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm cursor-pointer transition-colors"
+          >
             <CameraIcon size={18} />
             {avatarFile ? "Change Image" : "Upload Image"}
             <Input
@@ -46,11 +58,17 @@ export default function AboutYouStep({
               className="hidden"
             />
           </label>
-          {avatarFile && <span className="text-xs text-muted-foreground mt-1">{avatarFile.name}</span>}
+          {avatarFile && (
+            <span className="text-xs text-muted-foreground mt-1">
+              {avatarFile.name}
+            </span>
+          )}
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="bio" className="text-sm font-medium text-foreground">Bio (Optional)</Label>
+        <Label htmlFor="bio" className="text-sm font-medium text-foreground">
+          Bio (Optional)
+        </Label>
         <Textarea
           id="bio"
           name="bio"
