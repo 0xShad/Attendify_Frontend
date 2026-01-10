@@ -650,8 +650,9 @@ export default function StudentPortal({ children }: { children: React.ReactNode 
         {/* Student Sidebar */}
         <Sidebar
           variant="sidebar"
-          className="hidden md:flex border-r border-border bg-stone-50/60 supports-backdrop-filter:backdrop-blur-md shadow-lg flex-col min-h-screen relative z-50"
+          className="hidden md:flex border-r border-border bg-stone-50/60 supports-backdrop-filter:backdrop-blur-md shadow-lg flex-col sticky top-0 h-screen z-50"
         >
+
           {/* Sidebar Header */}
           <SidebarHeader className="px-4 py-6 border-b">
             <div className="flex items-center gap-3">

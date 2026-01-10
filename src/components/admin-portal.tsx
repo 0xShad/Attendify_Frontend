@@ -592,7 +592,7 @@ export function AdminPortal() {
         {/* Shadcn Sidebar */}
         <Sidebar
           variant="sidebar"
-          className="border-r border-border bg-stone-50/60 supports-[backdrop-filter]:backdrop-blur-md shadow-lg flex flex-col min-h-screen relative z-50"
+          className="border-r border-border bg-stone-50/60 supports-[backdrop-filter]:backdrop-blur-md shadow-lg flex flex-col sticky top-0 h-screen z-50"
         >
           {/* Sidebar Header with Logo */}
           <SidebarHeader className="px-4 py-6 border-b">
