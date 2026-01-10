@@ -11,7 +11,14 @@ import {
 } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type AttendanceRecord = {
   id: string;
@@ -38,7 +45,9 @@ export default function AttendanceHistoryDrawer({
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[90vh] mx-auto w-full max-w-2xl flex flex-col">
         <DrawerHeader className="px-4 pt-4 shrink-0">
-          <DrawerTitle>Attendance History - {selectedAttendanceClass?.name}</DrawerTitle>
+          <DrawerTitle>
+            Attendance History - {selectedAttendanceClass?.name}
+          </DrawerTitle>
         </DrawerHeader>
         <div className="px-4 pb-4 overflow-y-auto flex-1 min-h-0">
           {selectedAttendanceClass && (
@@ -46,15 +55,29 @@ export default function AttendanceHistoryDrawer({
               <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Class Code:</span>
-                  <span className="text-sm font-medium">{selectedAttendanceClass.code}</span>
+                  <span className="text-sm font-medium">
+                    {selectedAttendanceClass.code}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Instructor:</span>
-                  <span className="text-sm font-medium">{selectedAttendanceClass.instructor}</span>
+                  <span className="text-sm font-medium">
+                    {selectedAttendanceClass.instructor}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Attendance Rate:</span>
-                  <Badge variant={selectedAttendanceClass.attendanceRate >= 85 ? "default" : "destructive"}>{selectedAttendanceClass.attendanceRate}%</Badge>
+                  <span className="text-sm text-gray-600">
+                    Attendance Rate:
+                  </span>
+                  <Badge
+                    variant={
+                      selectedAttendanceClass.attendanceRate >= 85
+                        ? "default"
+                        : "destructive"
+                    }
+                  >
+                    {selectedAttendanceClass.attendanceRate}%
+                  </Badge>
                 </div>
               </div>
 
@@ -73,12 +96,31 @@ export default function AttendanceHistoryDrawer({
                     <TableBody>
                       {attendanceHistory.map((record) => (
                         <TableRow key={record.id}>
-                          <TableCell className="font-medium">{(new Date(record.sessionDate)).toLocaleDateString()}</TableCell>
-                          <TableCell>
-                            <Badge variant={record.status === "Present" ? "default" : record.status === "Late" ? "secondary" : record.status === "Excused" ? "outline" : "destructive"} className="text-xs">{record.status}</Badge>
+                          <TableCell className="font-medium">
+                            {new Date(record.sessionDate).toLocaleDateString()}
                           </TableCell>
-                          <TableCell className="text-sm text-gray-600">{record.sessionType}</TableCell>
-                          <TableCell className="text-sm text-gray-600">{record.duration} min</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                record.status === "Present"
+                                  ? "default"
+                                  : record.status === "Late"
+                                  ? "secondary"
+                                  : record.status === "Excused"
+                                  ? "outline"
+                                  : "destructive"
+                              }
+                              className="text-xs"
+                            >
+                              {record.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-600">
+                            {record.sessionType}
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-600">
+                            {record.duration} min
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -91,11 +133,28 @@ export default function AttendanceHistoryDrawer({
                     <div key={record.id} className="p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="text-sm font-medium">{(new Date(record.sessionDate)).toLocaleDateString()}</div>
-                          <div className="text-xs text-muted-foreground mt-1">{record.sessionType} • {record.duration} min</div>
+                          <div className="text-sm font-medium">
+                            {new Date(record.sessionDate).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {record.sessionType} • {record.duration} min
+                          </div>
                         </div>
                         <div className="shrink-0">
-                          <Badge variant={record.status === "Present" ? "default" : record.status === "Late" ? "secondary" : record.status === "Excused" ? "outline" : "destructive"} className="text-xs">{record.status}</Badge>
+                          <Badge
+                            variant={
+                              record.status === "Present"
+                                ? "default"
+                                : record.status === "Late"
+                                ? "secondary"
+                                : record.status === "Excused"
+                                ? "outline"
+                                : "destructive"
+                            }
+                            className="text-xs"
+                          >
+                            {record.status}
+                          </Badge>
                         </div>
                       </div>
                     </div>
@@ -105,19 +164,39 @@ export default function AttendanceHistoryDrawer({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                  <div className="text-lg font-bold text-green-600">{attendanceHistory.filter((r) => r.status === "Present").length}</div>
+                  <div className="text-lg font-bold text-green-600">
+                    {
+                      attendanceHistory.filter((r) => r.status === "Present")
+                        .length
+                    }
+                  </div>
                   <div className="text-xs text-green-600">Present</div>
                 </div>
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
-                  <div className="text-lg font-bold text-yellow-600">{attendanceHistory.filter((r) => r.status === "Late").length}</div>
+                  <div className="text-lg font-bold text-yellow-600">
+                    {
+                      attendanceHistory.filter((r) => r.status === "Late")
+                        .length
+                    }
+                  </div>
                   <div className="text-xs text-yellow-600">Late</div>
                 </div>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                  <div className="text-lg font-bold text-blue-600">{attendanceHistory.filter((r) => r.status === "Excused").length}</div>
+                  <div className="text-lg font-bold text-blue-600">
+                    {
+                      attendanceHistory.filter((r) => r.status === "Excused")
+                        .length
+                    }
+                  </div>
                   <div className="text-xs text-blue-600">Excused</div>
                 </div>
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-                  <div className="text-lg font-bold text-red-600">{attendanceHistory.filter((r) => r.status === "Absent").length}</div>
+                  <div className="text-lg font-bold text-red-600">
+                    {
+                      attendanceHistory.filter((r) => r.status === "Absent")
+                        .length
+                    }
+                  </div>
                   <div className="text-xs text-red-600">Absent</div>
                 </div>
               </div>
@@ -126,7 +205,9 @@ export default function AttendanceHistoryDrawer({
         </div>
         <DrawerFooter className="px-4 pb-4 shrink-0 border-t">
           <DrawerClose asChild>
-            <Button variant="outline" className="w-full">Close</Button>
+            <Button variant="outline" className="w-full">
+              Close
+            </Button>
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>

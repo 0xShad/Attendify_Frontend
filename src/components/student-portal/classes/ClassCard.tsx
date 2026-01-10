@@ -543,7 +543,9 @@ export default function ClassCard({
                 </div>
                 <div>
                   {classItem.session_active ? (
-                    <Badge className="bg-red-50 text-red-600">Session Live</Badge>
+                    <Badge className="bg-red-50 text-red-600">
+                      Session Live
+                    </Badge>
                   ) : classItem.is_active ? (
                     <Badge className="bg-green-50 text-green-700">Active</Badge>
                   ) : (
@@ -562,34 +564,34 @@ export default function ClassCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                  {classItem.is_secretary ? (
-                    <DropdownMenuItem
-                      onClick={() => {
-                        if (!sessionEndedToday) setStartDialogOpen(true);
-                      }}
-                      disabled={sessionEndedToday}
-                    >
-                      <Clock className="w-4 h-4 mr-2" />
-                      {sessionEndedToday ? "Session Ended" : "Start Session"}
-                    </DropdownMenuItem>
-                  ) : null}
+                {classItem.is_secretary ? (
                   <DropdownMenuItem
-                    onClick={() => onViewDetails && onViewDetails(classItem)}
+                    onClick={() => {
+                      if (!sessionEndedToday) setStartDialogOpen(true);
+                    }}
+                    disabled={sessionEndedToday}
                   >
-                    <Eye className="w-4 h-4 mr-2" />
-                    View Details
+                    <Clock className="w-4 h-4 mr-2" />
+                    {sessionEndedToday ? "Session Ended" : "Start Session"}
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() =>
-                      onViewAttendanceHistory &&
-                      onViewAttendanceHistory(classItem)
-                    }
-                  >
-                    <UserCheck className="w-4 h-4 mr-2" />
-                    Attendance History
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                ) : null}
+                <DropdownMenuItem
+                  onClick={() => onViewDetails && onViewDetails(classItem)}
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Details
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    onViewAttendanceHistory &&
+                    onViewAttendanceHistory(classItem)
+                  }
+                >
+                  <UserCheck className="w-4 h-4 mr-2" />
+                  Attendance History
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardHeader>
 
