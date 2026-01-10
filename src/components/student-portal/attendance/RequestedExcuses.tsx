@@ -92,13 +92,13 @@ export default function RequestedExcuses() {
 
   return (
     <div className="p-4">
-      <div className="flex items-center justify-between gap-4 mb-4">
+      <div className="flex flex-col gap-4 mb-4">
         <div>
           <h2 className="text-lg font-medium">Requested Excuses</h2>
           <p className="text-muted-foreground text-sm">View excusal requests you&apos;ve submitted.</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           {/* search removed per request */}
           <Select onValueChange={(v) => {
             const newVal = v === 'ALL' ? null : v;
@@ -106,7 +106,7 @@ export default function RequestedExcuses() {
             setSkip(0);
             fetchData({ classId: newVal, skip: 0 });
           }}>
-            <SelectTrigger className="w-52">
+            <SelectTrigger className="w-full sm:w-52">
               <SelectValue placeholder="Filter by class" />
             </SelectTrigger>
             <SelectContent>
@@ -123,7 +123,7 @@ export default function RequestedExcuses() {
             setSkip(0);
             fetchData({ status: newVal, skip: 0 });
           }}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
