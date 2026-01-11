@@ -85,351 +85,142 @@ export default function ClassCard({
   return (
     <Card
       key={classItem.id}
-      className="overflow-hidden h-full transition-shadow hover:shadow-lg"
+      className="overflow-hidden transition-shadow hover:shadow-md"
     >
-      <CardContent className="p-3 sm:p-4 h-full flex flex-col">
-        {/* Mobile: Flex layout for better control */}
-        <div className="flex sm:hidden flex-col gap-3">
-          {/* Header row: Icon, Title/Meta, Badge */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3 flex-1 min-w-0">
-              <div className="shrink-0 mt-1">
-                <span className="inline-flex items-center justify-center h-10 w-10 rounded-md bg-primary/10 text-primary">
-                  <IconChalkboard className="w-5 h-5" />
-                </span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-base font-semibold truncate">
-                  {classItem.class_code
-                    ? `${classItem.class_code}`
-                    : `Class ${classItem.id}`}
-                </h3>
-                <div className="text-sm text-muted-foreground truncate">
-                  {classItem.course_name ?? ""}
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2 items-center">
-                  {classItem.program_name && (
-                    <Badge
-                      variant="outline"
-                      className="text-xs px-2 py-0.5 rounded"
-                    >
-                      {classItem.program_name}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </div>
+      <CardContent className="p-4">
+        {/* Header: Code badge + actions */}
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="shrink-0">
+              {classItem.class_code ?? `Class ${classItem.id}`}
+            </Badge>
             <Badge
               variant="outline"
               className={
                 classItem.status === "Active"
-                  ? "border-green-200 text-green-700 bg-green-50"
-                  : "border-gray-200 text-gray-700 bg-gray-50"
+                  ? "border-green-200 text-green-700 bg-green-50 text-xs"
+                  : "border-gray-200 text-gray-700 bg-gray-50 text-xs"
               }
             >
               {classItem.status ?? "Active"}
             </Badge>
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="shrink-0">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onView(classItem)}>
+                <Eye className="w-4 h-4 mr-2" />
+                View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onEdit(classItem)}>
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Class
+              </DropdownMenuItem>
 
-          {/* Organization/Academic info */}
-          {(classItem.organization_name ||
-            classItem.academic_year ||
-            classItem.semester) && (
-            <div className="text-xs text-muted-foreground">
-              {[
-                classItem.organization_name,
-                classItem.academic_year,
-                classItem.semester,
-              ]
-                .filter(Boolean)
-                .join(" • ")}
-            </div>
-          )}
-
-          {/* Location & Schedule */}
-          <div>
-            <div className="flex items-center gap-2 text-sm mb-1">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <span className="truncate text-sm">
-                {classItem.room ?? "No room specified"}
-              </span>
-            </div>
-            {classItem.schedules && classItem.schedules.length > 0 ? (
-              <div className="text-xs text-muted-foreground ml-6">
-                {classItem.schedules[0].type === "normal"
-                  ? classItem.schedules[0].day_of_week ?? ""
-                  : classItem.schedules[0].date ?? ""}{" "}
-                {formatTimeRange(
-                  classItem.schedules[0].start_time,
-                  classItem.schedules[0].end_time
-                )}
-              </div>
-            ) : (
-              <div className="text-xs text-muted-foreground ml-6">
-                No schedule information
-              </div>
-            )}
-          </div>
-
-          {/* Stats row */}
-          <div className="flex items-center justify-between pt-2 border-t">
-            <div className="flex gap-6">
-              <div>
-                <div className="text-sm font-semibold">
-                  {classItem.student_count ??
-                    (classItem as any).enrolledStudents ??
-                    0}
-                </div>
-                <div className="text-xs text-muted-foreground">students</div>
-              </div>
-              <div>
-                <div className="text-sm font-semibold">
-                  {classItem.attendance_rate ??
-                    (classItem as any).attendanceRate ??
-                    0}
-                  %
-                </div>
-                <div className="text-xs text-muted-foreground">attendance</div>
-              </div>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onView(classItem)}>
-                  <Eye className="w-4 h-4 mr-2" />
-                  View Details
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onEdit(classItem)}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Class
-                </DropdownMenuItem>
-
-                {classItem.session_active ? (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      try {
-                        if (typeof onEndSession === "function") {
-                          onEndSession(classItem.id);
-                        } else if (typeof window !== "undefined") {
-                          window.dispatchEvent(
-                            new CustomEvent("classes:end-session", {
-                              detail: { classId: classItem.id },
-                            })
-                          );
-                        }
-                      } catch (e) {}
-                    }}
-                  >
-                    <Clock className="w-4 h-4 mr-2" />
-                    End Session
-                  </DropdownMenuItem>
-                ) : null}
-
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-red-600"
-                  onClick={() => onDelete && onDelete(classItem)}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Class
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {/* Action button for mobile */}
-          {classItem.is_active && (
-            <div>
               {classItem.session_active ? (
-                <Button
-                  size="sm"
-                  className="w-full flex items-center justify-center"
-                  disabled
+                <DropdownMenuItem
+                  onClick={() => {
+                    try {
+                      if (typeof onEndSession === "function") {
+                        onEndSession(classItem.id);
+                      } else if (typeof window !== "undefined") {
+                        window.dispatchEvent(
+                          new CustomEvent("classes:end-session", {
+                            detail: { classId: classItem.id },
+                          })
+                        );
+                      }
+                    } catch (e) {}
+                  }}
                 >
-                  <Play className="w-4 h-4 mr-2" />
-                  Session active
-                </Button>
-              ) : classItem.session_ended_today ? (
-                <Button
-                  size="sm"
-                  className="w-full flex items-center justify-center"
-                  disabled
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Session Ended
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  className="w-full flex items-center justify-center"
-                  onClick={() => onStartSession(classItem.id)}
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Start Session
-                </Button>
-              )}
+                  <Clock className="w-4 h-4 mr-2" />
+                  End Session
+                </DropdownMenuItem>
+              ) : null}
+
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => onDelete && onDelete(classItem)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Class
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Title & Description */}
+        <h3 className="text-lg font-semibold line-clamp-2 mb-1">
+          {classItem.course_name ??
+            classItem.class_code ??
+            `Class ${classItem.id}`}
+        </h3>
+        {classItem.description && (
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+            {classItem.description}
+          </p>
+        )}
+
+        {/* Meta info */}
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-3">
+          {classItem.program_name && <span>{classItem.program_name}</span>}
+          {classItem.organization_name && (
+            <>
+              <span>•</span>
+              <span>{classItem.organization_name}</span>
+            </>
+          )}
+          {(classItem.academic_year || classItem.semester) && (
+            <>
+              <span>•</span>
+              <span>
+                {[classItem.academic_year, classItem.semester]
+                  .filter(Boolean)
+                  .join(" / ")}
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Schedule & Location */}
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <span>{classItem.room ?? "No room specified"}</span>
+          </div>
+          {classItem.schedules && classItem.schedules.length > 0 && (
+            <div className="ml-6 space-y-1">
+              {classItem.schedules.slice(0, 2).map((s) => (
+                <div key={s.id} className="text-xs text-muted-foreground">
+                  <span className="font-medium">
+                    {s.type === "normal" ? s.day_of_week ?? "" : s.date ?? ""}
+                  </span>
+                  {" • "}
+                  {formatTimeRange(s.start_time, s.end_time)}
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Desktop: Grid layout */}
-        <div className="hidden sm:grid grid-cols-12 gap-3 items-start flex-1">
-          {/* Left: title and meta */}
-          <div className="col-span-7 h-full flex flex-col justify-between">
-            <div className="flex items-start gap-3">
-              <div className="shrink-0 mt-1">
-                <span className="inline-flex items-center justify-center h-10 w-10 rounded-md bg-primary/10 text-primary">
-                  <IconChalkboard className="w-5 h-5" />
-                </span>
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-base sm:text-lg font-semibold truncate">
-                      {classItem.class_code
-                        ? `${classItem.class_code}`
-                        : `Class ${classItem.id}`}
-                    </h3>
-                    {/* live session indicator removed per UX request */}
-                    <div className="text-sm text-muted-foreground truncate">
-                      {classItem.course_name ?? ""}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex flex-wrap gap-2 items-center">
-                  {classItem.program_name && (
-                    <Badge
-                      variant="outline"
-                      className="text-xs px-2 py-0.5 rounded"
-                    >
-                      {classItem.program_name}
-                    </Badge>
-                  )}
-                  {classItem.organization_name && (
-                    <span className="text-xs text-muted-foreground">
-                      {classItem.organization_name}
-                    </span>
-                  )}
-                  {(classItem.academic_year || classItem.semester) && (
-                    <span className="text-xs text-muted-foreground">
-                      {[classItem.academic_year, classItem.semester]
-                        .filter(Boolean)
-                        .join(" / ")}
-                    </span>
-                  )}
-                </div>
-
-                {classItem.description && (
-                  <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                    {classItem.description}
-                  </p>
-                )}
-              </div>
-            </div>
-            {/* Primary action placed bottom-left for easy access */}
-            {classItem.is_active && (
-              <div className="mt-auto mb-3">
-                {classItem.session_active ? (
-                  <Button
-                    size="sm"
-                    className="w-full sm:w-auto flex items-center justify-center"
-                    disabled
-                  >
-                    <Play className="w-4 h-4" />
-                    <span className="hidden sm:inline ml-2">
-                      Session active
-                    </span>
-                  </Button>
-                ) : classItem.session_ended_today ? (
-                  <Button
-                    size="sm"
-                    className="w-full sm:w-auto flex items-center justify-center"
-                    disabled
-                  >
-                    <Play className="w-4 h-4" />
-                    <span className="hidden sm:inline ml-2">Session Ended</span>
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    className="w-full sm:w-auto flex items-center justify-center"
-                    onClick={() => onStartSession(classItem.id)}
-                  >
-                    <Play className="w-4 h-4" />
-                    <span className="hidden sm:inline ml-2">Start Session</span>
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Middle: schedules and room */}
-          <div className="col-span-3">
-            <div className="mb-1 text-sm font-medium text-muted-foreground">
-              Location
-            </div>
-            <div className="flex items-center gap-2 text-sm mb-2">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <span className="truncate text-sm">
-                {classItem.room ?? "No room specified"}
-              </span>
-            </div>
-
-            {/* On small screens show a single-line summary; on sm+ show up to 2 schedule items */}
-            <div className="space-y-1 text-xs">
-              {classItem.schedules && classItem.schedules.length > 0 ? (
-                <div>
-                  {classItem.schedules.slice(0, 2).map((s) => (
-                    <div key={s.id} className="flex items-center gap-2">
-                      <IconChalkboard className="w-4 h-4 text-muted-foreground" />
-                      <div className="truncate">
-                        <div className="font-medium">
-                          {s.type === "normal"
-                            ? s.day_of_week ?? ""
-                            : s.date ?? ""}
-                        </div>
-                        <div className="text-muted-foreground">
-                          {formatTimeRange(s.start_time, s.end_time)}
-                          {s.reason ? ` — ${s.reason}` : ""}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-xs text-muted-foreground">
-                  No schedule information
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right: stats and actions */}
-          <div className="col-span-2 flex flex-col items-end gap-3 justify-between">
-            <Badge
-              variant="outline"
-              className={
-                classItem.status === "Active"
-                  ? "border-green-200 text-green-700 bg-green-50"
-                  : "border-gray-200 text-gray-700 bg-gray-50"
-              }
-            >
-              {classItem.status ?? "Active"}
-            </Badge>
-
-            <div className="w-28 text-right">
-              <div className="text-sm font-semibold">
+        {/* Stats */}
+        <div className="flex items-center justify-between pt-3 border-t">
+          <div className="flex gap-6">
+            <div>
+              <div className="text-lg font-semibold">
                 {classItem.student_count ??
                   (classItem as any).enrolledStudents ??
                   0}
               </div>
               <div className="text-xs text-muted-foreground">students</div>
-              <div className="mt-2 text-sm font-semibold">
+            </div>
+            <div>
+              <div className="text-lg font-semibold">
                 {classItem.attendance_rate ??
                   (classItem as any).attendanceRate ??
                   0}
@@ -437,60 +228,26 @@ export default function ClassCard({
               </div>
               <div className="text-xs text-muted-foreground">attendance</div>
             </div>
-
-            {/* inline Edit removed — action available in dropdown */}
-
-            <div className="mt-8">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onView(classItem)}>
-                    <Eye className="w-4 h-4 mr-2" />
-                    View Details
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onEdit(classItem)}>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit Class
-                  </DropdownMenuItem>
-
-                  {classItem.session_active ? (
-                    <DropdownMenuItem
-                      onClick={() => {
-                        try {
-                          if (typeof onEndSession === "function") {
-                            onEndSession(classItem.id);
-                          } else if (typeof window !== "undefined") {
-                            window.dispatchEvent(
-                              new CustomEvent("classes:end-session", {
-                                detail: { classId: classItem.id },
-                              })
-                            );
-                          }
-                        } catch (e) {}
-                      }}
-                    >
-                      <Clock className="w-4 h-4 mr-2" />
-                      End Session
-                    </DropdownMenuItem>
-                  ) : null}
-
-                  {/* Enroll removed */}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-red-600"
-                    onClick={() => onDelete && onDelete(classItem)}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Class
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
           </div>
+
+          {/* Action button */}
+          {classItem.is_active && (
+            <div>
+              {classItem.session_active ? (
+                <Badge className="bg-red-50 text-red-600">Session Live</Badge>
+              ) : classItem.session_ended_today ? (
+                <Button size="sm" disabled>
+                  <Play className="w-4 h-4 mr-2" />
+                  Ended
+                </Button>
+              ) : (
+                <Button size="sm" onClick={() => onStartSession(classItem.id)}>
+                  <Play className="w-4 h-4 mr-2" />
+                  Start
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
