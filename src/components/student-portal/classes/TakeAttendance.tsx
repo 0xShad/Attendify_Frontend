@@ -1,14 +1,20 @@
 "use client";
 
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import FaceCamera from "@/components/online-face-camera";
 import F2FFaceCamera from "@/components/f2f-face-camera";
-import { markPresent, markPresentF2F } from '@/lib/api/attendance';
-import { useToast } from '@/hooks/use-toast';
+import { markPresent, markPresentF2F } from "@/lib/api/attendance";
+import { useToast } from "@/hooks/use-toast";
 
 type Props = {
   open: boolean;
@@ -20,7 +26,15 @@ type Props = {
   onRecorded?: (record?: any) => void;
 };
 
-export default function TakeAttendance({ open, onOpenChange, classItem, sessionInfo = null, onCapture, onRetake, onRecorded }: Props) {
+export default function TakeAttendance({
+  open,
+  onOpenChange,
+  classItem,
+  sessionInfo = null,
+  onCapture,
+  onRetake,
+  onRecorded,
+}: Props) {
   const [faceValidated, setFaceValidated] = React.useState(false);
   const [lastCaptured, setLastCaptured] = React.useState<string | null>(null);
   const [lat, setLat] = React.useState<string | null>(null);
@@ -36,35 +50,48 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
     if (!open) return;
     const S_local = sessionInfo;
     if (!S_local) return;
-    const modesRaw = Array.isArray(S_local?.current_schedule_modes) && S_local.current_schedule_modes.length > 0
-      ? S_local.current_schedule_modes
-      : S_local?.current_schedule?.modes ?? null;
-    const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
-    const isHybrid = modes.includes('hybrid');
+    const modesRaw =
+      Array.isArray(S_local?.current_schedule_modes) &&
+      S_local.current_schedule_modes.length > 0
+        ? S_local.current_schedule_modes
+        : S_local?.current_schedule?.modes ?? null;
+    const modes = Array.isArray(modesRaw)
+      ? modesRaw.map((m: any) => String(m ?? "").toLowerCase())
+      : [];
+    const isHybrid = modes.includes("hybrid");
     if (!isHybrid) return;
 
     if (locationConfirmed || locating) return;
 
     const doRequest = () => {
-      if (!('geolocation' in navigator)) {
-        setLocationError('Geolocation not supported by this browser');
+      if (!("geolocation" in navigator)) {
+        setLocationError("Geolocation not supported by this browser");
         return;
       }
       setLocating(true);
       setLocationError(null);
-      navigator.geolocation.getCurrentPosition((pos) => {
-        setLocating(false);
-        setLat(String(pos.coords.latitude));
-        setLon(String(pos.coords.longitude));
-        setLocationConfirmed(true);
-      }, (err) => {
-        setLocating(false);
-        setLocationError(err.message || 'Unable to get location');
-        setLocationConfirmed(false);
-      }, { enableHighAccuracy: true, timeout: 10000 });
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLocating(false);
+          setLat(String(pos.coords.latitude));
+          setLon(String(pos.coords.longitude));
+          setLocationConfirmed(true);
+        },
+        (err) => {
+          setLocating(false);
+          setLocationError(err.message || "Unable to get location");
+          setLocationConfirmed(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
     };
 
-    try { doRequest(); } catch (e) { setLocationError(String(e)); setLocating(false); }
+    try {
+      doRequest();
+    } catch (e) {
+      setLocationError(String(e));
+      setLocating(false);
+    }
     // only run when dialog opens or sessionInfo changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sessionInfo]);
@@ -80,15 +107,19 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
   const handleRetake = () => {
     setFaceValidated(false);
     setLastCaptured(null);
-    if (typeof onRetake === 'function') {
-      try { onRetake(); } catch (e) { console.warn('onRetake callback threw', e); }
+    if (typeof onRetake === "function") {
+      try {
+        onRetake();
+      } catch (e) {
+        console.warn("onRetake callback threw", e);
+      }
     }
   };
 
   const dataURLtoBlob = (dataurl: string) => {
-    const arr = dataurl.split(',');
+    const arr = dataurl.split(",");
     const mimeMatch = arr[0].match(/:(.*?);/);
-    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
     const bstr = atob(arr[1]);
     let n = bstr.length;
     const u8arr = new Uint8Array(n);
@@ -98,35 +129,40 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
 
   const handleRecord = async () => {
     if (!lastCaptured) return;
-            setSubmitError(null);
+    setSubmitError(null);
     setSubmitting(true);
 
     try {
       // determine modes
-      const modesRaw = Array.isArray(sessionInfo?.current_schedule_modes) && sessionInfo.current_schedule_modes.length > 0
-        ? sessionInfo.current_schedule_modes
-        : sessionInfo?.current_schedule?.modes ?? null;
-      const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
+      const modesRaw =
+        Array.isArray(sessionInfo?.current_schedule_modes) &&
+        sessionInfo.current_schedule_modes.length > 0
+          ? sessionInfo.current_schedule_modes
+          : sessionInfo?.current_schedule?.modes ?? null;
+      const modes = Array.isArray(modesRaw)
+        ? modesRaw.map((m: any) => String(m ?? "").toLowerCase())
+        : [];
 
-      const isOnline = modes.includes('online');
-      const isHybrid = modes.includes('hybrid');
+      const isOnline = modes.includes("online");
+      const isHybrid = modes.includes("hybrid");
 
       // validations
       if ((isOnline || isHybrid) && !lastCaptured) {
-        setSubmitError('No face capture available');
+        setSubmitError("No face capture available");
         setSubmitting(false);
         return;
       }
       if (isHybrid && !(lat && lon)) {
-        setSubmitError('Location is required for hybrid mode');
+        setSubmitError("Location is required for hybrid mode");
         setSubmitting(false);
         return;
       }
 
       const classId = sessionInfo?.class?.id ?? classItem?.id ?? null;
-      const sessionId = sessionInfo?.active_session_id ?? sessionInfo?.session_id ?? null;
+      const sessionId =
+        sessionInfo?.active_session_id ?? sessionInfo?.session_id ?? null;
       if (!classId || !sessionId) {
-        setSubmitError('Missing class or session id');
+        setSubmitError("Missing class or session id");
         setSubmitting(false);
         return;
       }
@@ -143,18 +179,25 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
       });
       // Parse MATCH_INFO from remarks (if present) and show user feedback
       try {
-        const remarks: string = resp?.remarks || '';
+        const remarks: string = resp?.remarks || "";
         let matchInfo: any = null;
-        const marker = 'MATCH_INFO:';
+        const marker = "MATCH_INFO:";
         const idx = remarks.indexOf(marker);
         if (idx >= 0) {
           const jsonPart = remarks.slice(idx + marker.length).trim();
-          try { matchInfo = JSON.parse(jsonPart); } catch (e) { /* ignore parse errors */ }
+          try {
+            matchInfo = JSON.parse(jsonPart);
+          } catch (e) {
+            /* ignore parse errors */
+          }
         }
 
         if (matchInfo) {
           const THRESHOLD = 0.45;
-          const rawScore = typeof matchInfo.score === 'number' ? matchInfo.score : Number(matchInfo.score);
+          const rawScore =
+            typeof matchInfo.score === "number"
+              ? matchInfo.score
+              : Number(matchInfo.score);
           const hasScore = !Number.isNaN(rawScore) && rawScore != null;
           const scoreStr = hasScore ? rawScore.toFixed(4) : null;
 
@@ -162,40 +205,75 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
             // lower scores are better (distance/cosine where smaller indicates a closer match)
             const passed = rawScore < THRESHOLD;
             if (passed) {
-              toast({ title: 'Attendance recorded', description: (
-                <div>
-                  <div>Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}) — Verified</div>
-                  <div className="text-xs text-muted-foreground">Model: {matchInfo.model} • Metric: {matchInfo.metric}</div>
-                </div>
-              ) });
+              toast({
+                title: "Attendance recorded",
+                description: (
+                  <div>
+                    <div>
+                      Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}
+                      ) — Verified
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Model: {matchInfo.model} • Metric: {matchInfo.metric}
+                    </div>
+                  </div>
+                ),
+              });
             } else {
-              toast({ title: 'Face recognition above threshold', description: (
-                <div>
-                  <div>Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}) — Not verified</div>
-                  <div className="text-xs text-muted-foreground">Try again or retake the photo.</div>
-                </div>
-              ), variant: 'destructive' });
+              toast({
+                title: "Face recognition above threshold",
+                description: (
+                  <div>
+                    <div>
+                      Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}
+                      ) — Not verified
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Try again or retake the photo.
+                    </div>
+                  </div>
+                ),
+                variant: "destructive",
+              });
             }
           } else {
             if (matchInfo.matched) {
-              toast({ title: 'Attendance recorded', description: 'Face matched — attendance recorded.' });
+              toast({
+                title: "Attendance recorded",
+                description: "Face matched — attendance recorded.",
+              });
             } else {
-              toast({ title: 'Face recognition failed', description: 'Face recognition did not match our records.', variant: 'destructive' });
+              toast({
+                title: "Face recognition failed",
+                description: "Face recognition did not match our records.",
+                variant: "destructive",
+              });
             }
           }
         } else {
-          toast({ title: 'Attendance recorded', description: 'Your attendance was recorded successfully.' });
+          toast({
+            title: "Attendance recorded",
+            description: "Your attendance was recorded successfully.",
+          });
         }
       } catch (e) {
         // If something in the UI parsing fails, still continue with callbacks
       }
 
       // success callbacks
-      if (typeof onCapture === 'function') {
-        try { onCapture(lastCaptured); } catch (e) { console.warn('onCapture callback threw', e); }
+      if (typeof onCapture === "function") {
+        try {
+          onCapture(lastCaptured);
+        } catch (e) {
+          console.warn("onCapture callback threw", e);
+        }
       }
-      if (typeof onRecorded === 'function') {
-        try { onRecorded(resp); } catch (e) { console.warn('onRecorded callback threw', e); }
+      if (typeof onRecorded === "function") {
+        try {
+          onRecorded(resp);
+        } catch (e) {
+          console.warn("onRecorded callback threw", e);
+        }
       }
       onOpenChange(false);
     } catch (err: any) {
@@ -203,66 +281,133 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
       const status = err?.status;
       const body = err?.body ?? {};
       try {
-        const detail = (body && typeof body === 'object' && body.detail && typeof body.detail === 'object') ? body.detail : body;
-        if (status === 403 && detail && typeof detail === 'object' && (detail.distance_km != null && detail.threshold_km != null || detail.code === 'not_in_location')) {
+        const detail =
+          body &&
+          typeof body === "object" &&
+          body.detail &&
+          typeof body.detail === "object"
+            ? body.detail
+            : body;
+        if (
+          status === 403 &&
+          detail &&
+          typeof detail === "object" &&
+          ((detail.distance_km != null && detail.threshold_km != null) ||
+            detail.code === "not_in_location")
+        ) {
           const distanceKm = Number(detail.distance_km ?? detail.distance ?? 0);
-          const thresholdKm = Number(detail.threshold_km ?? detail.threshold ?? 0);
+          const thresholdKm = Number(
+            detail.threshold_km ?? detail.threshold ?? 0
+          );
           const distanceM = Math.round(distanceKm * 1000);
           const thresholdM = Math.round(thresholdKm * 1000);
           const diffM = Math.max(0, distanceM - thresholdM);
-          const rawErr = detail.message ?? detail.error ?? detail.detail ?? null;
-          const reportedLat = detail.reported_lat ?? detail.reportedLat ?? detail.reportedLatitude ?? null;
-          const reportedLon = detail.reported_lon ?? detail.reportedLon ?? detail.reportedLongitude ?? null;
+          const rawErr =
+            detail.message ?? detail.error ?? detail.detail ?? null;
+          const reportedLat =
+            detail.reported_lat ??
+            detail.reportedLat ??
+            detail.reportedLatitude ??
+            null;
+          const reportedLon =
+            detail.reported_lon ??
+            detail.reportedLon ??
+            detail.reportedLongitude ??
+            null;
           const sessionLat = detail.session_lat ?? detail.sessionLat ?? null;
           const sessionLon = detail.session_lon ?? detail.sessionLon ?? null;
           // Show only the concise server-provided message in the toast per request
-          toast({ title: 'Location not allowed', description: String(rawErr ?? detail?.message ?? 'You are not within allowed area for hybrid session'), variant: 'destructive' });
+          toast({
+            title: "Location not allowed",
+            description: String(
+              rawErr ??
+                detail?.message ??
+                "You are not within allowed area for hybrid session"
+            ),
+            variant: "destructive",
+          });
           // Show details in toast only; do not set a red inline error message
           setSubmitError(null);
         } else if (status === 403) {
           // Face recognition or generic forbidden detail. Provide more helpful guidance
-          const rawMsgVal = (body && (body.detail ?? body.error ?? body.message)) ?? err?.message ?? 'Action forbidden';
-          const rawMsg = typeof rawMsgVal === 'string' ? rawMsgVal : (rawMsgVal ? JSON.stringify(rawMsgVal) : 'Action forbidden');
+          const rawMsgVal =
+            (body && (body.detail ?? body.error ?? body.message)) ??
+            err?.message ??
+            "Action forbidden";
+          const rawMsg =
+            typeof rawMsgVal === "string"
+              ? rawMsgVal
+              : rawMsgVal
+              ? JSON.stringify(rawMsgVal)
+              : "Action forbidden";
           const lc = rawMsg.toLowerCase();
-          if (lc.includes('face recognition failed') || lc.includes('face not matched') || lc.includes('face_match')) {
-            const msg = 'Face recognition failed. Your photo did not match our records.';
-            toast({ title: 'Face recognition failed', description: (
-              <div>
-                <div>{msg}</div>
-                <ul className="text-xs mt-2 list-disc list-inside text-muted-foreground">
-                  <li>Ensure good lighting</li>
-                  <li>Remove sunglasses</li>
-                  <li>Make sure only your face is visible</li>
-                  <li>Look directly in the camera</li>
-                </ul>
-              </div>
-            ), variant: 'destructive' });
+          if (
+            lc.includes("face recognition failed") ||
+            lc.includes("face not matched") ||
+            lc.includes("face_match")
+          ) {
+            const msg =
+              "Face recognition failed. Your photo did not match our records.";
+            toast({
+              title: "Face recognition failed",
+              description: (
+                <div>
+                  <div>{msg}</div>
+                  <ul className="text-xs mt-2 list-disc list-inside text-muted-foreground">
+                    <li>Ensure good lighting</li>
+                    <li>Remove sunglasses</li>
+                    <li>Make sure only your face is visible</li>
+                    <li>Look directly in the camera</li>
+                  </ul>
+                </div>
+              ),
+              variant: "destructive",
+            });
             // keep only a short, user-friendly inline message; details are in the toast
             setSubmitError(null);
           } else {
-            const msg = rawMsg || 'Action forbidden';
-            toast({ title: 'Attendance rejected', description: String(msg), variant: 'destructive' });
+            const msg = rawMsg || "Action forbidden";
+            toast({
+              title: "Attendance rejected",
+              description: String(msg),
+              variant: "destructive",
+            });
             setSubmitError(null);
           }
         } else {
           // Fallback: generic error handling. Sanitize sensitive server traces
           const raw = err?.message ?? err?.body ?? String(err);
-          const rawStr = String(raw || '');
-          const sensitivePatterns = ['psycopg2', 'InvalidTextRepresentation', 'invalid input syntax', 'SQL:', 'Traceback', 'stacktrace'];
-          const containsSensitive = sensitivePatterns.some(p => rawStr.toLowerCase().includes(p.toLowerCase()));
+          const rawStr = String(raw || "");
+          const sensitivePatterns = [
+            "psycopg2",
+            "InvalidTextRepresentation",
+            "invalid input syntax",
+            "SQL:",
+            "Traceback",
+            "stacktrace",
+          ];
+          const containsSensitive = sensitivePatterns.some((p) =>
+            rawStr.toLowerCase().includes(p.toLowerCase())
+          );
           const safeMessage = containsSensitive
-            ? 'Failed to record attendance due to a server error. Please try again later or contact support.'
-            : rawStr || 'An unexpected error occurred.';
+            ? "Failed to record attendance due to a server error. Please try again later or contact support."
+            : rawStr || "An unexpected error occurred.";
 
           // Log full raw error for developers/telemetry, but show safe message to users
-          try { console.error('Attendance submission error (raw):', err); } catch (e) {}
+          try {
+            console.error("Attendance submission error (raw):", err);
+          } catch (e) {}
 
-          toast({ title: 'Error', description: safeMessage, variant: 'destructive' });
+          toast({
+            title: "Error",
+            description: safeMessage,
+            variant: "destructive",
+          });
           setSubmitError(safeMessage);
         }
       } catch (parseErr) {
         const message = err?.message ?? String(err);
-        toast({ title: 'Error', description: message, variant: 'destructive' });
+        toast({ title: "Error", description: message, variant: "destructive" });
         setSubmitError(message);
       }
     } finally {
@@ -271,11 +416,16 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
   };
 
   // Handler for face-to-face recognition callbacks from F2FFaceCamera
-  const handleF2FRecognized = async (dataUrl: string, box: any, faceHash: string) => {
+  const handleF2FRecognized = async (
+    dataUrl: string,
+    box: any,
+    faceHash: string
+  ) => {
     // Avoid duplicate UI submissions
     if (!sessionInfo) return false;
     const classId = sessionInfo?.class?.id ?? classItem?.id ?? null;
-    const sessionId = sessionInfo?.active_session_id ?? sessionInfo?.session_id ?? null;
+    const sessionId =
+      sessionInfo?.active_session_id ?? sessionInfo?.session_id ?? null;
     if (!classId || !sessionId) return false;
 
     // Small UI state: show verifying
@@ -283,9 +433,9 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
     setSubmitError(null);
     try {
       // convert dataURL to blob
-      const arr = dataUrl.split(',');
+      const arr = dataUrl.split(",");
       const mimeMatch = arr[0].match(/:(.*?);/);
-      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
       const bstr = atob(arr[1]);
       let n = bstr.length;
       const u8arr = new Uint8Array(n);
@@ -302,54 +452,92 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
 
       // Provide feedback similar to existing flow
       try {
-        const remarks: string = resp?.remarks || '';
+        const remarks: string = resp?.remarks || "";
         let matchInfo: any = null;
-        const marker = 'MATCH_INFO:';
+        const marker = "MATCH_INFO:";
         const idx = remarks.indexOf(marker);
         if (idx >= 0) {
           const jsonPart = remarks.slice(idx + marker.length).trim();
-          try { matchInfo = JSON.parse(jsonPart); } catch (e) { /* ignore */ }
+          try {
+            matchInfo = JSON.parse(jsonPart);
+          } catch (e) {
+            /* ignore */
+          }
         }
 
         if (matchInfo) {
           const THRESHOLD = 0.45;
-          const rawScore = typeof matchInfo.score === 'number' ? matchInfo.score : Number(matchInfo.score);
+          const rawScore =
+            typeof matchInfo.score === "number"
+              ? matchInfo.score
+              : Number(matchInfo.score);
           const hasScore = !Number.isNaN(rawScore) && rawScore != null;
           const scoreStr = hasScore ? rawScore.toFixed(4) : null;
 
           if (hasScore) {
             const passed = rawScore >= THRESHOLD;
             if (passed) {
-              toast({ title: 'Attendance recorded', description: (
-                <div>
-                  <div>Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}) — Verified</div>
-                  <div className="text-xs text-muted-foreground">Model: {matchInfo.model} • Metric: {matchInfo.metric}</div>
-                </div>
-              ) });
+              toast({
+                title: "Attendance recorded",
+                description: (
+                  <div>
+                    <div>
+                      Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}
+                      ) — Verified
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Model: {matchInfo.model} • Metric: {matchInfo.metric}
+                    </div>
+                  </div>
+                ),
+              });
             } else {
-              toast({ title: 'Face recognition below threshold', description: (
-                <div>
-                  <div>Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}) — Not verified</div>
-                  <div className="text-xs text-muted-foreground">Ensure good lighting and try again.</div>
-                </div>
-              ), variant: 'destructive' });
+              toast({
+                title: "Face recognition below threshold",
+                description: (
+                  <div>
+                    <div>
+                      Match score: {scoreStr} (threshold: {THRESHOLD.toFixed(2)}
+                      ) — Not verified
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Ensure good lighting and try again.
+                    </div>
+                  </div>
+                ),
+                variant: "destructive",
+              });
             }
           } else {
             if (matchInfo.matched) {
-              toast({ title: 'Attendance recorded', description: 'Face matched — attendance recorded.' });
+              toast({
+                title: "Attendance recorded",
+                description: "Face matched — attendance recorded.",
+              });
             } else {
-              toast({ title: 'Face recognition failed', description: 'Face recognition did not match our records.', variant: 'destructive' });
+              toast({
+                title: "Face recognition failed",
+                description: "Face recognition did not match our records.",
+                variant: "destructive",
+              });
             }
           }
         } else {
-          toast({ title: 'Attendance recorded', description: 'Your attendance was recorded successfully.' });
+          toast({
+            title: "Attendance recorded",
+            description: "Your attendance was recorded successfully.",
+          });
         }
       } catch (e) {
         // ignore
       }
 
-      if (typeof onRecorded === 'function') {
-        try { onRecorded(resp); } catch (e) { console.warn('onRecorded callback threw', e); }
+      if (typeof onRecorded === "function") {
+        try {
+          onRecorded(resp);
+        } catch (e) {
+          console.warn("onRecorded callback threw", e);
+        }
       }
 
       // keep the UI briefly then close
@@ -364,16 +552,16 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
     } catch (err: any) {
       setSubmitting(false);
       const msg = err?.message ?? String(err);
-            // keep only a short inline message; details shown in toast
-            setSubmitError('Attendance rejected');
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      // keep only a short inline message; details shown in toast
+      setSubmitError("Attendance rejected");
+      toast({ title: "Error", description: msg, variant: "destructive" });
       return false;
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Take Attendance</DialogTitle>
         </DialogHeader>
@@ -381,20 +569,41 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
         <div className="space-y-6 py-2">
           <Card className="p-6">
             <div className="flex flex-col items-center">
-              <Label className="font-semibold text-lg mb-2">Face Verification</Label>
-              <p className="text-sm text-muted-foreground mb-4 text-center max-w-lg">Use the camera to capture a clear photo of the attendee. Blink when asked to prove liveness. The system will validate the capture before recording attendance.</p>
+              <Label className="font-semibold text-lg mb-2">
+                Face Verification
+              </Label>
+              <p className="text-sm text-muted-foreground mb-4 text-center max-w-lg">
+                Use the camera to capture a clear photo of the attendee. Blink
+                when asked to prove liveness. The system will validate the
+                capture before recording attendance.
+              </p>
 
               {/* Class & session details (from sessionInfo) */}
               {sessionInfo && (
                 <div className="w-full mb-4 rounded-md border p-3 bg-muted/5 text-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium">{sessionInfo?.class?.course_name ?? sessionInfo?.class?.class_code ?? 'Class'}</div>
-                      <div className="text-xs text-muted-foreground">{sessionInfo?.class?.course_code ? `${sessionInfo.class.course_code} • ${sessionInfo.class.program_id ? sessionInfo.class.program_id : ''}` : sessionInfo?.class?.program_name ?? ''}</div>
+                      <div className="font-medium">
+                        {sessionInfo?.class?.course_name ??
+                          sessionInfo?.class?.class_code ??
+                          "Class"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {sessionInfo?.class?.course_code
+                          ? `${sessionInfo.class.course_code} • ${
+                              sessionInfo.class.program_id
+                                ? sessionInfo.class.program_id
+                                : ""
+                            }`
+                          : sessionInfo?.class?.program_name ?? ""}
+                      </div>
                     </div>
                     <div className="text-right text-xs text-muted-foreground">
-                      <div>Room: {sessionInfo?.class?.room ?? 'TBA'}</div>
-                      <div>Instructor: {sessionInfo?.class?.assigned_faculty_name ?? 'TBA'}</div>
+                      <div>Room: {sessionInfo?.class?.room ?? "TBA"}</div>
+                      <div>
+                        Instructor:{" "}
+                        {sessionInfo?.class?.assigned_faculty_name ?? "TBA"}
+                      </div>
                     </div>
                   </div>
 
@@ -404,23 +613,64 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
                       {sessionInfo?.current_schedule ? (
                         <div className="text-muted-foreground">
                           {sessionInfo.current_schedule.date ? (
-                            <div>{new Date(sessionInfo.current_schedule.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' })}</div>
+                            <div>
+                              {new Date(
+                                sessionInfo.current_schedule.date
+                              ).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                timeZone: "Asia/Manila",
+                              })}
+                            </div>
                           ) : (
-                            <div>{sessionInfo.current_schedule.day_of_week ?? 'TBA'}</div>
+                            <div>
+                              {sessionInfo.current_schedule.day_of_week ??
+                                "TBA"}
+                            </div>
                           )}
-                          <div>{sessionInfo.current_schedule.start_time ? `${sessionInfo.current_schedule.start_time} - ${sessionInfo.current_schedule.end_time ?? ''}` : 'Time TBA'}</div>
-                          <div>Modes: {(Array.isArray(sessionInfo.current_schedule.modes) && sessionInfo.current_schedule.modes.length) ? sessionInfo.current_schedule.modes.join(', ') : (Array.isArray(sessionInfo.current_schedule_modes) && sessionInfo.current_schedule_modes.length) ? sessionInfo.current_schedule_modes.join(', ') : 'unknown'}</div>
+                          <div>
+                            {sessionInfo.current_schedule.start_time
+                              ? `${sessionInfo.current_schedule.start_time} - ${
+                                  sessionInfo.current_schedule.end_time ?? ""
+                                }`
+                              : "Time TBA"}
+                          </div>
+                          <div>
+                            Modes:{" "}
+                            {Array.isArray(
+                              sessionInfo.current_schedule.modes
+                            ) && sessionInfo.current_schedule.modes.length
+                              ? sessionInfo.current_schedule.modes.join(", ")
+                              : Array.isArray(
+                                  sessionInfo.current_schedule_modes
+                                ) && sessionInfo.current_schedule_modes.length
+                              ? sessionInfo.current_schedule_modes.join(", ")
+                              : "unknown"}
+                          </div>
                         </div>
                       ) : (
-                        <div className="text-muted-foreground">No active schedule</div>
+                        <div className="text-muted-foreground">
+                          No active schedule
+                        </div>
                       )}
                     </div>
 
                     <div>
                       <div className="font-medium">Session</div>
-                      <div className="text-muted-foreground">Status: {sessionInfo?.session_active ? <span className="text-red-600">Live</span> : <span>Not Active</span>}</div>
-                      <div className="text-muted-foreground">Session ID: {sessionInfo?.active_session_id ?? '—'}</div>
-                      <div className="text-muted-foreground">Schedule ID: {sessionInfo?.current_schedule_id ?? '—'}</div>
+                      <div className="text-muted-foreground">
+                        Status:{" "}
+                        {sessionInfo?.session_active ? (
+                          <span className="text-red-600">Live</span>
+                        ) : (
+                          <span>Not Active</span>
+                        )}
+                      </div>
+                      <div className="text-muted-foreground">
+                        Session ID: {sessionInfo?.active_session_id ?? "—"}
+                      </div>
+                      <div className="text-muted-foreground">
+                        Schedule ID: {sessionInfo?.current_schedule_id ?? "—"}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -429,28 +679,52 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
               {sessionInfo && sessionInfo.session_active === false ? (
                 <div className="w-full p-6 rounded-md border bg-yellow-50 text-sm text-amber-800">
                   <div className="font-medium">Session not active</div>
-                  <div className="mt-2">{sessionInfo.session_message ?? 'Session has not started yet for this class. Please inform your professor or secretary.'}</div>
+                  <div className="mt-2">
+                    {sessionInfo.session_message ??
+                      "Session has not started yet for this class. Please inform your professor or secretary."}
+                  </div>
                 </div>
               ) : (
                 /* Only use the online camera when the active schedule/mode is explicitly 'online'.
                    In other cases (face_to_face, hybrid) show a placeholder until other variants are implemented. */
                 (() => {
-                  const modesRaw = Array.isArray(sessionInfo?.current_schedule_modes) && sessionInfo.current_schedule_modes.length > 0
-                    ? sessionInfo.current_schedule_modes
-                    : sessionInfo?.current_schedule?.modes ?? null;
-                  const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
-                  const isOnline = modes.includes('online');
-                  const isHybrid = modes.includes('hybrid');
+                  const modesRaw =
+                    Array.isArray(sessionInfo?.current_schedule_modes) &&
+                    sessionInfo.current_schedule_modes.length > 0
+                      ? sessionInfo.current_schedule_modes
+                      : sessionInfo?.current_schedule?.modes ?? null;
+                  const modes = Array.isArray(modesRaw)
+                    ? modesRaw.map((m: any) => String(m ?? "").toLowerCase())
+                    : [];
+                  const isOnline = modes.includes("online");
+                  const isHybrid = modes.includes("hybrid");
                   if (isOnline) {
-                    return <FaceCamera active={open} onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={false} />;
+                    return (
+                      <FaceCamera
+                        active={open}
+                        onCapture={handleFaceCapture}
+                        onRetake={handleRetake}
+                        skipFaceDetect={false}
+                      />
+                    );
                   }
 
-                  if (modes.includes('face_to_face') || modes.includes('f2f') ) {
+                  if (modes.includes("face_to_face") || modes.includes("f2f")) {
                     // For face-to-face mode, use the F2F detector which auto-submits on recognition
                     return (
                       <div className="w-full">
-                        <F2FFaceCamera active={open} onRecognized={handleF2FRecognized} debounceMinutes={5} width={420} height={320} bypassFilters={false} />
-                        <div className="text-xs text-muted-foreground mt-2">Face-to-face mode: camera will automatically scan and record attendance when a face is recognized.</div>
+                        <F2FFaceCamera
+                          active={open}
+                          onRecognized={handleF2FRecognized}
+                          debounceMinutes={5}
+                          width={420}
+                          height={320}
+                          bypassFilters={false}
+                        />
+                        <div className="text-xs text-muted-foreground mt-2">
+                          Face-to-face mode: camera will automatically scan and
+                          record attendance when a face is recognized.
+                        </div>
                       </div>
                     );
                   }
@@ -458,56 +732,88 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
                   if (isHybrid) {
                     return (
                       <div className="w-full">
-                        <div className="mb-4 text-sm text-muted-foreground">This session requires location confirmation. The app will attempt to obtain your device location automatically.</div>
+                        <div className="mb-4 text-sm text-muted-foreground">
+                          This session requires location confirmation. The app
+                          will attempt to obtain your device location
+                          automatically.
+                        </div>
                         {locating && (
-                          <div className="mb-3 text-sm text-muted-foreground">Obtaining location…</div>
+                          <div className="mb-3 text-sm text-muted-foreground">
+                            Obtaining location…
+                          </div>
                         )}
                         {locationError && (
-                          <div className="mb-3 text-sm text-red-600">{locationError}</div>
+                          <div className="mb-3 text-sm text-red-600">
+                            {locationError}
+                          </div>
                         )}
                         {/* Show the coordinates so the user can verify them */}
                         {(lat || lon) && (
                           <div className="mb-3 text-sm text-muted-foreground">
                             <div className="flex gap-4 items-center">
                               <div className="flex-1">
-                                <div className="text-xs font-medium">Latitude</div>
-                                <div className="text-sm">{lat ?? '—'}</div>
+                                <div className="text-xs font-medium">
+                                  Latitude
+                                </div>
+                                <div className="text-sm">{lat ?? "—"}</div>
                               </div>
                               <div className="flex-1">
-                                <div className="text-xs font-medium">Longitude</div>
-                                <div className="text-sm">{lon ?? '—'}</div>
+                                <div className="text-xs font-medium">
+                                  Longitude
+                                </div>
+                                <div className="text-sm">{lon ?? "—"}</div>
                               </div>
                             </div>
                           </div>
                         )}
                         {locationConfirmed ? (
                           <div className="mt-4">
-                            <FaceCamera active={open} onCapture={handleFaceCapture} onRetake={handleRetake} skipFaceDetect={false} />
+                            <FaceCamera
+                              active={open}
+                              onCapture={handleFaceCapture}
+                              onRetake={handleRetake}
+                              skipFaceDetect={false}
+                            />
                           </div>
                         ) : (
-                          <div className="mt-4 text-xs text-muted-foreground">Camera will be available after location is obtained. If your browser blocks location access, allow it or retry.</div>
+                          <div className="mt-4 text-xs text-muted-foreground">
+                            Camera will be available after location is obtained.
+                            If your browser blocks location access, allow it or
+                            retry.
+                          </div>
                         )}
                         {!locationConfirmed && (
                           <div className="mt-3">
-                            <Button variant="outline" onClick={() => {
-                              // Retry location request
-                              setLocationError(null);
-                              setLocating(true);
-                              try {
-                                navigator.geolocation.getCurrentPosition((pos) => {
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                // Retry location request
+                                setLocationError(null);
+                                setLocating(true);
+                                try {
+                                  navigator.geolocation.getCurrentPosition(
+                                    (pos) => {
+                                      setLocating(false);
+                                      setLat(String(pos.coords.latitude));
+                                      setLon(String(pos.coords.longitude));
+                                      setLocationConfirmed(true);
+                                    },
+                                    (err) => {
+                                      setLocating(false);
+                                      setLocationError(
+                                        err.message || "Unable to get location"
+                                      );
+                                    },
+                                    { enableHighAccuracy: true, timeout: 10000 }
+                                  );
+                                } catch (e) {
                                   setLocating(false);
-                                  setLat(String(pos.coords.latitude));
-                                  setLon(String(pos.coords.longitude));
-                                  setLocationConfirmed(true);
-                                }, (err) => {
-                                  setLocating(false);
-                                  setLocationError(err.message || 'Unable to get location');
-                                }, { enableHighAccuracy: true, timeout: 10000 });
-                              } catch (e) {
-                                setLocating(false);
-                                setLocationError(String(e));
-                              }
-                            }}>Retry Location</Button>
+                                  setLocationError(String(e));
+                                }
+                              }}
+                            >
+                              Retry Location
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -516,8 +822,11 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
 
                   return (
                     <div className="p-6 text-center text-sm text-muted-foreground">
-                      Attendance for this class is not yet supported for the selected mode.
-                      <div className="mt-2">Mode: {modes.length ? modes.join(', ') : 'unknown'}</div>
+                      Attendance for this class is not yet supported for the
+                      selected mode.
+                      <div className="mt-2">
+                        Mode: {modes.length ? modes.join(", ") : "unknown"}
+                      </div>
                     </div>
                   );
                 })()
@@ -526,23 +835,34 @@ export default function TakeAttendance({ open, onOpenChange, classItem, sessionI
           </Card>
 
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => onOpenChange(false)}>Close</Button>
-            <Button onClick={handleRecord} disabled={
-              !faceValidated || 
-              (sessionInfo && sessionInfo.session_active === false) ||
-              // if hybrid mode, require location confirmed
-              ((() => {
-                const modesRaw = Array.isArray(sessionInfo?.current_schedule_modes) && sessionInfo.current_schedule_modes.length > 0
-                  ? sessionInfo.current_schedule_modes
-                  : sessionInfo?.current_schedule?.modes ?? null;
-                const modes = Array.isArray(modesRaw) ? modesRaw.map((m: any) => String(m ?? '').toLowerCase()) : [];
-                return modes.includes('hybrid') && !locationConfirmed;
-              })())
-            }>
-              {submitting ? 'Recording...' : 'Record Attendance'}
+            <Button variant="secondary" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+            <Button
+              onClick={handleRecord}
+              disabled={
+                !faceValidated ||
+                (sessionInfo && sessionInfo.session_active === false) ||
+                // if hybrid mode, require location confirmed
+                (() => {
+                  const modesRaw =
+                    Array.isArray(sessionInfo?.current_schedule_modes) &&
+                    sessionInfo.current_schedule_modes.length > 0
+                      ? sessionInfo.current_schedule_modes
+                      : sessionInfo?.current_schedule?.modes ?? null;
+                  const modes = Array.isArray(modesRaw)
+                    ? modesRaw.map((m: any) => String(m ?? "").toLowerCase())
+                    : [];
+                  return modes.includes("hybrid") && !locationConfirmed;
+                })()
+              }
+            >
+              {submitting ? "Recording..." : "Record Attendance"}
             </Button>
           </div>
-          {submitError && <div className="text-sm text-red-600 mt-2">{submitError}</div>}
+          {submitError && (
+            <div className="text-sm text-red-600 mt-2">{submitError}</div>
+          )}
         </div>
 
         <DialogFooter />
