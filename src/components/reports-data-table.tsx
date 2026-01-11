@@ -138,17 +138,17 @@ function ViewReportSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8"
+        className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-0 sm:px-8 flex flex-col pt-12"
       >
-        <div className="mx-auto max-w-md">
-          <SheetHeader className="space-y-4 text-center">
+        <div className="mx-auto max-w-md w-full flex flex-col h-full">
+          <SheetHeader className="space-y-4 text-center px-6 sm:px-0 shrink-0 pb-4">
             <SheetTitle className="text-xl">Report Details</SheetTitle>
             <SheetDescription>
               View detailed information about this report
             </SheetDescription>
           </SheetHeader>
 
-          <div className="py-8 space-y-6">
+          <div className="flex-1 overflow-y-auto py-8 space-y-6 px-6 sm:px-0">
             {/* Report Icon and Basic Info */}
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="w-20 h-20 rounded-full bg-blue-500 flex items-center justify-center text-white">
@@ -212,7 +212,7 @@ function ViewReportSheet({
             </div>
           </div>
 
-          <SheetFooter className="pb-8">
+          <SheetFooter className="pb-8 px-6 sm:px-0 shrink-0">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
@@ -253,17 +253,17 @@ function EditReportSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-6 sm:px-8"
+        className="h-[85vh] sm:h-auto sm:max-w-lg sm:mx-auto px-0 sm:px-8 flex flex-col pt-12"
       >
-        <div className="mx-auto max-w-md">
-          <SheetHeader className="space-y-4 text-center">
+        <div className="mx-auto max-w-md w-full flex flex-col h-full">
+          <SheetHeader className="space-y-4 text-center px-6 sm:px-0 shrink-0 pb-4">
             <SheetTitle className="text-xl">Edit Report</SheetTitle>
             <SheetDescription>
               Update report information and settings
             </SheetDescription>
           </SheetHeader>
 
-          <div className="py-8 space-y-6">
+          <div className="flex-1 overflow-y-auto py-8 space-y-6 px-6 sm:px-0">
             <div className="grid gap-6">
               <div className="space-y-3">
                 <Label htmlFor="edit-name" className="text-sm font-medium">
@@ -301,7 +301,7 @@ function EditReportSheet({
             </div>
           </div>
 
-          <SheetFooter className="flex gap-4 pb-8">
+          <SheetFooter className="flex gap-4 pb-8 px-6 sm:px-0 shrink-0">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
