@@ -17,6 +17,7 @@
   --secondary-foreground: #ffffff;
   --muted: #e5e5e6;
   --muted-foreground: #0f1419;
+  --placeholder: #9ca3af;
   --accent: #e3ecf6;
   --accent-foreground: #1e9df1;
   --destructive: #f4212e;
@@ -77,6 +78,7 @@
   --secondary-foreground: #0f1419;
   --muted: #181818;
   --muted-foreground: #72767a;
+  --placeholder: #6b7280;
   --accent: #061622;
   --accent-foreground: #1c9cf0;
   --destructive: #f4212e;
@@ -135,6 +137,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-placeholder: var(--placeholder);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -181,6 +184,19 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Ensure all placeholder text is gray */
+  input::placeholder,
+  textarea::placeholder {
+    color: #9ca3af;
+    opacity: 1;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #6b7280;
+    opacity: 1;
   }
 }
 
@@ -246,6 +262,32 @@
 
   .fab:active {
     transform: scale(0.95);
+  }
+
+  /* Mobile keyboard viewport handling */
+  @supports (height: 100dvh) {
+    .drawer-content-mobile {
+      max-height: 85dvh;
+    }
+  }
+
+  /* Prevent content shift when mobile keyboard appears */
+  .keyboard-safe {
+    position: relative;
+    will-change: transform;
+  }
+
+  /* Mobile drawer keyboard fixes */
+  [data-vaul-drawer-direction="bottom"] {
+    touch-action: none;
+  }
+
+  /* Ensure drawer content stays within visual viewport on mobile */
+  @media (max-width: 768px) {
+    [data-vaul-drawer][data-vaul-drawer-visible="true"] {
+      position: fixed !important;
+      max-height: var(--visual-viewport-height, 85vh) !important;
+    }
   }
 } /* Prevent zoom on iOS inputs */
 @media screen and (-webkit-min-device-pixel-ratio: 0) {

@@ -1,8 +1,15 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+  DrawerClose,
+} from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,11 +33,34 @@ export default function JoinClassDrawer({
   const [classCode, setClassCode] = useState("");
   const [isJoining, setIsJoining] = useState(false);
 
+  // Disable body scroll when drawer is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [open]);
+
   // (browse list removed) only Class Code flow remains
 
   const handleJoinByCode = async () => {
     if (!classCode.trim()) {
-      toast({ title: "Error", description: "Please enter a valid class code", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Please enter a valid class code",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -38,12 +68,12 @@ export default function JoinClassDrawer({
     try {
       const ok = await checkAuth();
       if (!ok) {
-        const redirectTo = encodeURIComponent(window.location.pathname || '/');
+        const redirectTo = encodeURIComponent(window.location.pathname || "/");
         router.push(`/auth/login?redirect=${redirectTo}`);
         return;
       }
     } catch (err) {
-      const redirectTo = encodeURIComponent(window.location.pathname || '/');
+      const redirectTo = encodeURIComponent(window.location.pathname || "/");
       router.push(`/auth/login?redirect=${redirectTo}`);
       return;
     }
@@ -51,7 +81,10 @@ export default function JoinClassDrawer({
     setIsJoining(true);
     try {
       const enrollee = await classesAPI.joinMyClass(classCode.trim());
-      toast({ title: "Successfully Joined! ✓", description: `You've been enrolled in ${classCode}` });
+      toast({
+        title: "Successfully Joined! ✓",
+        description: `You've been enrolled in ${classCode}`,
+      });
       onOpenChange(false);
       onJoinSuccess && onJoinSuccess();
       router.push("/student/classes");
@@ -60,15 +93,35 @@ export default function JoinClassDrawer({
       const status = err?.status ?? null;
       const msg = err?.message ?? String(err);
       if (status === 401) {
-        toast({ title: "Unauthorized", description: "Please sign in to join classes.", variant: "destructive" });
+        toast({
+          title: "Unauthorized",
+          description: "Please sign in to join classes.",
+          variant: "destructive",
+        });
       } else if (status === 403) {
-        toast({ title: "Forbidden", description: "Only students may join classes via this form.", variant: "destructive" });
+        toast({
+          title: "Forbidden",
+          description: "Only students may join classes via this form.",
+          variant: "destructive",
+        });
       } else if (status === 400) {
-        toast({ title: "Unable to Join", description: msg || "Invalid class code or already enrolled", variant: "destructive" });
+        toast({
+          title: "Unable to Join",
+          description: msg || "Invalid class code or already enrolled",
+          variant: "destructive",
+        });
       } else if (status === 404) {
-        toast({ title: "Class Not Found", description: msg || "The class code you entered doesn't exist", variant: "destructive" });
+        toast({
+          title: "Class Not Found",
+          description: msg || "The class code you entered doesn't exist",
+          variant: "destructive",
+        });
       } else {
-        toast({ title: "Failed to Join", description: msg || "An unexpected error occurred", variant: "destructive" });
+        toast({
+          title: "Failed to Join",
+          description: msg || "An unexpected error occurred",
+          variant: "destructive",
+        });
       }
     } finally {
       setIsJoining(false);
@@ -78,36 +131,78 @@ export default function JoinClassDrawer({
   // confirmJoinRequest and browse handlers removed — we only support join by code here
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[90vh]">
-        <DrawerHeader>
+    <Drawer
+      open={open}
+      onOpenChange={onOpenChange}
+      dismissible={true}
+      shouldScaleBackground={false}
+      modal={true}
+      preventScrollRestoration={true}
+    >
+      <DrawerContent
+        className="flex flex-col outline-none !fixed !bottom-0 !left-0 !right-0"
+        style={{
+          height: "450px",
+          maxHeight: "450px",
+        }}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <DrawerHeader className="shrink-0 pb-2 px-4">
           <DrawerTitle>Join a Class</DrawerTitle>
         </DrawerHeader>
-        <div className="px-4 pb-4 space-y-4 overflow-y-auto">
-          <Tabs defaultValue="code" className="w-full">
-            <TabsList className="grid w-full grid-cols-1">
+
+        {/* Scrollable content container */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-2">
+          <div className="space-y-3">
+            <Tabs defaultValue="code" className="w-full">
+              <TabsList className="grid w-full grid-cols-1">
                 <TabsTrigger value="code">Class Code</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="code" className="space-y-4">
-              <div>
-                <Label htmlFor="class-code">Enter Class Code</Label>
-                <Input id="class-code" value={classCode} onChange={(e) => setClassCode(e.target.value)} placeholder="e.g., CS101-001" className="mt-1" />
-                <p className="text-xs text-muted-foreground mt-1">Get the class code from your instructor</p>
-              </div>
-              <Button className="w-full" onClick={handleJoinByCode} disabled={isJoining}>
-                {isJoining ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                Request to Join
-              </Button>
+              <TabsContent value="code" className="space-y-3 pt-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="class-code" className="text-sm">
+                    Enter Class Code
+                  </Label>
+                  <Input
+                    id="class-code"
+                    value={classCode}
+                    onChange={(e) => setClassCode(e.target.value)}
+                    placeholder="e.g., CS101-001"
+                    className="h-10"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    inputMode="text"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Get the class code from your instructor
+                  </p>
+                </div>
+                <Button
+                  className="w-full h-10"
+                  onClick={handleJoinByCode}
+                  disabled={isJoining}
+                >
+                  {isJoining ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
+                  Request to Join
+                </Button>
               </TabsContent>
-          </Tabs>
-        </div>
-        <DrawerFooter>
-          <div className="w-full">
-            <DrawerClose asChild>
-              <Button variant="outline" className="w-full">Cancel</Button>
-            </DrawerClose>
+            </Tabs>
           </div>
+        </div>
+
+        <DrawerFooter className="shrink-0 border-t pt-3 pb-3 px-4">
+          <DrawerClose asChild>
+            <Button variant="outline" className="w-full h-10">
+              Cancel
+            </Button>
+          </DrawerClose>
         </DrawerFooter>
       </DrawerContent>
     </Drawer>

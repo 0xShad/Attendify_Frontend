@@ -1,10 +1,23 @@
 "use client";
 
-import React from "react";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
+import React, { useEffect } from "react";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+  DrawerClose,
+} from "@/components/ui/drawer";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { IconLoader2, IconPlus } from "@tabler/icons-react";
@@ -83,13 +96,38 @@ const CreateClassDrawer: React.FC<CreateClassDrawerProps> = ({
 }) => {
   const [programFilter, setProgramFilter] = React.useState<string>("__all__");
 
+  // Disable body scroll when drawer is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [open]);
+
   // derive available programs from courses prop
   const programOptions = React.useMemo(() => {
-    if (!Array.isArray(courses)) return [] as Array<{ id: string; name: string }>;
+    if (!Array.isArray(courses))
+      return [] as Array<{ id: string; name: string }>;
     const map = new Map<string, string>();
     for (const c of courses) {
-      const pid = c.program_id !== undefined && c.program_id !== null ? String(c.program_id) : "__none__";
-      const pname = c.program_name ?? (c.program_id ? `Program ${c.program_id}` : "(No program)");
+      const pid =
+        c.program_id !== undefined && c.program_id !== null
+          ? String(c.program_id)
+          : "__none__";
+      const pname =
+        c.program_name ??
+        (c.program_id ? `Program ${c.program_id}` : "(No program)");
       if (!map.has(pid)) map.set(pid, pname);
     }
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
@@ -98,19 +136,34 @@ const CreateClassDrawer: React.FC<CreateClassDrawerProps> = ({
   const filteredCourses = React.useMemo(() => {
     if (!Array.isArray(courses)) return [] as typeof courses;
     if (programFilter === "__all__") return courses;
-    if (programFilter === "__none__") return courses.filter((c) => c.program_id === undefined || c.program_id === null);
+    if (programFilter === "__none__")
+      return courses.filter(
+        (c) => c.program_id === undefined || c.program_id === null
+      );
     return courses.filter((c) => String(c.program_id) === programFilter);
   }, [courses, programFilter]);
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[90vh]">
+    <Drawer
+      open={open}
+      onOpenChange={onOpenChange}
+      dismissible={true}
+      shouldScaleBackground={false}
+      modal={true}
+      preventScrollRestoration={true}
+    >
+      <DrawerContent
+        className="flex flex-col outline-none !fixed !bottom-0 !left-0 !right-0 max-h-[90vh]"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DrawerHeader>
           <DrawerTitle>Create New Class</DrawerTitle>
         </DrawerHeader>
         <div className="px-4 pb-4 space-y-4 overflow-y-auto">
           <div>
-            <Label htmlFor="program-filter">{createNewCourse ? 'Program (required)' : 'Program'}</Label>
+            <Label htmlFor="program-filter">
+              {createNewCourse ? "Program (required)" : "Program"}
+            </Label>
             <div className="mb-2">
               <Select
                 value={programFilter}
@@ -119,18 +172,34 @@ const CreateClassDrawer: React.FC<CreateClassDrawerProps> = ({
                   // If we're creating a new course, use this program selection for the new course
                   if (createNewCourse) {
                     // Treat the sentinel values as no-selection
-                    if (v === '__all__' || v === '__none__') setNewCourseProgramId("");
+                    if (v === "__all__" || v === "__none__")
+                      setNewCourseProgramId("");
                     else setNewCourseProgramId(v);
                   }
                 }}
               >
-                <SelectTrigger id="program-filter" disabled={Boolean(coursesLoading) || programOptions.length === 0}>
-                  <SelectValue placeholder={programOptions.length > 0 ? (createNewCourse ? 'Select program (required)' : 'Filter by program (optional)') : 'All programs'} />
+                <SelectTrigger
+                  id="program-filter"
+                  disabled={
+                    Boolean(coursesLoading) || programOptions.length === 0
+                  }
+                >
+                  <SelectValue
+                    placeholder={
+                      programOptions.length > 0
+                        ? createNewCourse
+                          ? "Select program (required)"
+                          : "Filter by program (optional)"
+                        : "All programs"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">All programs</SelectItem>
                   {programOptions.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -139,8 +208,19 @@ const CreateClassDrawer: React.FC<CreateClassDrawerProps> = ({
             <div className="flex items-center space-x-2 mb-2">
               <div className="flex-none">
                 <Label htmlFor="course-id">Course</Label>
-                <Select value={newCourseId} onValueChange={(v) => setNewCourseId(v)}>
-                  <SelectTrigger id="course-id" className="w-72" disabled={createNewCourse || Boolean(coursesLoading) || !(filteredCourses && filteredCourses.length > 0)}>
+                <Select
+                  value={newCourseId}
+                  onValueChange={(v) => setNewCourseId(v)}
+                >
+                  <SelectTrigger
+                    id="course-id"
+                    className="w-72"
+                    disabled={
+                      createNewCourse ||
+                      Boolean(coursesLoading) ||
+                      !(filteredCourses && filteredCourses.length > 0)
+                    }
+                  >
                     <SelectValue
                       placeholder={
                         coursesLoading
@@ -152,7 +232,8 @@ const CreateClassDrawer: React.FC<CreateClassDrawerProps> = ({
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.isArray(filteredCourses) && filteredCourses.length > 0 ? (
+                    {Array.isArray(filteredCourses) &&
+                    filteredCourses.length > 0 ? (
                       filteredCourses.map((c) => (
                         <SelectItem key={String(c.id)} value={String(c.id)}>
                           {c.code && c.name
@@ -183,7 +264,9 @@ const CreateClassDrawer: React.FC<CreateClassDrawerProps> = ({
                   }}
                   className="checkbox"
                 />
-                <label htmlFor="create-new-course" className="text-sm">Create a new course inline</label>
+                <label htmlFor="create-new-course" className="text-sm">
+                  Create a new course inline
+                </label>
               </div>
             </div>
 
@@ -191,17 +274,34 @@ const CreateClassDrawer: React.FC<CreateClassDrawerProps> = ({
               <div className="space-y-2">
                 <div>
                   <Label htmlFor="new-course-code">Course Code</Label>
-                  <Input id="new-course-code" value={newCourseCode} onChange={(e) => setNewCourseCode(e.target.value)} placeholder="e.g., CS999" />
+                  <Input
+                    id="new-course-code"
+                    value={newCourseCode}
+                    onChange={(e) => setNewCourseCode(e.target.value)}
+                    placeholder="e.g., CS999"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="new-course-name">Course Name</Label>
-                  <Input id="new-course-name" value={newCourseName} onChange={(e) => setNewCourseName(e.target.value)} placeholder="e.g., Special Topics in CS" />
+                  <Input
+                    id="new-course-name"
+                    value={newCourseName}
+                    onChange={(e) => setNewCourseName(e.target.value)}
+                    placeholder="e.g., Special Topics in CS"
+                  />
                 </div>
                 {/* Program selection moved to the top Program filter. When creating a new course,
                     the top Program field becomes required and its value is used for the new course. */}
                 <div>
-                  <Label htmlFor="new-course-description">Course Description (optional)</Label>
-                  <Textarea id="new-course-description" value={newCourseDescription} onChange={(e) => setNewCourseDescription(e.target.value)} rows={2} />
+                  <Label htmlFor="new-course-description">
+                    Course Description (optional)
+                  </Label>
+                  <Textarea
+                    id="new-course-description"
+                    value={newCourseDescription}
+                    onChange={(e) => setNewCourseDescription(e.target.value)}
+                    rows={2}
+                  />
                 </div>
               </div>
             ) : null}
@@ -219,7 +319,9 @@ const CreateClassDrawer: React.FC<CreateClassDrawerProps> = ({
             />
           </div>
           <div>
-            <Label htmlFor="class-academic-year">Academic Year (optional)</Label>
+            <Label htmlFor="class-academic-year">
+              Academic Year (optional)
+            </Label>
             <Input
               id="class-academic-year"
               value={newClassAcademicYear}
@@ -248,7 +350,11 @@ const CreateClassDrawer: React.FC<CreateClassDrawerProps> = ({
           </div>
         </div>
         <DrawerFooter>
-          <Button onClick={() => void onAddClass()} disabled={addingClass} className="w-full">
+          <Button
+            onClick={() => void onAddClass()}
+            disabled={addingClass}
+            className="w-full"
+          >
             {addingClass ? (
               <IconLoader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (

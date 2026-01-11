@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { parseISO, formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Edit } from "lucide-react";
+import { Edit, Camera, Save, Loader2 } from "lucide-react";
 import resolveAvatarUrl from "@/lib/utils/resolveAvatarUrl";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -21,20 +21,29 @@ type Props = {
   isLoading?: boolean;
 };
 
-export default function BasicInfo({ profileData, setProfileData, isEditing, setIsEditing, onSave, onCancel, isSaving = false, isLoading = false }: Props) {
+export default function BasicInfo({
+  profileData,
+  setProfileData,
+  isEditing,
+  setIsEditing,
+  onSave,
+  onCancel,
+  isSaving = false,
+  isLoading = false,
+}: Props) {
   const [emailError, setEmailError] = useState<string | null>(null);
 
   const validateEmailEduPh = (email?: string | null) => {
     if (!email) return false;
-    // allow subdomains, require domain to end with edu.ph (case-insensitive)
-    return /@([A-Za-z0-9-]+\.)*edu\.ph$/i.test(email.trim());
+    // accept any email with @
+    return /@/.test(email.trim());
   };
 
   const handleSaveClick = async () => {
     // validate email when present
     const email = profileData?.email ?? null;
     if (email && !validateEmailEduPh(String(email))) {
-      setEmailError("Email must belong to an .edu.ph domain");
+      setEmailError("Email must contain an @ symbol");
       return;
     }
     setEmailError(null);
@@ -47,22 +56,33 @@ export default function BasicInfo({ profileData, setProfileData, isEditing, setI
     if (!file) return;
     const url = URL.createObjectURL(file);
     // store the File object so the parent can upload it when saving
-    setProfileData({ ...profileData, avatar_preview: url, avatar_file_name: file.name, avatar_file: file });
+    setProfileData({
+      ...profileData,
+      avatar_preview: url,
+      avatar_file_name: file.name,
+      avatar_file: file,
+    });
   };
 
   const first = profileData.firstname ?? profileData.firstName ?? "User";
   const middle = profileData.middlename ?? profileData.middleName ?? "";
   const last = profileData.lastname ?? profileData.lastName ?? "";
   const displayName = [first, middle, last].filter(Boolean).join(" ");
-  const initials = (String(profileData.firstname || "")[0] || "U").toUpperCase();
+  const initials = (
+    String(profileData.firstname || "")[0] || "U"
+  ).toUpperCase();
 
   // Parse last active timestamp into a friendly relative string and an absolute Manila time for tooltip
-  const rawLastActive = profileData.last_active ?? profileData.lastActive ?? profileData.lastSeen;
+  const rawLastActive =
+    profileData.last_active ?? profileData.lastActive ?? profileData.lastSeen;
   let lastActiveText = "Just now";
   let formattedManila: string | undefined = undefined;
   if (rawLastActive) {
     try {
-      const parsed = typeof rawLastActive === "string" ? parseISO(rawLastActive) : new Date(rawLastActive);
+      const parsed =
+        typeof rawLastActive === "string"
+          ? parseISO(rawLastActive)
+          : new Date(rawLastActive);
       if (!isNaN(parsed.getTime())) {
         lastActiveText = formatDistanceToNow(parsed, { addSuffix: true });
         try {
@@ -85,35 +105,43 @@ export default function BasicInfo({ profileData, setProfileData, isEditing, setI
   return (
     <Card className="w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 text-slate-100 shadow-xl">
       <div className="flex flex-col md:flex-row">
-        
         {/* LEFT COLUMN: Sidebar */}
         <div className="relative flex w-full flex-col items-center justify-start border-b border-slate-700/50 md:w-[320px] md:border-b-0 md:border-r bg-slate-900/20 p-8 text-center">
-          
           <div className="absolute top-0 left-0 right-0 h-px bg-white/5" />
 
           {/* Avatar Section */}
-            <div className="relative mb-6 z-10 mt-4">
-              <div className="absolute -inset-4 rounded-full bg-slate-500/20 blur-2xl opacity-50" />
-              {isLoading ? (
-                <div className="h-36 w-36 rounded-full bg-slate-700/30 animate-pulse" />
-              ) : (
-                <Avatar className="relative h-36 w-36 border-4 border-slate-700 shadow-md">
-                  {(() => {
-                    // Prefer local preview (blob/data URL) if present, otherwise resolve backend URL
-                    const preview = profileData?.avatar_preview;
-                    const raw = profileData?.avatar_url ?? profileData?.avatarUrl ?? profileData?.avatar;
-                    const avatarSrc = preview ? String(preview) : raw ? resolveAvatarUrl(String(raw)) ?? undefined : undefined;
-                    return avatarSrc ? (
-                      <AvatarImage src={String(avatarSrc)} className="object-cover" />
-                    ) : (
-                      <AvatarFallback className="text-4xl font-bold bg-slate-700 text-slate-300">
-                        {initials}
-                      </AvatarFallback>
-                    );
-                  })()}
-                </Avatar>
-              )}
-            </div>
+          <div className="relative mb-6 z-10 mt-4">
+            <div className="absolute -inset-6 rounded-full bg-blue-500/10 blur-3xl opacity-60" />
+            {isLoading ? (
+              <div className="h-40 w-40 rounded-full bg-slate-700/30 animate-pulse" />
+            ) : (
+              <Avatar className="relative h-40 w-40 border-[5px] border-slate-700/50 shadow-2xl shadow-black/20">
+                {(() => {
+                  // Prefer local preview (blob/data URL) if present, otherwise resolve backend URL
+                  const preview = profileData?.avatar_preview;
+                  const raw =
+                    profileData?.avatar_url ??
+                    profileData?.avatarUrl ??
+                    profileData?.avatar;
+                  const avatarSrc = preview
+                    ? String(preview)
+                    : raw
+                    ? resolveAvatarUrl(String(raw)) ?? undefined
+                    : undefined;
+                  return avatarSrc ? (
+                    <AvatarImage
+                      src={String(avatarSrc)}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <AvatarFallback className="text-4xl font-bold bg-slate-700 text-slate-300">
+                      {initials}
+                    </AvatarFallback>
+                  );
+                })()}
+              </Avatar>
+            )}
+          </div>
 
           {/* Identity Info */}
           <div className="mb-8 space-y-3 z-10">
@@ -124,14 +152,21 @@ export default function BasicInfo({ profileData, setProfileData, isEditing, setI
               </>
             ) : (
               <>
-                <h3 className="font-bold text-2xl tracking-tight text-white">
+                <h3 className="font-bold text-2xl tracking-tight text-white drop-shadow-sm">
                   {displayName || "New User"}
                 </h3>
-                <div className="flex flex-col items-center gap-2">
-                  <Badge className="px-4 py-1.5 font-medium capitalize bg-slate-700 text-slate-200 hover:bg-slate-600 border-0">
+                <div className="flex flex-col items-center gap-2.5">
+                  <Badge className="px-5 py-1.5 font-semibold capitalize bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 shadow-sm">
                     {profileData.role ?? "Student"}
                   </Badge>
-                  <span className="text-xs font-medium text-slate-400 mt-1" title={formattedManila ? `Asia/Manila — ${formattedManila}` : undefined}>
+                  <span
+                    className="text-xs font-medium text-slate-500 mt-0.5"
+                    title={
+                      formattedManila
+                        ? `Asia/Manila — ${formattedManila}`
+                        : undefined
+                    }
+                  >
                     Last seen: {lastActiveText}
                   </span>
                 </div>
@@ -149,52 +184,94 @@ export default function BasicInfo({ profileData, setProfileData, isEditing, setI
             ) : isEditing ? (
               <>
                 <label className="w-full cursor-pointer group">
-                  <input type="file" accept="image/*" onChange={handleAvatarFile} className="hidden" />
-                  <div className="flex w-full items-center justify-center rounded-lg bg-blue-600 text-white px-4 py-2.5 text-sm font-bold shadow hover:bg-blue-500 hover:-translate-y-0.5 transition-all">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarFile}
+                    className="hidden"
+                  />
+                  <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 text-white px-4 py-3 text-sm font-bold shadow-lg shadow-blue-900/30 hover:from-blue-500 hover:to-blue-400 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-900/40 transition-all duration-200">
+                    <Camera className="w-4 h-4" />
                     Upload Photo
                   </div>
                 </label>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
-                  className="w-full text-slate-400 hover:text-red-400 hover:bg-slate-700/50" 
-                  onClick={() => setProfileData({ ...profileData, avatar_preview: undefined, avatar_file_name: undefined, avatar_url: undefined })}
+                  className="w-full text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                  onClick={() =>
+                    setProfileData({
+                      ...profileData,
+                      avatar_preview: undefined,
+                      avatar_file_name: undefined,
+                      avatar_url: undefined,
+                    })
+                  }
                 >
                   Remove Picture
                 </Button>
               </>
             ) : (
-               <p className="text-xs text-slate-400 px-4 leading-relaxed">
-                 Switch to edit mode to make changes.
-               </p>
+              <p className="text-xs text-slate-400 px-4 leading-relaxed">
+                Switch to edit mode to make changes.
+              </p>
             )}
           </div>
         </div>
 
         {/* RIGHT COLUMN: Form Details */}
         <div className="flex-1 p-8 lg:p-12">
-          <div className="mb-8 pb-4 border-b border-slate-700/50">
-            <div className="flex items-start justify-between">
+          <div className="mb-10 pb-6 border-b border-slate-700/50">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold tracking-tight text-white">General Information</h2>
-                <p className="text-sm text-slate-400 mt-1">
+                <h2 className="text-2xl font-bold tracking-tight text-white mb-2">
+                  General Information
+                </h2>
+                <p className="text-sm text-slate-400 leading-relaxed">
                   Manage the basic details displayed on your public profile.
                 </p>
               </div>
-              <div>
+              <div className="shrink-0">
                 {!isEditing && setIsEditing ? (
-                  <Button onClick={() => setIsEditing(true)}>
+                  <Button 
+                    onClick={() => setIsEditing(true)}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-900/20"
+                  >
                     <Edit className="w-4 h-4 mr-2" />
                     Edit Profile
                   </Button>
                 ) : null}
 
                 {isEditing ? (
-                  <div className="flex gap-2">
-                    <Button onClick={() => { void handleSaveClick(); }} disabled={isSaving || isLoading}>
-                      {isSaving ? "Saving..." : "Save Changes"}
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => {
+                        void handleSaveClick();
+                      }}
+                      disabled={isSaving || isLoading}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-900/20 px-6"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Changes
+                        </>
+                      )}
                     </Button>
-                    <Button variant="outline" onClick={() => { if (onCancel) onCancel(); else if (setIsEditing) setIsEditing(false); }} disabled={isSaving}>
+                    <Button
+                      variant="outline"
+                      className="bg-slate-700/50 text-slate-200 hover:bg-slate-600 hover:text-white border-slate-600 font-semibold px-6"
+                      onClick={() => {
+                        if (onCancel) onCancel();
+                        else if (setIsEditing) setIsEditing(false);
+                      }}
+                      disabled={isSaving}
+                    >
                       Cancel
                     </Button>
                   </div>
@@ -202,34 +279,69 @@ export default function BasicInfo({ profileData, setProfileData, isEditing, setI
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-8">
             {/* Name Row: First, Middle, Last (always show Middle) */}
             <div className="grid gap-6 sm:grid-cols-3">
               <div>
-                <Label className="text-sm">First Name</Label>
+                <Label className="text-sm font-semibold text-slate-300 mb-2 block">First Name</Label>
                 {isLoading ? (
-                  <div className="h-10 w-full rounded bg-slate-700/20 animate-pulse" />
+                  <div className="h-11 w-full rounded bg-slate-700/20 animate-pulse" />
                 ) : (
-                  <Input value={profileData.firstname ?? profileData.firstName ?? ""} onChange={(e) => setProfileData({ ...profileData, firstname: e.target.value })} disabled={!isEditing} placeholder="First name" />
+                  <Input
+                    value={profileData.firstname ?? profileData.firstName ?? ""}
+                    onChange={(e) =>
+                      setProfileData({
+                        ...profileData,
+                        firstname: e.target.value,
+                      })
+                    }
+                    disabled={!isEditing}
+                    placeholder="First name"
+                    className="h-11 bg-slate-700/40 border-slate-600 text-slate-100 placeholder:text-slate-500 focus-visible:ring-blue-500/50 focus-visible:border-blue-500 transition-all"
+                  />
                 )}
               </div>
 
               <div>
-                <Label className="text-sm">Middle Name</Label>
+                <Label className="text-sm font-semibold text-slate-300 mb-2 block">Middle Name</Label>
                 {isLoading ? (
                   <div className="h-10 w-full rounded bg-slate-700/20 animate-pulse" />
                 ) : (
-                  <Input value={profileData.middlename ?? profileData.middleName ?? ""} onChange={(e) => setProfileData({ ...profileData, middlename: e.target.value })} disabled={!isEditing} placeholder="Middle name" />
+                  <Input
+                    value={
+                      profileData.middlename ?? profileData.middleName ?? ""
+                    }
+                    onChange={(e) =>
+                      setProfileData({
+                        ...profileData,
+                        middlename: e.target.value,
+                      })
+                    }
+                    disabled={!isEditing}
+                    placeholder="Middle name"
+                    className="h-11 bg-slate-700/40 border-slate-600 text-slate-100 placeholder:text-slate-500 focus-visible:ring-blue-500/50 focus-visible:border-blue-500 transition-all"
+                  />
                 )}
               </div>
 
               <div>
-                <Label className="text-sm">Last Name</Label>
+                <Label className="text-sm font-semibold text-slate-300 mb-2 block">Last Name</Label>
                 {isLoading ? (
-                  <div className="h-10 w-full rounded bg-slate-700/20 animate-pulse" />
+                  <div className="h-11 w-full rounded bg-slate-700/20 animate-pulse" />
                 ) : (
-                  <Input value={profileData.lastname ?? profileData.lastName ?? ""} onChange={(e) => setProfileData({ ...profileData, lastname: e.target.value })} disabled={!isEditing} placeholder="Last name" />
+                  <Input
+                    value={profileData.lastname ?? profileData.lastName ?? ""}
+                    onChange={(e) =>
+                      setProfileData({
+                        ...profileData,
+                        lastname: e.target.value,
+                      })
+                    }
+                    disabled={!isEditing}
+                    placeholder="Last name"
+                    className="h-11 bg-slate-700/40 border-slate-600 text-slate-100 placeholder:text-slate-500 focus-visible:ring-blue-500/50 focus-visible:border-blue-500 transition-all"
+                  />
                 )}
               </div>
             </div>
@@ -237,49 +349,83 @@ export default function BasicInfo({ profileData, setProfileData, isEditing, setI
             {/* Contact Row */}
             <div className="grid gap-6 sm:grid-cols-2">
               <div>
-                <Label className="text-sm">Email Address</Label>
+                <Label className="text-sm font-semibold text-slate-300 mb-2 block">Email Address</Label>
                 {isLoading ? (
-                  <div className="h-10 w-full rounded bg-slate-700/20 animate-pulse" />
+                  <div className="h-11 w-full rounded bg-slate-700/20 animate-pulse" />
                 ) : (
                   <>
-                    <Input type="email" value={profileData.email ?? ""} onChange={(e: any) => { setProfileData({ ...profileData, email: e.target.value }); setEmailError(null); }} disabled={!isEditing} />
-                    {emailError ? <p className="text-xs text-red-400 mt-1">{emailError}</p> : null}
+                    <Input
+                      type="email"
+                      value={profileData.email ?? ""}
+                      onChange={(e: any) => {
+                        setProfileData({
+                          ...profileData,
+                          email: e.target.value,
+                        });
+                        setEmailError(null);
+                      }}
+                      disabled={!isEditing}
+                      className="h-11 bg-slate-700/40 border-slate-600 text-slate-100 placeholder:text-slate-500 focus-visible:ring-blue-500/50 focus-visible:border-blue-500 transition-all"
+                      placeholder="your.email@example.com"
+                    />
+                    {emailError ? (
+                      <p className="text-xs text-red-400 mt-2 font-medium">{emailError}</p>
+                    ) : null}
                   </>
                 )}
               </div>
               <div className="relative">
-                <Label className="text-sm">Username</Label>
+                <Label className="text-sm font-semibold text-slate-300 mb-2 block">Username</Label>
                 {isLoading ? (
-                  <div className="h-10 w-full rounded bg-slate-700/20 animate-pulse pl-8" />
+                  <div className="h-11 w-full rounded bg-slate-700/20 animate-pulse pl-8" />
                 ) : (
                   <>
-                    <Input id="username" value={profileData.username ?? ""} onChange={(e: any) => setProfileData({ ...profileData, username: e.target.value })} disabled={!isEditing} className="pl-8" />
-                    <span className="absolute left-3 top-[1.95rem] text-slate-400 font-medium">@</span>
+                    <Input
+                      id="username"
+                      value={profileData.username ?? ""}
+                      onChange={(e: any) =>
+                        setProfileData({
+                          ...profileData,
+                          username: e.target.value,
+                        })
+                      }
+                      disabled={!isEditing}
+                      className="h-11 pl-8 bg-slate-700/40 border-slate-600 text-slate-100 placeholder:text-slate-500 focus-visible:ring-blue-500/50 focus-visible:border-blue-500 transition-all"
+                      placeholder="username"
+                    />
+                    <span className="absolute left-3 top-[2.4rem] text-slate-400 font-medium">
+                      @
+                    </span>
                   </>
                 )}
               </div>
             </div>
 
             {/* Bio Section */}
-            <div className="space-y-2.5">
-              <Label htmlFor="bio" className="text-[0.7rem] font-bold uppercase tracking-wider text-slate-400">
+            <div className="space-y-3">
+              <Label
+                htmlFor="bio"
+                className="text-sm font-semibold text-slate-300 mb-2 block"
+              >
                 About You
               </Label>
               {isLoading ? (
-                <div className="h-36 w-full rounded bg-slate-700/20 animate-pulse" />
+                <div className="h-40 w-full rounded-lg bg-slate-700/20 animate-pulse" />
               ) : (
                 <>
-                  <textarea 
+                  <textarea
                     id="bio"
-                    value={profileData.bio ?? ""} 
-                    onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })} 
-                    disabled={!isEditing} 
-                    // Changed background to lighter slate-700/40 and lighter border
-                    className="flex min-h-[140px] w-full rounded-lg border border-slate-600 bg-slate-700/40 px-4 py-3 text-sm text-slate-100 ring-offset-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500 transition-all disabled:cursor-not-allowed disabled:opacity-50 resize-none hover:bg-slate-700/60"
+                    value={profileData.bio ?? ""}
+                    onChange={(e) =>
+                      setProfileData({ ...profileData, bio: e.target.value })
+                    }
+                    disabled={!isEditing}
+                    maxLength={240}
+                    className="flex min-h-40 w-full rounded-lg border border-slate-600 bg-slate-700/40 px-4 py-3.5 text-sm text-slate-100 leading-relaxed ring-offset-slate-900 placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500 transition-all disabled:cursor-not-allowed disabled:opacity-50 resize-none hover:bg-slate-700/60"
                     placeholder="Tell the community a little about yourself..."
                   />
-                  <p className="text-[0.75rem] text-slate-500 text-right font-medium">
-                    {(profileData.bio?.length || 0)} / 240 characters
+                  <p className="text-xs text-slate-500 text-right font-medium">
+                    {profileData.bio?.length || 0} / 240 characters
                   </p>
                 </>
               )}
@@ -292,17 +438,28 @@ export default function BasicInfo({ profileData, setProfileData, isEditing, setI
 }
 
 // Updated Input Component for Lighter Fields
-function LighterInput({ id, label, value, onChange, disabled, type = "text", className = "" }: any) {
+function LighterInput({
+  id,
+  label,
+  value,
+  onChange,
+  disabled,
+  type = "text",
+  className = "",
+}: any) {
   return (
     <div className="space-y-2.5">
-      <Label htmlFor={id} className="text-[0.7rem] font-bold uppercase tracking-wider text-slate-400">
+      <Label
+        htmlFor={id}
+        className="text-[0.7rem] font-bold uppercase tracking-wider text-slate-400"
+      >
         {label}
       </Label>
-      <Input 
+      <Input
         id={id}
         type={type}
-        value={value} 
-        onChange={onChange} 
+        value={value}
+        onChange={onChange}
         disabled={disabled}
         // KEY CHANGE: bg-slate-700/40 (lighter) instead of slate-900 (darker)
         // Border is also lighter (slate-600)

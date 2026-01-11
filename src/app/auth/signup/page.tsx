@@ -652,7 +652,7 @@ export default function SignUpPage() {
                         id="firstName"
                         type="text"
                         placeholder="Enter your first name"
-                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
+                        className={`w-full bg-background/50 border-border placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.firstName
                             ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
@@ -676,7 +676,7 @@ export default function SignUpPage() {
                         id="middleName"
                         type="text"
                         placeholder="Enter your middle name"
-                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
+                        className={`w-full bg-background/50 border-border  placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.middleName
                             ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
@@ -699,7 +699,7 @@ export default function SignUpPage() {
                         id="lastName"
                         type="text"
                         placeholder="Enter your last name"
-                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
+                        className={`w-full bg-background/50 border-border placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.lastName
                             ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
@@ -770,7 +770,7 @@ export default function SignUpPage() {
                         type="tel"
                         placeholder="09123456789"
                         maxLength={11}
-                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
+                        className={`w-full bg-background/50 border-border  placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.contactNumber
                             ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
@@ -795,7 +795,7 @@ export default function SignUpPage() {
                         id="studentNumber"
                         type="text"
                         placeholder="Enter your student number"
-                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
+                        className={`w-full bg-background/50 border-border placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.studentNumber
                             ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
@@ -819,7 +819,7 @@ export default function SignUpPage() {
                         id="email"
                         type="email"
                         placeholder="your.email@example.com"
-                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
+                        className={`w-full bg-background/50 border-border  placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.email
                             ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
@@ -841,7 +841,7 @@ export default function SignUpPage() {
                         id="username"
                         type="text"
                         placeholder="Choose a username"
-                        className={`w-full bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
+                        className={`w-full bg-background/50 border-border  placeholder:text-sm focus:border-primary focus:ring-primary ${
                           errors.username
                             ? "border-destructive focus:border-destructive focus:ring-destructive"
                             : ""
@@ -910,7 +910,7 @@ export default function SignUpPage() {
                           id="password"
                           type={showPassword ? "text" : "password"}
                           placeholder="Create a secure password"
-                          className={`w-full pr-10 bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
+                          className={`w-full pr-10 bg-background/50 border-border placeholder:text-sm focus:border-primary focus:ring-primary ${
                             errors.password
                               ? "border-destructive focus:border-destructive focus:ring-destructive"
                               : ""
@@ -950,7 +950,7 @@ export default function SignUpPage() {
                           id="confirmPassword"
                           type={showConfirmPassword ? "text" : "password"}
                           placeholder="Confirm your password"
-                          className={`w-full pr-10 bg-background/50 border-border placeholder:text-muted-foreground placeholder:text-sm focus:border-primary focus:ring-primary ${
+                          className={`w-full pr-10 bg-background/50 border-border placeholder:text-sm focus:border-primary focus:ring-primary ${
                             errors.confirmPassword
                               ? "border-destructive focus:border-destructive focus:ring-destructive"
                               : ""

@@ -158,7 +158,7 @@ export default function LoginPage() {
                       id="username"
                       type="text"
                       placeholder="Enter your username or email"
-                      className="w-full placeholder:text-sm text-sm placeholder:text-muted-foreground bg-background/50 border-border focus:border-primary focus:ring-primary"
+                      className="w-full placeholder:text-sm text-sm  bg-background/50 border-border focus:border-primary focus:ring-primary"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       required
@@ -173,7 +173,7 @@ export default function LoginPage() {
                         id="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
-                        className="w-full placeholder:text-sm placeholder:text-muted-foreground pr-10 text-sm bg-background/50 border-border focus:border-primary focus:ring-primary"
+                        className="w-full placeholder:text-sm pr-10 text-sm bg-background/50 border-border focus:border-primary focus:ring-primary"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -194,11 +194,6 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  <div className="text-xs text-right">
-                    <Link href="/auth/forgot-password" className="font-semibold text-primary hover:text-primary/80 transition-colors">
-                      Forgot your password?
-                    </Link>
-                  </div>
                 </>
               ) : (
                 <>
